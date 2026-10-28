@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AutoPark RL</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23f97316'/><text x='16' y='23' font-size='20' font-family='sans-serif' font-weight='700' fill='white' text-anchor='middle'>P</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <main class="app">
+    <section class="viewport" id="viewport">
+      <div class="flash" id="flash"></div>
+      <div class="banner" id="banner" hidden></div>
+      <div class="hud hud-top">
+        <span class="chip" id="hud-camera">Cámara: orbital</span>
+        <span class="chip" id="hud-action">Acción: —</span>
+      </div>
+      <div class="hud hud-bottom legend">
+        <span><i style="--c: var(--orange)"></i>Vehículo</span>
+        <span><i style="--c: var(--green)"></i>Cupo objetivo</span>
+        <span><i style="--c: var(--blue)"></i>Sensores</span>
+        <span><i style="--c: var(--gray)"></i>Estacionados</span>
+        <span class="keys">Espacio · R · C · S · T</span>
+      </div>
+      <div class="loading" id="loading">Conectando con el simulador…</div>
+    </section>
+
+    <aside class="panel">
+      <header class="brand">
+        <div class="logo">P</div>
+        <div>
+          <h1>AutoPark RL</h1>
+          <p>Estacionamiento autónomo con aprendizaje por refuerzo</p>
+        </div>
+        <span class="conn" id="conn" title="Conexión">●</span>
+      </header>
+
+      <section class="card status-card">
+        <div class="status" id="status" data-state="idle">En espera</div>
+        <div class="status-meta">
+          <span>Episodio <b id="m-episode">0</b></span>
+          <span>Paso <b id="m-step">0</b></span>
+        </div>
+      </section>
+
+      <section class="card metrics">
+        <div class="metric"><label>Recompensa</label><b id="m-reward">0.00</b><small id="m-total">total 0.0</small></div>
+        <div class="metric"><label>Distancia al cupo</label><b id="m-distance">0.0 m</b><small id="m-heading">orientación 0°</small></div>
+        <div class="metric"><label>Velocidad</label><b id="m-speed">0.0 km/h</b><small id="m-steer">dirección 0°</small></div>
+        <div class="metric"><label>Colisiones</label><b id="m-collisions" class="danger">0</b><small id="m-successes">éxitos 0</small></div>
+        <div class="metric wide"><label>Agente</label><b id="m-agent">Q-learning</b><small id="m-trained"></small></div>
+      </section>
+
+      <section class="card">
+        <h2>Simulación</h2>
+        <div class="buttons">
+          <button id="btn-start" class="primary">▶ Iniciar</button>
+          <button id="btn-pause">❚❚ Pausar</button>
+          <button id="btn-reset">↺ Reiniciar</button>
+        </div>
+        <label class="field">Agente
+          <div class="segmented" id="agent-select">
+            <button data-agent="q_learning">Q-learning</button>
+            <button data-agent="neural">Red neuronal</button>
+            <button data-agent="random">Aleatorio</button>
+          </div>
+        </label>
+        <label class="field">Velocidad <span id="speed-label">1.0×</span>
+          <input type="range" id="speed" min="0.25" max="10" step="0.25" value="1">
+        </label>
+        <label class="field">Dificultad
+          <select id="difficulty">
+            <option value="easy">Fácil · frente al cupo</option>
+            <option value="normal" selected>Normal · desde el pasillo</option>
+            <option value="hard">Difícil · más conos</option>
+          </select>
+        </label>
+        <div class="toggles">
+          <label class="toggle"><input type="checkbox" id="tg-sensors" checked><span></span>Sensores</label>
+          <label class="toggle"><input type="checkbox" id="tg-trail" checked><span></span>Trayectoria</label>
+          <label class="toggle"><input type="checkbox" id="tg-noise"><span></span>Ruido</label>
+        </div>
+        <label class="field">Cámara
+          <div class="segmented" id="camera-select">
+            <button data-camera="orbit">Orbital</button>
+            <button data-camera="top">Superior</button>
+            <button data-camera="follow">Seguir</button>
+          </div>
+        </label>
+      </section>
+
+      <section class="card">
+        <h2>Entrenamiento</h2>
+        <div class="train-row">
+          <input type="number" id="train-episodes" min="1" max="50000" value="1000" aria-label="Episodios">
+          <button id="btn-train" class="accent">Entrenar agente</button>
+        </div>
+        <div class="progress"><div id="train-bar"></div></div>
+        <div class="train-meta">
+          <span id="train-label">Sin entrenamiento activo</span>
+          <span id="train-success"></span>
+        </div>
+        <canvas id="sparkline" height="56"></canvas>
+      </section>
+      <p class="error" id="error" hidden></p>
+    </aside>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

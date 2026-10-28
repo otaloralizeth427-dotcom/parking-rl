@@ -1,0 +1,98 @@
+{
+  "random": {
+    "easy": {
+      "success_rate": 0.005,
+      "collision_rate": 0.455,
+      "collisions": 91,
+      "mean_return": -40.26982082997388,
+      "mean_steps": 158.4,
+      "mean_time_s": 31.680000000000003,
+      "final_position_error": 7.244270551230941,
+      "final_heading_error_deg": 23.575284232340238
+    },
+    "normal": {
+      "success_rate": 0.0,
+      "collision_rate": 0.295,
+      "collisions": 59,
+      "mean_return": -34.485427543772005,
+      "mean_steps": 168.825,
+      "mean_time_s": 33.765,
+      "final_position_error": 9.692756244803839,
+      "final_heading_error_deg": 64.8296185974029
+    },
+    "hard": {
+      "success_rate": 0.0,
+      "collision_rate": 0.36,
+      "collisions": 72,
+      "mean_return": -36.679140379757044,
+      "mean_steps": 161.62,
+      "mean_time_s": 32.324000000000005,
+      "final_position_error": 9.438289383808971,
+      "final_heading_error_deg": 67.52074422394927
+    }
+  },
+  "q_learning": {
+    "easy": {
+      "success_rate": 0.57,
+      "collision_rate": 0.15,
+      "collisions": 30,
+      "mean_return": 45.95900315488543,
+      "mean_steps": 99.67,
+      "mean_time_s": 19.934,
+      "final_position_error": 2.010815921735591,
+      "final_heading_error_deg": 12.70628245123654
+    },
+    "normal": {
+      "success_rate": 0.76,
+      "collision_rate": 0.09,
+      "collisions": 18,
+      "mean_return": 71.8005651784748,
+      "mean_steps": 90.685,
+      "mean_time_s": 18.137,
+      "final_position_error": 1.4782973371668076,
+      "final_heading_error_deg": 13.395328071531143
+    },
+    "hard": {
+      "success_rate": 0.725,
+      "collision_rate": 0.14,
+      "collisions": 28,
+      "mean_return": 66.01040509188886,
+      "mean_steps": 85.805,
+      "mean_time_s": 17.161,
+      "final_position_error": 1.7454946475841504,
+      "final_heading_error_deg": 16.289385572242775
+    }
+  },
+  "neural": {
+    "easy": {
+      "success_rate": 0.82,
+      "collision_rate": 0.145,
+      "collisions": 29,
+      "mean_return": 78.3756030911074,
+      "mean_steps": 28.865,
+      "mean_time_s": 5.773,
+      "final_position_error": 0.8941322567820359,
+      "final_heading_error_deg": 4.13995286233555
+    },
+    "normal": {
+      "success_rate": 0.96,
+      "collision_rate": 0.035,
+      "collisions": 7,
+      "mean_return": 100.3471810274583,
+      "mean_steps": 29.265,
+      "mean_time_s": 5.853000000000001,
+      "final_position_error": 0.3969541215001932,
+      "final_heading_error_deg": 3.4391356327521274
+    },
+    "hard": {
+      "success_rate": 0.92,
+      "collision_rate": 0.06,
+      "collisions": 12,
+      "mean_return": 94.4483016902954,
+      "mean_steps": 30.375,
+      "mean_time_s": 6.075,
+      "final_position_error": 0.730351275420137,
+      "final_heading_error_deg": 6.273041855533974
+    }
+  }
+}
