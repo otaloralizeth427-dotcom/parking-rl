@@ -1,0 +1,61 @@
+{
+  "run_id": "N1-exp02-ppo-s42-52969c85",
+  "experiment_id": "N1-exp02-ppo",
+  "level_id": "N1",
+  "agent": "ppo",
+  "hypothesis": "PPO, el algoritmo de referencia del curso, con 300 000 pasos de interacción alcanza un éxito similar o mayor que la DQN del exp01 en la suite N1.",
+  "change_vs_baseline": "Cambia una sola dimensión respecto al exp01: el algoritmo (DQN → PPO). Mismo nivel, semilla y suite.",
+  "environment_version": "parking-v2",
+  "environment_kwargs": {
+    "difficulty": "normal",
+    "sensor_noise": 0.0,
+    "pedestrians": 0,
+    "cones": 0
+  },
+  "git_commit": "4d948808c8f863de55355f1abe3802f30c59e1cc",
+  "git_branch": "feature/nivel-1",
+  "git_dirty": true,
+  "config_uri": "artifacts/N1/N1-exp02-ppo-s42-52969c85/config.json",
+  "config_sha256": "476ebd6a4e18a1ddb88cf3f9f1167eb98c63162181ec247c6fb3642785b28426",
+  "seed": 42,
+  "parent_run_id": null,
+  "origin": "desde cero",
+  "evaluation_suite_id": "N1-suite-v1",
+  "mlflow": {
+    "tracking_uri": "sqlite:///mlflow.db",
+    "experiment": "parking-N1",
+    "run_id": "52969c85df674cd1af1b4096e3b65390"
+  },
+  "created_at": "2026-11-06T20:46:28+00:00",
+  "status": "completed",
+  "model_uri": "artifacts/N1/N1-exp02-ppo-s42-52969c85/model.zip",
+  "model_sha256": "81937574d28fabd355d6c5c92f6968ef4938ff3dba6736766208fc9723719443",
+  "normalization_uri": "envs/parking_env.py#ParkingEnv._observation (escalado fijo dentro del ambiente; sin normalización aprendida)",
+  "observation_contract": "Box(14,) float32 · ver docs/ficha_ambiente.md",
+  "action_contract": "Discrete(5): avanzar, retroceder, izquierda, derecha, frenar",
+  "runtime_ref": "python 3.12.7 · requirements.lock.txt sha256:76cff4f909c98d69",
+  "budget": {
+    "timesteps": 300000,
+    "episodes": 1557,
+    "env_steps": 300000,
+    "wall_time_s": 147.0
+  },
+  "optimizer_state": "no guardado: los runs no se continúan desde este checkpoint",
+  "evaluation_uri": "artifacts/N1/N1-exp02-ppo-s42-52969c85/evaluation.json",
+  "evaluation_summary": {
+    "episodes": 100,
+    "success_rate": 0.0,
+    "outcomes": {
+      "success": 0,
+      "obstacle": 0,
+      "pedestrian": 0,
+      "boundary": 0,
+      "timeout": 100
+    },
+    "mean_return": -8.363,
+    "mean_time_s": 40.0,
+    "mean_final_distance_m": 7.043,
+    "mean_final_heading_error_deg": 87.199,
+    "mean_latency_ms": 0.065
+  }
+}

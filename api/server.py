@@ -176,8 +176,9 @@ class SimulationSession:
         self.status = "idle"
 
     def _default_agent(self) -> str:
+        """El modelo con mayor éxito en la suite del nivel; si no hay modelos, la regla."""
         models = [a for a in self.catalog() if a["available"] and a["id"] not in BASELINES]
-        return models[-1]["id"] if models else "rule"
+        return max(models, key=lambda a: a["test_success_rate"] or 0)["id"] if models else "rule"
 
     def _policy(self, name: str):
         if name == "random":

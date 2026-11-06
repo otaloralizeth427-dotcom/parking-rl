@@ -117,6 +117,7 @@ def compare_level(level_id: str) -> dict:
     (out_dir / "comparison.json").write_text(json.dumps(
         {"level_id": level_id, "suite_id": suite["suite_id"], "policies": comparison}, indent=2))
     plot_comparison(comparison, out_dir / "comparison.png", f"Nivel {level_id} · suite {suite['suite_id']}")
+    plot_curves(level_id, out_dir / "curves.png")
     print_table(comparison)
     return comparison
 
@@ -153,6 +154,33 @@ def plot_comparison(comparison: dict, path: Path, title: str):
     fig.tight_layout()
     fig.savefig(path, dpi=120)
     plt.close(fig)
+
+
+def plot_curves(level_id: str, path: Path) -> bool:
+    """Éxito durante el entrenamiento (con exploración) frente a validación (política congelada)."""
+    from agents.registry import ROOT as REPO, list_manifests
+
+    runs = [(m["run_id"], json.loads((REPO / m["config_uri"]).parent.joinpath("curves.json").read_text()))
+            for m in list_manifests(level_id) if m["status"] == "completed"]
+    if not runs:
+        return False
+    fig, axes = plt.subplots(1, len(runs), figsize=(7 * len(runs), 4.5), squeeze=False)
+    for ax, (run_id, curves) in zip(axes[0], runs):
+        unit = "Pasos de interacción" if "-ppo" in run_id else "Episodios"
+        train = curves["train"]
+        ax.plot([p["step"] for p in train], [p["success_rate"] * 100 for p in train],
+                color="#f59e0b", label="Entrenamiento (con exploración, media móvil 100)")
+        val = curves["validation"]
+        ax.plot([p["step"] for p in val], [p["success_rate"] * 100 for p in val], "o-",
+                color="#3b82f6", label="Validación (política congelada, 20 episodios)")
+        ax.set(title=run_id, xlabel=unit, ylabel="Éxito (%)", ylim=(-3, 103))
+        ax.grid(alpha=0.3)
+        ax.spines[["top", "right"]].set_visible(False)
+        ax.legend(frameon=False, fontsize=8, loc="upper left")
+    fig.tight_layout()
+    fig.savefig(path, dpi=120)
+    plt.close(fig)
+    return True
 
 
 def print_table(comparison: dict):

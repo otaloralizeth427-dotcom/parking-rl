@@ -1,105 +1,108 @@
 # AutoPark RL — Estacionamiento autónomo con aprendizaje por refuerzo
 
-Un vehículo aprende a estacionarse en un cupo delimitado de un parqueadero, evitando
-otros vehículos, conos, columnas y bordillos. El proyecto incluye:
+Proyecto final de MLOps (escenario **Autonomous Parking**). Un vehículo aprende a estacionarse en un
+cupo de un parqueadero, evitando autos estacionados, columnas y bordillos. Incluye:
 
-- Un **ambiente Gymnasium** con física de bicicleta cinemática, sensores tipo LiDAR,
-  colisiones exactas (SAT) y escenarios reproducibles con semillas.
-- Dos agentes: **Q-learning tabular** y una **Deep Q-Network** escrita en NumPy puro.
-- Una **visualización 3D en Three.js** conectada al ambiente Python por WebSocket.
-- Un sistema de **evaluación** con gráficas comparativas y una batería de **pruebas**.
+- **Ambiente Gymnasium** versionado (`parking-v2`) con física de bicicleta, sensores tipo LiDAR y
+  colisiones exactas. Ver la [ficha del ambiente](docs/ficha_ambiente.md).
+- **Niveles versionados** en `configs/levels/`, cada uno desarrollado en su rama `feature/nivel-N`.
+- **Referencias** (aleatoria y por reglas) y agentes aprendidos: **PPO** (Stable-Baselines3), **DQN** y
+  Q-learning tabular.
+- **Pipeline** de entrenamiento que registra cada run en **MLflow** y empaqueta el modelo con su
+  **manifiesto** (hashes SHA-256, commit, versión del ambiente, configuración y semilla).
+- **Evaluación** con suites fijas y resultados por episodio. Ver el [registro de experimentos](docs/experimentos.md).
+- **Visualización 3D** (Three.js) que carga cualquier modelo registrado del catálogo.
 
-![Comparación](results/comparison.png)
+![Comparación N1](results/N1/comparison.png)
 
 ---
 
 ## Instalación
 
-Requisitos: Python 3.12+ y un navegador moderno (la visualización carga Three.js desde CDN).
+Requisitos: Python 3.12 (probado con 3.12.7) y un navegador moderno.
 
 ```bash
 cd Parking
 python3.12 -m venv .venv
+.venv/bin/python -m pip install --upgrade pip
+.venv/bin/python -m pip install -r requirements.lock.txt   # versiones exactas (macOS arm64)
 ```
 
-Activar el entorno virtual:
+En Windows use `.venv\Scripts\python.exe` en lugar de `.venv/bin/python`. `requirements.txt` lista las
+dependencias directas; `requirements.lock.txt` fija las versiones exactas con que se generaron los modelos.
+En macOS, PyTorch se instala desde PyPI; en Linux/Windows sin GPU puede usarse el índice CPU
+(`--index-url https://download.pytorch.org/whl/cpu`) antes de instalar el resto.
 
-```bash
-# macOS / Linux
-source .venv/bin/activate
-# Windows (PowerShell)
-.venv\Scripts\Activate.ps1
-```
-
-Instalar dependencias:
-
-```bash
-pip install -r requirements.txt
-```
-
-Todos los comandos siguientes asumen el entorno activado y el directorio `Parking/` como actual.
+Los comandos siguientes usan `.venv/bin/python` desde la carpeta `Parking/`.
 
 ## Uso rápido
 
 ```bash
-python run.py train --agent q_learning     # ~6 min, 15 000 episodios
-python run.py train --agent neural         # ~3 min, 4 000 episodios
-python run.py evaluate                     # tabla + gráficas en results/
-python run.py serve                        # abre http://127.0.0.1:8000
+.venv/bin/python run.py train configs/experiments/N1-exp01-dqn.json   # entrena y registra un experimento
+.venv/bin/python run.py evaluate --level N1                           # compara referencias y modelos
+.venv/bin/python run.py serve --level N1                              # http://127.0.0.1:8000
+.venv/bin/python -m mlflow ui --backend-store-uri sqlite:///mlflow.db  # http://127.0.0.1:5000
 ```
 
-### Ejecutar el ambiente
+### Experimentos y paquetes de modelos
 
-```bash
-python run.py demo --agent random --episodes 3 --verbose
-```
+Un experimento es un archivo JSON en `configs/experiments/` con su **hipótesis**, el cambio frente a la
+referencia, el agente, la semilla, el presupuesto y los hiperparámetros. El pipeline
+(`pipelines/train.py`) hace lo siguiente:
 
-Uso directo desde Python:
+1. Resuelve la configuración (experimento + nivel + suite) y calcula su SHA-256.
+2. Abre un run en MLflow con parámetros, commit, rama, versión del ambiente e hipótesis.
+3. Entrena y registra por separado la curva de **entrenamiento** (con exploración) y la de
+   **validación** (política congelada, semillas desde 200000).
+4. Evalúa el modelo final con la suite del nivel (resultados por episodio).
+5. Guarda el paquete en `artifacts/<nivel>/<run_id>/` (`model`, `config.json`, `curves.json`,
+   `evaluation.json`, `manifest.json`) y el manifiesto en `manifests/<run_id>.json`.
 
-```python
-from envs.parking_env import ParkingEnv
-
-env = ParkingEnv(difficulty="normal", sensor_noise=0.0)
-obs, info = env.reset(seed=42)
-obs, reward, terminated, truncated, info = env.step(0)  # 0 = avanzar
-```
-
-### Entrenar cada agente
-
-```bash
-python run.py train --agent q_learning [--episodes 15000] [--difficulty normal] [--seed 0]
-python run.py train --agent neural     [--episodes 4000]
-python run.py train --agent neural --level N3   # usa configs/levels/N3.json
-python run.py train --agent neural --resume --episodes 1000   # continuar entrenando
-```
-
-Los modelos se guardan en `models/q_table.npz` y `models/dqn.npz`. El historial de
-entrenamiento queda en `models/<agente>_history.json` y se usa para las curvas de aprendizaje.
+Si el entrenamiento falla, el run queda en MLflow y en `manifests/` con `status: "failed"`, su
+diagnóstico y «sin checkpoint disponible». Al cargar un modelo (API, web o `demo`) se verifica que el
+SHA-256 del archivo coincida con el del manifiesto.
 
 ### Evaluar
 
 ```bash
-python run.py evaluate --episodes 200
-# o directamente, con más opciones:
-python -m pipelines.evaluate --episodes 300 --difficulties normal hard --sensor-noise 0.1
+.venv/bin/python run.py evaluate --level N1
 ```
 
-Genera `results/metrics.json`, `results/comparison.png` y `results/training_curves.png`.
-La evaluación usa semillas (desde 100 000) distintas a las de entrenamiento.
+Usa la suite `configs/suites/<nivel>-suite-v1.json` y guarda en `results/<nivel>/`: `eval_<política>.json`
+(resultado por episodio con causa de fallo, tiempo, error final y latencia), `comparison.json`,
+`comparison.png` y `curves.png`.
+
+### Ejecutar el ambiente
+
+```bash
+.venv/bin/python run.py demo --policy rule --level N1 --episodes 3 --verbose
+.venv/bin/python run.py demo --policy N1-exp01-dqn-s42-3ce2f0ec   # un modelo registrado
+```
+
+```python
+from envs.levels import make_env
+
+env = make_env("N1")
+obs, info = env.reset(seed=42)
+obs, reward, terminated, truncated, info = env.step(0)  # 0 = avanzar
+```
 
 ### Visualización 3D
 
 ```bash
-python run.py serve [--port 8000] [--difficulty normal] [--sensor-noise 0.0]
+.venv/bin/python run.py serve --level N1 [--port 8000] [--sensor-noise 0.1]
 ```
 
-Abrir **http://127.0.0.1:8000**. Si un agente no está entrenado, se puede entrenar desde la
-misma interfaz y ver cómo mejora en vivo.
+Abrir **http://127.0.0.1:8000**. En el panel se elige el nivel y el agente: aleatoria, regla o
+cualquier modelo registrado, con su % de éxito en la suite. La barra superior indica el **modo**
+(Aleatorio, Referencia, Evaluación con modelo congelado o Manual) y el panel muestra el commit, la
+semilla y el hash del modelo activo. «Entrenar DQN» lanza el pipeline real, así que ese entrenamiento
+también queda registrado en MLflow y con manifiesto.
 
 ### Pruebas
 
 ```bash
-python -m pytest
+.venv/bin/python -m pytest
 ```
 
 ---
@@ -151,12 +154,20 @@ Parking/
 │   ├── agent_base.py     Interfaz Agent, epsilon-greedy y bucle de entrenamiento compartido
 │   ├── q_learning.py     Discretizador de estados + agente Q-learning tabular
 │   ├── neural_q_learning.py  MLP con Adam, memoria de experiencias y agente DQN
-│   └── registry.py       Catálogo de agentes y carga de modelos guardados
+│   ├── rule_based.py     Política de referencia por reglas (sin aprendizaje)
+│   ├── ppo_agent.py      PPO de Stable-Baselines3 con la misma interfaz act()
+│   └── registry.py       Catálogo de manifiestos y carga verificada por SHA-256
 ├── api/server.py         FastAPI: REST + WebSocket sobre una SimulationSession
-├── pipelines/evaluate.py Comparación de políticas y gráficas (Matplotlib)
-├── configs/levels/       N1.json, N2.json, N3.json (perfiles de nivel versionados)
-├── manifests/            Manifiestos recuperables de cada modelo (próximo paso)
-├── docs/ficha_ambiente.md  Contrato del ambiente: unidades, rangos, acciones, éxito, fallos
+├── pipelines/
+│   ├── train.py          Pipeline: MLflow + entrenamiento + evaluación + manifiesto
+│   └── evaluate.py       Suites fijas, resultados por episodio y gráficas
+├── configs/
+│   ├── levels/           Un JSON por nivel (N1.json, …)
+│   ├── experiments/      Un JSON por experimento, con hipótesis
+│   └── suites/           Suites de evaluación fijas
+├── artifacts/            Paquete de cada run: pesos, configuración, curvas, evaluación
+├── manifests/            Un manifiesto JSON por run (identidad y hashes del modelo)
+├── docs/                 ficha_ambiente.md (contrato) y experimentos.md (registro)
 ├── run.py                CLI: serve | train | demo | evaluate
 ├── tests/test_parking.py Pruebas automáticas (pytest)
 └── web/                  index.html, styles.css, app.js (Three.js) y models/ (auto glTF)
@@ -207,13 +218,8 @@ curl -X POST localhost:8000/api/step  -H 'Content-Type: application/json' -d '{"
 Parqueadero de 30 × 20 m con dos filas de 8 cupos (3.0 × 5.5 m) y un pasillo central de 9 m.
 En cada `reset` se elige un **cupo objetivo al azar** (16 posiciones posibles); los demás se
 ocupan con probabilidad 0.6 (0.85 los vecinos inmediatos) con pequeñas variaciones de posición.
-Hay columnas al final de cada fila y conos en el pasillo según la dificultad:
-
-| Dificultad | Inicio | Conos |
-|---|---|---|
-| `easy` | Frente al cupo, apuntando hacia él (±17°) | 0 |
-| `normal` | En el pasillo, 4–8 m a un lado del cupo | 2, fuera de la línea directa |
-| `hard` (N3) | Igual que normal, con 2 peatones que cruzan el pasillo y ruido σ = 0.1 m | 5, pueden bloquear el camino |
+Hay columnas al final de cada fila. Los niveles agregan conos, peatones y ruido; ver la tabla de
+niveles en la [ficha del ambiente](docs/ficha_ambiente.md#niveles-configslevelsjson).
 
 El vehículo (4.2 × 1.8 m, distancia entre ejes 2.6 m) sigue un **modelo de bicicleta cinemática**
 con `dt = 0.2 s` y 2 subpasos para que no atraviese obstáculos delgados.
@@ -273,6 +279,17 @@ La alineación pesa más a medida que el vehículo se acerca, porque lejos del c
 
 ## Los agentes
 
+### Referencia por reglas (`rule_based.py`)
+
+Sigue el eje del cupo con *pure pursuit*: apunta a un punto sobre ese eje que se acerca al centro a
+medida que el vehículo se alinea, reduce la velocidad cerca del cupo y frena dentro de él. Solo usa
+la observación, sin aprendizaje.
+
+### PPO (`ppo_agent.py`)
+
+Algoritmo de referencia del curso, de Stable-Baselines3 (`MlpPolicy` 64×64, actor-crítico). Los
+hiperparámetros de cada run están en su archivo de experimento.
+
 ### A. Q-learning tabular (`q_learning.py`)
 
 El estado continuo se discretiza en 9 × 9 × 7 × 4 × 5 × 2 × 2 = **45 360 estados**: posición
@@ -313,34 +330,20 @@ imágenes) y se necesita generalizar a situaciones no vistas, como en este parqu
 
 ## Resultados
 
-Entrenamiento en dificultad `normal` (Q-learning 15 000 episodios ≈ 6 min; DQN 4 000 episodios ≈ 3 min,
-en un portátil) y evaluación voraz con 200 episodios por dificultad y semillas no vistas
-(`python run.py evaluate`):
+Nivel 1 (`N1-suite-v1`, 100 episodios con semillas no vistas en el entrenamiento):
 
-| Agente | Dificultad | Éxito | Colisiones | Recompensa | Tiempo | Error posición | Error orientación |
-|---|---|---|---|---|---|---|---|
-| Aleatoria | easy | 0 % | 91 | −40.3 | 31.7 s | 7.24 m | 23.6° |
-| Aleatoria | normal | 0 % | 59 | −34.5 | 33.8 s | 9.69 m | 64.8° |
-| Aleatoria | hard | 0 % | 72 | −36.7 | 32.3 s | 9.44 m | 67.5° |
-| Q-learning | easy | 57 % | 22 | 46.6 | 21.6 s | 2.10 m | 12.9° |
-| Q-learning | normal | 76 % | 19 | 71.7 | 17.8 s | 1.49 m | 13.4° |
-| Q-learning | hard | 73 % | 28 | 66.5 | 17.0 s | 1.80 m | 16.0° |
-| Red neuronal | easy | 82 % | 29 | 78.4 | 5.8 s | 0.89 m | 4.1° |
-| **Red neuronal** | **normal** | **96 %** | **7** | **100.3** | **5.9 s** | **0.40 m** | **3.4°** |
-| Red neuronal | hard | 92 % | 12 | 94.4 | 6.1 s | 0.73 m | 6.3° |
+| Política | Éxito | Choques | Salidas del área | Tiempo agotado | Tiempo medio |
+|---|---|---|---|---|---|
+| Aleatoria | 0 % | 8 | 14 | 78 | 35.1 s |
+| Regla | **49 %** | 31 | 20 | 0 | 10.0 s |
+| DQN `N1-exp01-dqn-s42-3ce2f0ec` | 42 % | 9 | 2 | 47 | 21.8 s |
+| PPO `N1-exp02-ppo-s42-52969c85` | 0 % | 0 | 0 | 100 | 40.0 s |
 
-![Curvas de entrenamiento](results/training_curves.png)
+![Curvas N1](results/N1/curves.png)
 
-Observaciones:
-
-- La **DQN** estaciona en ~6 s y generaliza a `hard` (conos en el camino) sin haberlo visto,
-  gracias a que usa los 8 sensores continuos.
-- El **Q-learning** aprende la tarea pero tarda 3× más y necesita casi 4× más episodios; su
-  discretización solo "ve" dos bits de peligro, por lo que es más lento y menos preciso.
-- Ambos rinden peor en `easy` que en `normal`: el inicio frente al cupo es una distribución de
-  estados poco vista durante el entrenamiento. Entrenar con un currículo mixto lo corregiría.
-- Una versión anterior de la recompensa (sin penalización por estar detenido) producía políticas
-  que se quedaban quietas: 18–26 % de los episodios terminaban por tiempo agotado.
+El análisis, las hipótesis rechazadas y las siguientes hipótesis están en
+[docs/experimentos.md](docs/experimentos.md). Los resultados anteriores a la reorganización por
+niveles se conservan en `results/legacy/`.
 
 ---
 
