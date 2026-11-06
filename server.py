@@ -252,5 +252,12 @@ def create_app(session: SimulationSession | None = None) -> FastAPI:
         except WebSocketDisconnect:
             pass
 
+    @app.middleware("http")
+    async def no_cache(request, call_next):
+        # Evita que el navegador use versiones viejas de la interfaz tras un cambio
+        response = await call_next(request)
+        response.headers["Cache-Control"] = "no-cache, must-revalidate"
+        return response
+
     app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")
     return app

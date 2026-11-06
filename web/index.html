@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AutoPark RL</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23f97316'/><text x='16' y='23' font-size='20' font-family='sans-serif' font-weight='700' fill='white' text-anchor='middle'>P</text></svg>">
+  <title>Parquea el Auto</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='9' fill='%236d3fd1'/><text x='16' y='23' font-size='20' font-family='sans-serif' font-weight='700' fill='white' text-anchor='middle'>P</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=2">
   <script type="importmap">
     {
       "imports": {
@@ -18,72 +18,88 @@
   </script>
 </head>
 <body>
-  <main class="app">
-    <section class="viewport" id="viewport">
-      <div class="flash" id="flash"></div>
-      <div class="banner" id="banner" hidden></div>
-      <div class="hud hud-top">
-        <span class="chip" id="hud-camera">Cámara: orbital</span>
-        <span class="chip" id="hud-action">Acción: —</span>
-      </div>
-      <div class="hud hud-bottom legend">
-        <span><i style="--c: var(--orange)"></i>Vehículo</span>
-        <span><i style="--c: var(--green)"></i>Cupo objetivo</span>
-        <span><i style="--c: var(--blue)"></i>Sensores</span>
-        <span><i style="--c: var(--gray)"></i>Estacionados</span>
-        <span class="keys">Espacio · R · C · S · T</span>
-      </div>
-      <div class="loading" id="loading">Conectando con el simulador…</div>
-    </section>
+  <main class="game" id="viewport">
+    <div class="flash" id="flash"></div>
 
-    <aside class="panel">
-      <header class="brand">
-        <div class="logo">P</div>
-        <div>
-          <h1>AutoPark RL</h1>
-          <p>Estacionamiento autónomo con aprendizaje por refuerzo</p>
-        </div>
-        <span class="conn" id="conn" title="Conexión">●</span>
-      </header>
+    <!-- Barra superior -->
+    <header class="topbar">
+      <div class="pill" id="hud-level">Nivel: 2</div>
+      <div class="pill title" id="hud-title" data-state="idle">
+        <svg viewBox="0 0 48 32" aria-hidden="true"><path d="M8 20l4-9c1-2 3-3 5-3h14c2 0 4 1 5 3l4 9h1c2 0 3 1 3 3v4c0 1-1 2-2 2h-3a4 4 0 0 1-8 0H17a4 4 0 0 1-8 0H6c-1 0-2-1-2-2v-4c0-2 1-3 3-3zm6-1h20l-3-7c0-1-1-1-2-1H19c-1 0-2 0-2 1z" fill="currentColor"/></svg>
+        <span id="hud-title-text">Parquea el auto</span>
+      </div>
+      <div class="pill" id="hud-moves">Movimientos: 0</div>
+    </header>
 
-      <section class="card status-card">
-        <div class="status" id="status" data-state="idle">En espera</div>
-        <div class="status-meta">
-          <span>Episodio <b id="m-episode">0</b></span>
-          <span>Paso <b id="m-step">0</b></span>
+    <!-- Botones laterales -->
+    <nav class="side-buttons">
+      <button class="round" id="btn-play" title="Iniciar / pausar (Espacio)" aria-label="Iniciar o pausar">
+        <svg class="icon-play" viewBox="0 0 24 24"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>
+        <svg class="icon-pause" viewBox="0 0 24 24"><rect x="6" y="5" width="4.2" height="14" rx="1.6"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.6"/></svg>
+      </button>
+      <button class="round" id="btn-reset" title="Reiniciar (R)" aria-label="Reiniciar">
+        <svg viewBox="0 0 24 24"><path d="M12 4a8 8 0 1 0 7.75 10h-2.1A6 6 0 1 1 12 6c1.65 0 3.13.67 4.22 1.76L13 11h7V4l-2.35 2.35A7.96 7.96 0 0 0 12 4z"/></svg>
+      </button>
+      <button class="round" id="btn-hint" title="Pista: sensores y trayectoria (S)" aria-label="Pista">
+        <svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-4 12.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26A7 7 0 0 0 12 2zm-3 18h6v1a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1z"/></svg>
+      </button>
+      <button class="round small" id="btn-camera" title="Cambiar cámara (C)" aria-label="Cambiar cámara">
+        <svg viewBox="0 0 24 24"><path d="M9 4 7.2 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-3.2L15 4zm3 4.5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9zm0 2a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"/></svg>
+      </button>
+    </nav>
+
+    <button class="round small settings" id="btn-panel" title="Panel de control" aria-label="Abrir panel">
+      <svg viewBox="0 0 24 24"><path d="M4 6h10.2a3 3 0 0 1 5.6 0H20v2h-.2a3 3 0 0 1-5.6 0H4zm0 10h2.2a3 3 0 0 1 5.6 0H20v2h-8.2a3 3 0 0 1-5.6 0H4z"/></svg>
+    </button>
+
+    <!-- Estadísticas inferiores -->
+    <footer class="stats">
+      <div><label>Agente</label><b id="m-agent">Q-learning</b></div>
+      <div><label>Distancia</label><b id="m-distance">0.0 m</b></div>
+      <div><label>Velocidad</label><b id="m-speed">0 km/h</b></div>
+      <div><label>Recompensa</label><b id="m-reward">0.00</b></div>
+      <div><label>Episodio</label><b id="m-episode">0</b></div>
+      <div><label>Choques</label><b id="m-collisions" class="bad">0</b></div>
+    </footer>
+
+    <div class="banner" id="banner" hidden></div>
+    <div class="loading" id="loading"><div class="spinner"></div>Conectando con el simulador…</div>
+
+    <!-- Panel de control -->
+    <aside class="panel" id="panel">
+      <div class="panel-head">
+        <h2>Panel de control</h2>
+        <button class="close" id="btn-panel-close" aria-label="Cerrar panel">✕</button>
+      </div>
+
+      <section>
+        <h3>Estado</h3>
+        <div class="grid">
+          <div class="cell"><label>Estado</label><b id="m-status">En espera</b></div>
+          <div class="cell"><label>Total episodio</label><b id="m-total">0.0</b></div>
+          <div class="cell"><label>Orientación</label><b id="m-heading">0°</b></div>
+          <div class="cell"><label>Dirección</label><b id="m-steer">0°</b></div>
+          <div class="cell"><label>Acción</label><b id="m-action">—</b></div>
+          <div class="cell"><label>Éxitos</label><b id="m-successes" class="good">0</b></div>
         </div>
+        <p class="note" id="m-trained"></p>
       </section>
 
-      <section class="card metrics">
-        <div class="metric"><label>Recompensa</label><b id="m-reward">0.00</b><small id="m-total">total 0.0</small></div>
-        <div class="metric"><label>Distancia al cupo</label><b id="m-distance">0.0 m</b><small id="m-heading">orientación 0°</small></div>
-        <div class="metric"><label>Velocidad</label><b id="m-speed">0.0 km/h</b><small id="m-steer">dirección 0°</small></div>
-        <div class="metric"><label>Colisiones</label><b id="m-collisions" class="danger">0</b><small id="m-successes">éxitos 0</small></div>
-        <div class="metric wide"><label>Agente</label><b id="m-agent">Q-learning</b><small id="m-trained"></small></div>
-      </section>
-
-      <section class="card">
-        <h2>Simulación</h2>
-        <div class="buttons">
-          <button id="btn-start" class="primary">▶ Iniciar</button>
-          <button id="btn-pause">❚❚ Pausar</button>
-          <button id="btn-reset">↺ Reiniciar</button>
+      <section>
+        <h3>Simulación</h3>
+        <div class="segmented" id="agent-select">
+          <button data-agent="q_learning">Q-learning</button>
+          <button data-agent="neural">Red neuronal</button>
+          <button data-agent="random">Aleatorio</button>
         </div>
-        <label class="field">Agente
-          <div class="segmented" id="agent-select">
-            <button data-agent="q_learning">Q-learning</button>
-            <button data-agent="neural">Red neuronal</button>
-            <button data-agent="random">Aleatorio</button>
-          </div>
-        </label>
-        <label class="field">Velocidad <span id="speed-label">1.0×</span>
+        <label class="field">Velocidad <span id="speed-label">1×</span>
           <input type="range" id="speed" min="0.25" max="10" step="0.25" value="1">
         </label>
-        <label class="field">Dificultad
+        <label class="field">Nivel
           <select id="difficulty">
-            <option value="easy">Fácil · frente al cupo</option>
-            <option value="normal" selected>Normal · desde el pasillo</option>
-            <option value="hard">Difícil · más conos</option>
+            <option value="easy">1 · Frente al cupo</option>
+            <option value="normal" selected>2 · Desde el pasillo</option>
+            <option value="hard">3 · Con conos en el camino</option>
           </select>
         </label>
         <div class="toggles">
@@ -91,31 +107,35 @@
           <label class="toggle"><input type="checkbox" id="tg-trail" checked><span></span>Trayectoria</label>
           <label class="toggle"><input type="checkbox" id="tg-noise"><span></span>Ruido</label>
         </div>
-        <label class="field">Cámara
-          <div class="segmented" id="camera-select">
-            <button data-camera="orbit">Orbital</button>
-            <button data-camera="top">Superior</button>
-            <button data-camera="follow">Seguir</button>
-          </div>
-        </label>
+        <div class="segmented" id="camera-select">
+          <button data-camera="orbit">Orbital</button>
+          <button data-camera="top">Superior</button>
+          <button data-camera="follow">Seguir</button>
+        </div>
       </section>
 
-      <section class="card">
-        <h2>Entrenamiento</h2>
+      <section>
+        <h3>Entrenamiento</h3>
         <div class="train-row">
           <input type="number" id="train-episodes" min="1" max="50000" value="1000" aria-label="Episodios">
-          <button id="btn-train" class="accent">Entrenar agente</button>
+          <button id="btn-train" class="primary">Entrenar</button>
         </div>
         <div class="progress"><div id="train-bar"></div></div>
-        <div class="train-meta">
-          <span id="train-label">Sin entrenamiento activo</span>
-          <span id="train-success"></span>
-        </div>
-        <canvas id="sparkline" height="56"></canvas>
+        <div class="train-meta"><span id="train-label">Sin entrenamiento activo</span><span id="train-success"></span></div>
+        <canvas id="sparkline" height="52"></canvas>
       </section>
       <p class="error" id="error" hidden></p>
     </aside>
   </main>
-  <script type="module" src="app.js"></script>
+  <script>
+    // Si la escena no logra cargar, mostrar el motivo en lugar de quedarse en "Conectando…"
+    function showLoadError(message) {
+      const el = document.getElementById("loading");
+      if (el && !el.hidden) el.innerHTML = "<b>No se pudo cargar la escena</b><small>" + message + "</small>";
+    }
+    window.addEventListener("error", (e) => showLoadError(e.message || "Error al cargar un recurso"));
+    window.addEventListener("unhandledrejection", (e) => showLoadError(String(e.reason)));
+  </script>
+  <script type="module" src="app.js?v=6"></script>
 </body>
 </html>

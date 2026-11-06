@@ -105,8 +105,25 @@ python -m pytest
 
 ## Controles de la interfaz
 
+La escena es un garaje techado en tonos lila: piso pulido con reflejos, luces lineales y letrero
+de neón con *bloom*, ventanales con la ciudad al atardecer, columnas "P1" y jardineras.
+
 | Control | Función |
 |---|---|
+| ▶ / ❚❚ (`Espacio`) | Inicia o pausa la política. Al terminar un episodio se reinicia solo. |
+| ↻ (`R`) | Nuevo episodio: nuevo cupo objetivo, vehículos y conos. |
+| 💡 Pista (`S` sensores, `T` trayectoria) | Muestra u oculta los rayos de los sensores y el rastro del vehículo. |
+| 📷 (`C`) | Alterna cámara orbital (arrastrar para rotar), superior y de seguimiento. |
+| Panel (`P`, botón inferior derecho) | Estado detallado, agente (Q-learning / red neuronal / aleatorio), velocidad 0.25×–10×, nivel, ruido en sensores, cámara y entrenamiento con progreso en vivo. |
+
+La barra superior muestra el **nivel** (1 fácil, 2 normal, 3 difícil), el estado del episodio y
+los **movimientos** (pasos). La barra inferior muestra agente, distancia al cupo, velocidad,
+recompensa, episodio y choques.
+
+Colores: morado = tu vehículo, verde = cupo objetivo / éxito, rojo = colisión, azul = sensores
+(se tornan rojos cerca de un obstáculo). Los vehículos estacionados son deportivos de varios colores.
+
+---|---|
 | **Iniciar / Pausar** (`Espacio`) | Ejecuta la política paso a paso con animación interpolada. Al terminar un episodio se reinicia solo. |
 | **Reiniciar** (`R`) | Nuevo episodio: nuevo cupo objetivo, vehículos y conos. |
 | **Agente** | Q-learning, red neuronal o política aleatoria. Un punto ámbar indica "sin entrenar". |
@@ -316,6 +333,16 @@ Observaciones:
   estados poco vista durante el entrenamiento. Entrenar con un currículo mixto lo corregiría.
 - Una versión anterior de la recompensa (sin penalización por estar detenido) producía políticas
   que se quedaban quietas: 18–26 % de los episodios terminaban por tiempo agotado.
+
+---
+
+## Créditos
+
+- Modelo 3D del superdeportivo (`web/models/sports_car.glb`): tomado de los ejemplos oficiales de
+  [three.js](https://github.com/mrdoob/three.js/tree/dev/examples/models/gltf) (`ferrari.glb`),
+  creado por **vicent091036** en Sketchfab ([modelo original](https://skfb.ly/6CQBT)), con licencia
+  que exige atribución. Se recolorea en tiempo de ejecución y se le oscurecen los acentos de marca.
+- [three.js](https://threejs.org) r160, cargado desde jsDelivr (incluye el decodificador Draco).
 
 ---
 
