@@ -1,0 +1,74 @@
+{
+  "level_id": "N1",
+  "suite_id": "N1-suite-v1",
+  "policies": {
+    "random": {
+      "label": "Aleatoria (referencia)",
+      "episodes": 100,
+      "success_rate": 0.0,
+      "outcomes": {
+        "success": 0,
+        "obstacle": 8,
+        "pedestrian": 0,
+        "boundary": 14,
+        "timeout": 78
+      },
+      "mean_return": -30.905,
+      "mean_time_s": 35.096,
+      "mean_final_distance_m": 9.301,
+      "mean_final_heading_error_deg": 65.718,
+      "mean_latency_ms": 0.001
+    },
+    "rule": {
+      "label": "Regla (referencia)",
+      "episodes": 100,
+      "success_rate": 0.49,
+      "outcomes": {
+        "success": 49,
+        "obstacle": 31,
+        "pedestrian": 0,
+        "boundary": 20,
+        "timeout": 0
+      },
+      "mean_return": 23.446,
+      "mean_time_s": 10.008,
+      "mean_final_distance_m": 6.393,
+      "mean_final_heading_error_deg": 11.196,
+      "mean_latency_ms": 0.01
+    },
+    "N1-exp01-dqn-s42-3ce2f0ec": {
+      "label": "DQN \u00b7 N1-exp01-dqn-s42-3ce2f0ec",
+      "episodes": 100,
+      "success_rate": 0.42,
+      "outcomes": {
+        "success": 42,
+        "obstacle": 9,
+        "pedestrian": 0,
+        "boundary": 2,
+        "timeout": 47
+      },
+      "mean_return": 25.569,
+      "mean_time_s": 21.786,
+      "mean_final_distance_m": 3.38,
+      "mean_final_heading_error_deg": 30.38,
+      "mean_latency_ms": 0.012
+    },
+    "N1-exp02-ppo-s42-52969c85": {
+      "label": "PPO \u00b7 N1-exp02-ppo-s42-52969c85",
+      "episodes": 100,
+      "success_rate": 0.0,
+      "outcomes": {
+        "success": 0,
+        "obstacle": 0,
+        "pedestrian": 0,
+        "boundary": 0,
+        "timeout": 100
+      },
+      "mean_return": -8.363,
+      "mean_time_s": 40.0,
+      "mean_final_distance_m": 7.043,
+      "mean_final_heading_error_deg": 87.199,
+      "mean_latency_ms": 0.065
+    }
+  }
+}

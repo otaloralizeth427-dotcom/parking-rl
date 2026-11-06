@@ -17,7 +17,6 @@ const PALETTE = {
   sensor: 0x38bdf8,
   parked: [0xf5f5f7, 0xd81e2c, 0x1f4fd8, 0xf5c518, 0xc8ccd6, 0x18161f],
 };
-const AGENT_LABELS = { q_learning: "Q-learning", neural: "Red neuronal", random: "Aleatorio" };
 const STATUS_LABELS = {
   idle: "En espera", running: "En curso", paused: "Pausado",
   success: "Estacionado", collision: "Colisión", timeout: "Tiempo agotado",
@@ -26,7 +25,6 @@ const TITLE_LABELS = {
   idle: "Parquea el auto", running: "Parquea el auto", paused: "En pausa",
   success: "¡Estacionado!", collision: "¡Choque!", timeout: "Tiempo agotado",
 };
-const LEVELS = { N1: 1, N2: 2, N3: 3 };
 const COLLISION_LABELS = {
   pedestrian: "¡Atropellaste a un peatón!", obstacle: "¡Choque con un obstáculo!", boundary: "¡Te saliste del parqueadero!",
 };
@@ -1060,9 +1058,10 @@ function updateHud(frame) {
   $("hud-title").dataset.state = status;
   setText("hud-title-text", TITLE_LABELS[status]);
   setText("hud-moves", `Movimientos: ${frame.steps}`);
-  setText("hud-level", `Nivel: ${LEVELS[sim.level]}`);
+  setText("hud-level", `Nivel: ${sim.level.replace("N", "")}`);
 
-  setText("m-agent", AGENT_LABELS[frame.agent]);
+  setText("m-agent", frame.agent_label ?? frame.agent);
+  setText("hud-mode", `Modo: ${frame.mode}`);
   setText("m-distance", `${frame.distance.toFixed(1)} m`);
   setText("m-speed", `${Math.round(Math.abs(frame.car.speed) * 3.6)} km/h`);
   const reward = $("m-reward");
@@ -1078,10 +1077,13 @@ function updateHud(frame) {
   setText("m-steer", degrees(frame.car.steer));
   setText("m-action", frame.action_name ?? "—");
   setText("m-successes", frame.successes_total);
-  setText("m-trained", frame.agent === "random" ? "Política aleatoria (línea base)."
-    : frame.agent_trained ? "Modelo entrenado cargado." : "Este agente no está entrenado: usa «Entrenar».");
-  document.querySelectorAll("#agent-select button").forEach((b) => b.classList.toggle("active", b.dataset.agent === frame.agent));
-  $("btn-train").disabled = frame.agent === "random" || frame.training.running;
+  // Identidad del modelo activo: ambiente, commit, semilla y huella de los pesos
+  const m = frame.model;
+  setText("m-trained", m
+    ? `Ambiente ${frame.environment_version} · commit ${m.git_commit?.slice(0, 7) ?? "?"} · semilla ${m.seed} · sha256 ${m.model_sha256?.slice(0, 10)}…`
+    : `Ambiente ${frame.environment_version} · ${frame.mode}`);
+  $("agent-select").value = frame.agent;
+  $("btn-train").disabled = frame.training.running || !sim.canTrain;
 }
 
 let wasTraining = false;
@@ -1089,8 +1091,8 @@ function updateTraining(training) {
   if (training.running || training.total) {
     $("train-bar").style.width = `${(100 * training.episode) / Math.max(1, training.total)}%`;
     setText("train-label", training.running
-      ? `${AGENT_LABELS[training.agent]} · ${training.episode}/${training.total}`
-      : `${AGENT_LABELS[training.agent]} · completado`);
+      ? `${training.experiment_id} · ${training.episode}/${training.total}`
+      : `${training.experiment_id} · ${training.error ? "falló" : "registrado " + (training.run_id ?? "")}`);
     setText("train-success", `éxito ${(training.success_rate * 100).toFixed(0)}%`);
   }
   if (training.error) showError(new Error(`Entrenamiento: ${training.error}`));
@@ -1131,11 +1133,24 @@ function drawSparkline(values) {
 
 async function refreshConfig() {
   const config = await connection.send("config");
-  document.querySelectorAll("#agent-select button").forEach((b) => {
-    b.classList.toggle("untrained", !config.trained[b.dataset.agent]);
-    b.title = config.trained[b.dataset.agent] ? "" : "Sin entrenar";
-  });
+  // Catálogo del nivel: referencias y modelos registrados (los fallidos aparecen deshabilitados)
+  $("agent-select").replaceChildren(...config.agents.map((a) => {
+    const option = document.createElement("option");
+    option.value = a.id;
+    const rate = a.test_success_rate == null ? "" : ` · éxito ${Math.round(a.test_success_rate * 100)}%`;
+    option.textContent = a.available ? `${a.label}${rate}` : `${a.label} · ${a.status} (sin checkpoint)`;
+    option.disabled = !a.available;
+    return option;
+  }));
+  $("agent-select").value = config.agent;
+  $("difficulty").replaceChildren(...config.levels.map((l) => {
+    const option = document.createElement("option");
+    option.value = l.id;
+    option.textContent = `${l.id} · ${l.name}`;
+    return option;
+  }));
   sim.level = config.level;
+  sim.canTrain = config.can_train;
   $("difficulty").value = config.level;
   return config;
 }
@@ -1194,23 +1209,25 @@ $("btn-camera").onclick = () => setCamera({ orbit: "top", top: "follow", follow:
 $("btn-panel").onclick = () => $("panel").classList.toggle("open");
 $("btn-panel-close").onclick = () => $("panel").classList.remove("open");
 
-document.querySelectorAll("#agent-select button").forEach((button) => {
-  button.onclick = async () => {
-    try {
-      await connection.send("agent", { agent: button.dataset.agent });
-      await doReset();
-    } catch (err) { showError(err); }
-  };
-});
+$("agent-select").onchange = async (e) => {
+  try {
+    await connection.send("agent", { agent: e.target.value });
+    await doReset();
+  } catch (err) {
+    showError(err);
+    await refreshConfig();
+  }
+};
 document.querySelectorAll("#camera-select button").forEach((b) => (b.onclick = () => setCamera(b.dataset.camera)));
 
 $("speed").oninput = (e) => {
   sim.speed = Number(e.target.value);
   setText("speed-label", `${sim.speed}×`);
 };
-$("difficulty").onchange = (e) => {
+$("difficulty").onchange = async (e) => {
   sim.level = e.target.value;
-  doReset({ level: e.target.value });
+  await doReset({ level: e.target.value });
+  await refreshConfig();
 };
 $("tg-sensors").onchange = (e) => setOverlays(e.target.checked, sim.showTrail);
 $("tg-trail").onchange = (e) => setOverlays(sim.showSensors, e.target.checked);
@@ -1223,7 +1240,7 @@ $("btn-train").onclick = async () => {
     return;
   }
   try {
-    const res = await connection.send("train", { agent: sim.frame.agent, episodes });
+    const res = await connection.send("train", { episodes });
     updateTraining(res.training);
     $("btn-train").disabled = true;
   } catch (err) { showError(err); }

@@ -68,6 +68,8 @@ html, body {
 }
 .topbar > :first-child { justify-self: start; }
 .topbar > :last-child { justify-self: end; }
+.hud-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.pill.mode { font-size: 14px; padding: 5px 14px; border-width: 2px; }
 
 .pill.title {
   display: flex;

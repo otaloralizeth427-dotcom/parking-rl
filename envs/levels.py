@@ -8,7 +8,8 @@ from pathlib import Path
 from envs.parking_env import ENV_VERSION, ParkingEnv
 
 LEVELS_DIR = Path(__file__).resolve().parents[1] / "configs" / "levels"
-LEVEL_IDS = ("N1", "N2", "N3")
+# Los niveles disponibles son los archivos presentes en configs/levels/
+LEVEL_IDS = tuple(sorted(p.stem for p in LEVELS_DIR.glob("N*.json")))
 
 
 def load_level(level_id: str) -> dict:
@@ -23,4 +24,10 @@ def load_level(level_id: str) -> dict:
 
 def make_env(level_id: str) -> ParkingEnv:
     level = load_level(level_id)
-    return ParkingEnv(level["difficulty"], level["sensor_noise"], pedestrians=level.get("pedestrians", 0))
+    return ParkingEnv(**env_kwargs(level))
+
+
+def env_kwargs(level: dict) -> dict:
+    """Argumentos de ParkingEnv que define un nivel."""
+    return {"difficulty": level["difficulty"], "sensor_noise": level["sensor_noise"],
+            "pedestrians": level.get("pedestrians", 0), "cones": level.get("cones")}

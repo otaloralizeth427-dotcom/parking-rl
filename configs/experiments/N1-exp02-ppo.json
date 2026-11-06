@@ -1,0 +1,12 @@
+{
+  "experiment_id": "N1-exp02-ppo",
+  "level_id": "N1",
+  "agent": "ppo",
+  "hypothesis": "PPO, el algoritmo de referencia del curso, con 300 000 pasos de interacción alcanza un éxito similar o mayor que la DQN del exp01 en la suite N1.",
+  "change_vs_baseline": "Cambia una sola dimensión respecto al exp01: el algoritmo (DQN → PPO). Mismo nivel, semilla y suite.",
+  "seed": 42,
+  "budget": {"timesteps": 300000},
+  "hyperparameters": {"learning_rate": 0.0003, "n_steps": 2048, "batch_size": 64, "n_epochs": 10,
+                      "gamma": 0.99, "gae_lambda": 0.95, "ent_coef": 0.01, "net_arch": [64, 64]},
+  "validation": {"episodes": 20, "every": 15000}
+}

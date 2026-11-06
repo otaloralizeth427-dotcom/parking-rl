@@ -76,13 +76,18 @@ r = −0.05                                    tiempo
 
 ## Niveles (`configs/levels/*.json`)
 
-| Nivel | Dificultad | Ruido | Qué decisión nueva debe tomar el agente |
-|---|---|---|---|
-| N1 · Misión base | `easy`: arranca frente al cupo (±1 m, ±17°), sin conos | 0 | entrar recto y frenar dentro del cupo |
-| N2 · Más decisiones | `normal`: arranca en el pasillo a 4–8 m del cupo, 2 conos fuera de la línea directa | 0 | planear el giro de 90° sin rozar a los vecinos |
-| N3 · Operación exigente | `hard`: como N2 con 5 conos que pueden bloquear la ruta y **2 peatones** cruzando el pasillo | σ = 0.1 m | esquivar obstáculos y ceder el paso a peatones con sensores imprecisos |
+Cada nivel se desarrolla en su propia rama (`feature/nivel-N`), se integra a `main` y se marca con un
+tag. Los niveles anteriores siguen disponibles.
 
-Los tres niveles comparten observaciones y acciones, así que sus modelos forman una sola familia compatible.
+| Nivel | Estado | Configuración | Qué decisión nueva debe tomar el agente |
+|---|---|---|---|
+| N1 · Misión base | ✅ `nivel-1` | arranca en el pasillo a 4–8 m del cupo, rodeado de autos estacionados; 0 conos, 0 peatones, sin ruido | girar 90° hacia el cupo sin rozar a los vecinos y detenerse alineado |
+| N2 · Conos | pendiente | N1 + conos en el pasillo | rodear obstáculos fijos en la ruta |
+| N3 · Peatones | pendiente | N1 + peatones que cruzan el pasillo | ceder el paso a obstáculos en movimiento |
+| N4 · Todo junto | pendiente | conos + peatones + ruido en los sensores | combinar todo con sensores imprecisos (perturbación) |
+
+Todos los niveles comparten observaciones y acciones, así que sus modelos forman una sola familia
+compatible. Un modelo antiguo puede evaluarse en un nivel nuevo, pero no se espera que lo resuelva.
 
 ## Historial de versiones
 
