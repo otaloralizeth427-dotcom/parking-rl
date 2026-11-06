@@ -1,0 +1,8 @@
+{
+  "suite_id": "N1-suite-v1",
+  "level_id": "N1",
+  "description": "100 episodios deterministas del nivel N1. Semillas 100000-100099, distintas de las de entrenamiento (desde 0) y de validación (desde 200000).",
+  "seed_start": 100000,
+  "episodes": 100,
+  "deterministic": true
+}

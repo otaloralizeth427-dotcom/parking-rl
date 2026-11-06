@@ -139,16 +139,19 @@ class ParkingEnv(gym.Env):
     metadata = {"render_modes": []}
 
     def __init__(self, difficulty: str = "normal", sensor_noise: float = 0.0,
-                 config: ParkingConfig | None = None, pedestrians: int = 0):
+                 config: ParkingConfig | None = None, pedestrians: int = 0, cones: int | None = None):
         if difficulty not in DIFFICULTIES:
             raise ValueError(f"difficulty debe ser uno de {DIFFICULTIES}, no {difficulty!r}")
         if sensor_noise < 0:
             raise ValueError("sensor_noise debe ser >= 0")
         if not isinstance(pedestrians, int) or pedestrians < 0:
             raise ValueError("pedestrians debe ser un entero >= 0")
+        if cones is not None and (not isinstance(cones, int) or cones < 0):
+            raise ValueError("cones debe ser None o un entero >= 0")
         self.difficulty = difficulty
         self.sensor_noise = sensor_noise
         self.n_pedestrians = pedestrians
+        self.n_cones = cones   # None = la cantidad por defecto de la dificultad
         self.cfg = config or ParkingConfig()
 
         n_obs = 6 + self.cfg.n_sensors
@@ -237,7 +240,7 @@ class ParkingEnv(gym.Env):
             y = rng.uniform(-1.5, 1.5)
             heading = (np.pi if x > tc[0] else 0.0) + rng.uniform(-0.2, 0.2)
 
-        n_cones = {"easy": 0, "normal": 2, "hard": 5}[self.difficulty]
+        n_cones = {"easy": 0, "normal": 2, "hard": 5}[self.difficulty] if self.n_cones is None else self.n_cones
         placed = 0
         attempts = 0
         while placed < n_cones and attempts < 200:

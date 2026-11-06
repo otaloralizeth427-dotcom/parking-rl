@@ -1,9 +1,15 @@
-"""Compara la política aleatoria, Q-learning y la red neuronal; genera gráficas en results/."""
+"""Evaluación con suites fijas: compara referencias (aleatoria, regla) y modelos registrados.
+
+Uso:  python -m pipelines.evaluate --level N1
+Guarda en results/<nivel>/ los resultados por episodio, el resumen y las gráficas.
+"""
 
 from __future__ import annotations
 
 import argparse
 import json
+import time
+from collections import Counter
 from pathlib import Path
 
 import matplotlib
@@ -12,137 +18,157 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 
-from agents.agent_base import run_episode  # noqa: E402
-from agents.registry import AGENT_CLASSES, history_path  # noqa: E402
-from envs.parking_env import DIFFICULTIES, ParkingEnv  # noqa: E402
+from envs.levels import LEVEL_IDS, make_env  # noqa: E402
 
-RESULTS_DIR = Path(__file__).resolve().parents[1] / "results"
-COLORS = {"random": "#8a8f98", "q_learning": "#f59e0b", "neural": "#3b82f6"}
-LABELS = {"random": "Aleatoria", "q_learning": "Q-learning", "neural": "Red neuronal"}
-EVAL_SEED = 100_000  # semillas distintas a las del entrenamiento
+ROOT = Path(__file__).resolve().parents[1]
+SUITES_DIR = ROOT / "configs" / "suites"
+RESULTS_DIR = ROOT / "results"
+OUTCOMES = ("success", "obstacle", "pedestrian", "boundary", "timeout")
+OUTCOME_LABELS = {"success": "Éxito", "obstacle": "Choque con obstáculo", "pedestrian": "Atropello",
+                  "boundary": "Salida del área", "timeout": "Tiempo agotado"}
 
 
-def evaluate_policy(agent, difficulty: str, episodes: int, sensor_noise: float = 0.0) -> dict:
-    env = ParkingEnv(difficulty, sensor_noise)
-    env.action_space.seed(EVAL_SEED)
-    runs = [run_episode(env, agent, seed=EVAL_SEED + i) for i in range(episodes)]
+def load_suite(suite_id: str) -> dict:
+    path = SUITES_DIR / f"{suite_id}.json"
+    if not path.exists():
+        raise FileNotFoundError(f"No existe la suite {suite_id} ({path})")
+    suite = json.loads(path.read_text())
+    if suite["episodes"] <= 0:
+        raise ValueError("La suite debe tener al menos un episodio")
+    return suite
+
+
+def suite_for_level(level_id: str) -> dict:
+    return load_suite(f"{level_id}-suite-v1")
+
+
+def run_case(env, policy, seed: int) -> dict:
+    """Un episodio con un modelo congelado; policy=None es la política aleatoria."""
+    obs, info = env.reset(seed=seed)
+    env.action_space.seed(seed)
+    total, latencies = 0.0, []
+    while True:
+        start = time.perf_counter()
+        action = int(env.action_space.sample()) if policy is None else policy.act(obs, greedy=True)
+        latencies.append((time.perf_counter() - start) * 1000)
+        obs, reward, terminated, truncated, info = env.step(action)
+        total += reward
+        if terminated or truncated:
+            break
+    outcome = "success" if info["success"] else info["collision_kind"] or "timeout"
     return {
-        "success_rate": float(np.mean([r["success"] for r in runs])),
-        "collision_rate": float(np.mean([r["collision"] for r in runs])),
-        "collisions": int(sum(r["collision"] for r in runs)),
-        "mean_return": float(np.mean([r["return"] for r in runs])),
-        "mean_steps": float(np.mean([r["steps"] for r in runs])),
-        "mean_time_s": float(np.mean([r["steps"] for r in runs]) * env.cfg.dt),
-        "final_position_error": float(np.mean([r["distance"] for r in runs])),
-        "final_heading_error_deg": float(np.degrees(np.mean([r["heading_error"] for r in runs]))),
+        "seed": seed, "outcome": outcome, "success": info["success"],
+        "terminated": terminated, "truncated": truncated,
+        "steps": info["steps"], "time_s": round(info["steps"] * env.cfg.dt, 2),
+        "return": round(total, 3), "final_distance_m": round(info["distance"], 3),
+        "final_heading_error_deg": round(float(np.degrees(abs(info["heading_error"]))), 2),
+        "latency_ms": round(float(np.mean(latencies)), 4),
     }
 
 
-def load_agents() -> dict:
-    agents = {"random": None}
-    for name, cls in AGENT_CLASSES.items():
-        try:
-            agents[name] = cls.load()
-        except FileNotFoundError:
-            print(f"Aviso: {name} no está entrenado; se omite (python run.py train --agent {name}).")
-    return agents
+def evaluate(policy, suite: dict) -> dict:
+    env = make_env(suite["level_id"])
+    cases = [run_case(env, policy, suite["seed_start"] + i) for i in range(suite["episodes"])]
+    return {"suite_id": suite["suite_id"], "level_id": suite["level_id"],
+            "summary": summarize(cases), "cases": cases}
 
 
-METRICS_TO_PLOT = [
-    ("success_rate", "Éxito (%)", 100),
-    ("mean_return", "Recompensa promedio", 1),
-    ("mean_time_s", "Tiempo promedio (s)", 1),
-    ("collisions", "Número de colisiones", 1),
-    ("final_position_error", "Error final de posición (m)", 1),
-    ("final_heading_error_deg", "Error final de orientación (°)", 1),
-]
+def summarize(cases: list[dict]) -> dict:
+    counts = Counter(c["outcome"] for c in cases)
+    n = len(cases)
+    mean = lambda key: round(float(np.mean([c[key] for c in cases])), 3)  # noqa: E731
+    return {
+        "episodes": n,
+        "success_rate": round(counts["success"] / n, 4),
+        "outcomes": {o: counts.get(o, 0) for o in OUTCOMES},
+        "mean_return": mean("return"),
+        "mean_time_s": mean("time_s"),
+        "mean_final_distance_m": mean("final_distance_m"),
+        "mean_final_heading_error_deg": mean("final_heading_error_deg"),
+        "mean_latency_ms": mean("latency_ms"),
+    }
 
 
-def plot_comparison(results: dict, path: Path):
-    difficulties = list(next(iter(results.values())).keys())
-    agents = list(results)
-    fig, axes = plt.subplots(2, 3, figsize=(15, 8.5))
-    width = 0.8 / len(agents)
-    x = np.arange(len(difficulties))
-    for ax, (key, title, scale) in zip(axes.flat, METRICS_TO_PLOT):
-        for i, agent in enumerate(agents):
-            values = [results[agent][d][key] * scale for d in difficulties]
-            bars = ax.bar(x + (i - (len(agents) - 1) / 2) * width, values, width,
-                          color=COLORS[agent], label=LABELS[agent])
-            ax.bar_label(bars, fmt="%.0f" if scale == 100 or key == "collisions" else "%.1f",
-                         fontsize=8, padding=2)
-        ax.set_title(title)
-        ax.set_xticks(x, difficulties)
+# ------------------------------------------------------------------ comparación por nivel
+def baselines() -> dict:
+    from agents.rule_based import RuleBasedPolicy
+    return {"random": ("Aleatoria (referencia)", None), "rule": ("Regla (referencia)", RuleBasedPolicy())}
+
+
+def registered_models(level_id: str) -> dict:
+    from agents.registry import list_manifests, load_policy
+    models = {}
+    for manifest in list_manifests(level_id):
+        if manifest["status"] == "completed":
+            label = f"{manifest['agent'].upper()} · {manifest['run_id']}"
+            models[manifest["run_id"]] = (label, load_policy(manifest))
+    return models
+
+
+def compare_level(level_id: str) -> dict:
+    suite = suite_for_level(level_id)
+    out_dir = RESULTS_DIR / level_id
+    out_dir.mkdir(parents=True, exist_ok=True)
+    comparison = {}
+    for key, (label, policy) in {**baselines(), **registered_models(level_id)}.items():
+        result = evaluate(policy, suite)
+        (out_dir / f"eval_{key}.json").write_text(json.dumps(result, indent=1))
+        comparison[key] = {"label": label, **result["summary"]}
+    (out_dir / "comparison.json").write_text(json.dumps(
+        {"level_id": level_id, "suite_id": suite["suite_id"], "policies": comparison}, indent=2))
+    plot_comparison(comparison, out_dir / "comparison.png", f"Nivel {level_id} · suite {suite['suite_id']}")
+    print_table(comparison)
+    return comparison
+
+
+PALETTE = ["#9ca3af", "#f59e0b", "#3b82f6", "#8b5cf6", "#10b981", "#ef4444"]
+OUTCOME_COLORS = {"success": "#22c55e", "obstacle": "#f97316", "pedestrian": "#ef4444",
+                  "boundary": "#a855f7", "timeout": "#9ca3af"}
+
+
+def plot_comparison(comparison: dict, path: Path, title: str):
+    keys = list(comparison)
+    labels = [comparison[k]["label"].replace(" · ", "\n") for k in keys]
+    fig, axes = plt.subplots(1, 3, figsize=(16, 5))
+
+    # Resultado de los episodios por causa (barras apiladas)
+    bottom = np.zeros(len(keys))
+    for outcome in OUTCOMES:
+        values = np.array([comparison[k]["outcomes"][outcome] for k in keys])
+        axes[0].bar(labels, values, bottom=bottom, color=OUTCOME_COLORS[outcome], label=OUTCOME_LABELS[outcome])
+        bottom += values
+    axes[0].set(title="Resultado por episodio", ylabel="Episodios")
+    axes[0].legend(frameon=False, fontsize=8)
+
+    for ax, key, name in [(axes[1], "mean_time_s", "Tiempo promedio (s)"),
+                          (axes[2], "mean_final_distance_m", "Error final de posición (m)")]:
+        bars = ax.bar(labels, [comparison[k][key] for k in keys], color=PALETTE[:len(keys)])
+        ax.bar_label(bars, fmt="%.2f", fontsize=8)
+        ax.set_title(name)
+    for ax in axes:
+        ax.tick_params(axis="x", labelsize=8)
         ax.spines[["top", "right"]].set_visible(False)
         ax.grid(axis="y", alpha=0.3)
-    handles, labels = axes.flat[0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="upper right", ncol=len(agents), frameon=False)
-    fig.suptitle("Comparación de políticas por dificultad", fontsize=14, x=0.02, ha="left")
-    fig.tight_layout(rect=(0, 0, 1, 0.96))
-    fig.savefig(path, dpi=130)
-    plt.close(fig)
-
-
-def plot_training_curves(path: Path, window: int = 100) -> bool:
-    histories = {n: json.loads(history_path(n).read_text())
-                 for n in AGENT_CLASSES if history_path(n).exists()}
-    if not histories:
-        return False
-    fig, axes = plt.subplots(1, 2, figsize=(13, 4.5))
-    for name, history in histories.items():
-        kernel = np.ones(window) / window
-        for ax, key in zip(axes, ("success", "return")):
-            series = np.array([h[key] for h in history], dtype=float)
-            if len(series) >= window:
-                ax.plot(np.convolve(series, kernel, mode="valid") * (100 if key == "success" else 1),
-                        color=COLORS[name], label=LABELS[name])
-    axes[0].set(title=f"Éxito durante el entrenamiento (media móvil {window})",
-                xlabel="Episodio", ylabel="Éxito (%)")
-    axes[1].set(title="Retorno por episodio", xlabel="Episodio", ylabel="Retorno")
-    for ax in axes:
-        ax.legend(frameon=False)
-        ax.grid(alpha=0.3)
-        ax.spines[["top", "right"]].set_visible(False)
+    fig.suptitle(title)
     fig.tight_layout()
-    fig.savefig(path, dpi=130)
+    fig.savefig(path, dpi=120)
     plt.close(fig)
-    return True
 
 
-def print_table(results: dict):
-    header = f"{'Agente':<14}{'Dific.':<8}{'Éxito':>7}{'Choques':>9}{'Recomp.':>9}" \
-             f"{'Tiempo':>8}{'Err pos':>9}{'Err ang':>9}"
-    print(header)
-    print("-" * len(header))
-    for agent, per_diff in results.items():
-        for diff, m in per_diff.items():
-            print(f"{LABELS[agent]:<14}{diff:<8}{m['success_rate']:>7.0%}{m['collisions']:>9d}"
-                  f"{m['mean_return']:>9.1f}{m['mean_time_s']:>7.1f}s"
-                  f"{m['final_position_error']:>8.2f}m{m['final_heading_error_deg']:>8.1f}°")
+def print_table(comparison: dict):
+    print(f"{'Política':<36}{'Éxito':>7}{'Choques':>9}{'Atrop.':>8}{'Salidas':>9}{'Tiempo':>8}{'Err pos':>9}")
+    for item in comparison.values():
+        o = item["outcomes"]
+        print(f"{item['label']:<36}{item['success_rate']:>7.0%}{o['obstacle']:>9}{o['pedestrian']:>8}"
+              f"{o['boundary']:>9}{item['mean_time_s']:>7.1f}s{item['mean_final_distance_m']:>8.2f}m")
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--episodes", type=int, default=200, help="episodios por agente y dificultad")
-    parser.add_argument("--difficulties", nargs="+", default=list(DIFFICULTIES), choices=DIFFICULTIES)
-    parser.add_argument("--sensor-noise", type=float, default=0.0)
+    parser.add_argument("--level", required=True, choices=LEVEL_IDS)
     args = parser.parse_args(argv)
-    if args.episodes <= 0:
-        parser.error("--episodes debe ser positivo")
-
-    RESULTS_DIR.mkdir(exist_ok=True)
-    results = {}
-    for name, agent in load_agents().items():
-        results[name] = {d: evaluate_policy(agent, d, args.episodes, args.sensor_noise)
-                         for d in args.difficulties}
-    print_table(results)
-    (RESULTS_DIR / "metrics.json").write_text(json.dumps(results, indent=2))
-    plot_comparison(results, RESULTS_DIR / "comparison.png")
-    saved = ["metrics.json", "comparison.png"]
-    if plot_training_curves(RESULTS_DIR / "training_curves.png"):
-        saved.append("training_curves.png")
-    print(f"\nGuardado en {RESULTS_DIR}/: {', '.join(saved)}")
-    return results
+    compare_level(args.level)
+    print(f"\nResultados en {RESULTS_DIR / args.level}/")
 
 
 if __name__ == "__main__":

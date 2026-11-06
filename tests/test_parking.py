@@ -279,7 +279,7 @@ def test_api_reset_and_step(client):
 def test_api_rejects_invalid_input(client):
     assert client.post("/api/step", json={"action": 99}).status_code == 400
     assert client.post("/api/agent", json={"agent": "nadie"}).status_code == 400
-    assert client.post("/api/train", json={"agent": "random"}).status_code == 400
+    assert client.post("/api/train", json={"episodes": 0}).status_code == 400
     assert client.post("/api/reset", json={"seed": -1}).status_code == 400
 
 
@@ -311,10 +311,10 @@ def test_levels_match_environment_version():
 # ---------------------------------------------------------------- peatones (N3)
 def test_levels_without_pedestrians_are_unchanged():
     from envs.levels import make_env
-    for level_id, difficulty in [("N1", "easy"), ("N2", "normal")]:
-        a, b = make_env(level_id), ParkingEnv(difficulty)
-        np.testing.assert_array_equal(a.reset(seed=3)[0], b.reset(seed=3)[0])
-        assert a.render_state()["pedestrians"] == []
+    a, b = make_env("N1"), ParkingEnv("normal", cones=0)
+    np.testing.assert_array_equal(a.reset(seed=3)[0], b.reset(seed=3)[0])
+    assert a.render_state()["pedestrians"] == []
+    assert not [o for o in a.obstacles if o["kind"] == "cone"]
 
 
 def test_pedestrians_walk_and_turn_around():
@@ -360,3 +360,66 @@ def test_sensors_detect_pedestrians():
     place(env, ped["x"] + side * 5.0, ped["y"], 0.0 if side < 0 else np.pi)
     front = env._read_sensors()[0]
     assert abs(front - (5.0 - env._car_half[0] - env.cfg.pedestrian_half)) < 1e-6
+
+
+# ---------------------------------------------------------------- referencias, paquetes y pipeline
+def test_rule_policy_parks_sometimes():
+    from agents.rule_based import RuleBasedPolicy
+    from envs.levels import make_env
+    env, policy = make_env("N1"), RuleBasedPolicy()
+    results = [run_episode(env, policy, seed=100_000 + i) for i in range(10)]
+    assert any(r["success"] for r in results)
+
+
+def test_load_policy_rejects_tampered_model(tmp_path):
+    from agents.registry import load_policy, sha256_file
+    path = DQNAgent(seed=0, hidden=(8,)).save(tmp_path / "m.npz")
+    manifest = {"run_id": "x", "status": "completed", "agent": "dqn",
+                "model_uri": str(path), "model_sha256": sha256_file(path)}
+    assert load_policy(manifest).q_values(np.zeros(14, np.float32)).shape == (5,)
+    manifest["model_sha256"] = "0" * 64
+    with pytest.raises(ValueError, match="hash"):
+        load_policy(manifest)
+
+
+def test_suite_evaluation_records_every_case():
+    from pipelines.evaluate import evaluate, load_suite
+    suite = dict(load_suite("N1-suite-v1"), episodes=3)
+    result = evaluate(None, suite)
+    assert len(result["cases"]) == 3 and result["summary"]["episodes"] == 3
+    assert {"seed", "outcome", "latency_ms", "final_distance_m"} <= set(result["cases"][0])
+
+
+@pytest.mark.parametrize("agent", ["dqn", "ppo"])
+def test_pipeline_packages_a_run(tmp_path, monkeypatch, agent):
+    import json
+    import pipelines.train as pipeline
+    from agents.registry import load_policy, sha256_file
+    (tmp_path / "requirements.lock.txt").write_text("numpy\n")
+    for name, value in {"ROOT": tmp_path, "ARTIFACTS_DIR": tmp_path / "artifacts",
+                        "MANIFESTS_DIR": tmp_path / "manifests",
+                        "MLFLOW_URI": f"sqlite:///{tmp_path / 'mlflow.db'}",
+                        "MLFLOW_ARTIFACTS": tmp_path / "mlartifacts"}.items():
+        monkeypatch.setattr(pipeline, name, value)
+    (tmp_path / "manifests").mkdir()
+    if agent == "dqn":
+        config = pipeline.load_experiment("configs/experiments/N1-exp01-dqn.json")
+        config.update({"budget": {"episodes": 3}, "validation": {"episodes": 2, "every": 2},
+                       "hyperparameters": {"hidden": [16], "warmup": 64, "batch_size": 32}})
+    else:
+        config = pipeline.load_experiment("configs/experiments/N1-exp02-ppo.json")
+        config.update({"budget": {"timesteps": 256}, "validation": {"episodes": 2, "every": 128},
+                       "hyperparameters": {"n_steps": 128, "batch_size": 32, "n_epochs": 1, "net_arch": [16]}})
+    config["experiment_id"] = f"test-{agent}"
+    monkeypatch.setattr(pipeline, "suite_for_level", lambda level: {
+        "suite_id": "mini", "level_id": level, "seed_start": 100000, "episodes": 2})
+    manifest = pipeline.run_experiment(config)
+    saved = json.loads((tmp_path / "manifests" / f"{manifest['run_id']}.json").read_text())
+    model = tmp_path / saved["model_uri"]
+    assert saved["status"] == "completed" and saved["model_sha256"] == sha256_file(model)
+    for key in ("run_id", "level_id", "environment_version", "git_commit", "config_sha256",
+                "model_uri", "model_sha256", "normalization_uri", "runtime_ref",
+                "evaluation_suite_id", "seed", "parent_run_id"):
+        assert key in saved
+    saved["model_uri"] = str(model)
+    assert load_policy(saved) is not None

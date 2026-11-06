@@ -1,0 +1,12 @@
+{
+  "experiment_id": "N1-exp01-dqn",
+  "level_id": "N1",
+  "agent": "dqn",
+  "hypothesis": "Una DQN pequeña (2 capas de 128) aprende a estacionar desde el pasillo en 3000 episodios y supera a la política por reglas (49 % de éxito en la suite N1).",
+  "change_vs_baseline": "Baseline aprendido: primer modelo entrenado; se compara contra las referencias aleatoria y de regla.",
+  "seed": 42,
+  "budget": {"episodes": 3000},
+  "hyperparameters": {"hidden": [128, 128], "lr": 0.0005, "gamma": 0.98, "batch_size": 64,
+                      "buffer_size": 100000, "target_sync": 1000, "epsilon_decay": 0.998},
+  "validation": {"episodes": 20, "every": 250}
+}

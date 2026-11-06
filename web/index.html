@@ -7,7 +7,7 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='9' fill='%236d3fd1'/><text x='16' y='23' font-size='20' font-family='sans-serif' font-weight='700' fill='white' text-anchor='middle'>P</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2">
+  <link rel="stylesheet" href="styles.css?v=3">
   <script type="importmap">
     {
       "imports": {
@@ -28,7 +28,10 @@
         <svg viewBox="0 0 48 32" aria-hidden="true"><path d="M8 20l4-9c1-2 3-3 5-3h14c2 0 4 1 5 3l4 9h1c2 0 3 1 3 3v4c0 1-1 2-2 2h-3a4 4 0 0 1-8 0H17a4 4 0 0 1-8 0H6c-1 0-2-1-2-2v-4c0-2 1-3 3-3zm6-1h20l-3-7c0-1-1-1-2-1H19c-1 0-2 0-2 1z" fill="currentColor"/></svg>
         <span id="hud-title-text">Parquea el auto</span>
       </div>
-      <div class="pill" id="hud-moves">Movimientos: 0</div>
+      <div class="hud-right">
+        <div class="pill" id="hud-moves">Movimientos: 0</div>
+        <div class="pill mode" id="hud-mode">Modo: —</div>
+      </div>
     </header>
 
     <!-- Botones laterales -->
@@ -87,20 +90,14 @@
 
       <section>
         <h3>Simulación</h3>
-        <div class="segmented" id="agent-select">
-          <button data-agent="q_learning">Q-learning</button>
-          <button data-agent="neural">Red neuronal</button>
-          <button data-agent="random">Aleatorio</button>
-        </div>
+        <label class="field">Agente o modelo
+          <select id="agent-select"></select>
+        </label>
         <label class="field">Velocidad <span id="speed-label">1×</span>
           <input type="range" id="speed" min="0.25" max="10" step="0.25" value="1">
         </label>
         <label class="field">Nivel
-          <select id="difficulty">
-            <option value="N1">1 · Frente al cupo</option>
-            <option value="N2" selected>2 · Desde el pasillo</option>
-            <option value="N3">3 · Conos, peatones y ruido</option>
-          </select>
+          <select id="difficulty"></select>
         </label>
         <div class="toggles">
           <label class="toggle"><input type="checkbox" id="tg-sensors" checked><span></span>Sensores</label>
@@ -118,7 +115,7 @@
         <h3>Entrenamiento</h3>
         <div class="train-row">
           <input type="number" id="train-episodes" min="1" max="50000" value="1000" aria-label="Episodios">
-          <button id="btn-train" class="primary">Entrenar</button>
+          <button id="btn-train" class="primary">Entrenar DQN</button>
         </div>
         <div class="progress"><div id="train-bar"></div></div>
         <div class="train-meta"><span id="train-label">Sin entrenamiento activo</span><span id="train-success"></span></div>
@@ -136,6 +133,6 @@
     window.addEventListener("error", (e) => showLoadError(e.message || "Error al cargar un recurso"));
     window.addEventListener("unhandledrejection", (e) => showLoadError(String(e.reason)));
   </script>
-  <script type="module" src="app.js?v=7"></script>
+  <script type="module" src="app.js?v=8"></script>
 </body>
 </html>
