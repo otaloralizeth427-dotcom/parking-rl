@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| Versión del contrato | `parking-v1` (`envs/parking_env.py: ENV_VERSION`) |
+| Versión del contrato | `parking-v2` (`envs/parking_env.py: ENV_VERSION`) |
 | Implementación | `envs.parking_env.ParkingEnv` (Gymnasium 1.x) |
 | Misión | Llevar el vehículo al cupo objetivo y detenerlo alineado, sin chocar |
 | Unidades | metros, segundos, radianes, m/s |
@@ -15,6 +15,7 @@
 | Cupos | 2 filas × 8 cupos de 3.0 × 5.5 m; pasillo central de 9 m |
 | Vehículo | 4.2 × 1.8 m, distancia entre ejes 2.6 m |
 | Obstáculos | autos estacionados (cada cupo ocupado con p = 0.6; p = 0.85 los vecinos del objetivo), 4 columnas de 0.8 × 0.8 m, conos de 0.5 × 0.5 m |
+| Peatones (opcional, N3) | cajas de 0.5 × 0.5 m que cruzan el pasillo en una x fija, ida y vuelta entre y = ±3.9 m, a 0.8–1.3 m/s; se detienen si el auto está a menos de 0.6 m de su camino; los sensores los detectan |
 | Aleatoriedad por episodio | cupo objetivo (16 posibles), ocupación de cupos, desplazamiento ±0.15 m de los autos, pose inicial y conos; reproducible con `reset(seed=...)` |
 
 ## Dinámica
@@ -68,10 +69,10 @@ r = −0.05                                    tiempo
 | Señal | Condición |
 |---|---|
 | `terminated` · éxito | las 4 esquinas dentro del cupo (holgura de 0.15 m), \|error de orientación\| ≤ 0.25 rad (14°) y \|v\| ≤ 0.4 m/s |
-| `terminated` · fallo | choque con un auto, cono, columna o bordillo, o salida del parqueadero |
+| `terminated` · fallo | choque con un obstáculo (`collision_kind = "obstacle"`), atropello de un peatón (`"pedestrian"`) o salida del parqueadero (`"boundary"`) |
 | `truncated` | 200 decisiones (40 s simulados) sin terminar |
 
-`info` contiene: `distance`, `heading_error`, `speed`, `steer`, `collision`, `success`, `in_slot`, `steps`, `target_id`.
+`info` contiene: `collision_kind`, `distance`, `heading_error`, `speed`, `steer`, `collision`, `success`, `in_slot`, `steps`, `target_id`.
 
 ## Niveles (`configs/levels/*.json`)
 
@@ -79,14 +80,21 @@ r = −0.05                                    tiempo
 |---|---|---|---|
 | N1 · Misión base | `easy`: arranca frente al cupo (±1 m, ±17°), sin conos | 0 | entrar recto y frenar dentro del cupo |
 | N2 · Más decisiones | `normal`: arranca en el pasillo a 4–8 m del cupo, 2 conos fuera de la línea directa | 0 | planear el giro de 90° sin rozar a los vecinos |
-| N3 · Operación exigente | `hard`: como N2 con 5 conos que pueden bloquear la ruta | σ = 0.1 m | esquivar obstáculos con sensores imprecisos |
+| N3 · Operación exigente | `hard`: como N2 con 5 conos que pueden bloquear la ruta y **2 peatones** cruzando el pasillo | σ = 0.1 m | esquivar obstáculos y ceder el paso a peatones con sensores imprecisos |
 
-Los tres niveles comparten observaciones y acciones, así que sus modelos forman una sola familia compatible (`parking-v1`).
+Los tres niveles comparten observaciones y acciones, así que sus modelos forman una sola familia compatible.
+
+## Historial de versiones
+
+| Versión | Cambio |
+|---|---|
+| `parking-v1` | Contrato inicial: cupos, autos estacionados, columnas, conos y ruido opcional |
+| `parking-v2` | Agrega peatones en movimiento (solo cuando `pedestrians > 0`, es decir en N3) y `info.collision_kind`. N1 y N2 producen exactamente las mismas transiciones que en v1 (lo verifica `test_levels_without_pedestrians_are_unchanged`) |
 
 ## Simplificaciones
 
 - Movimiento en el plano; sin derrape, inercia lateral ni retardo de actuadores.
 - Acciones discretas: el agente no elige aceleraciones continuas.
-- Obstáculos estáticos durante el episodio; no hay peatones ni autos en movimiento.
+- Los peatones caminan en línea recta por el pasillo y ceden el paso de forma ideal; los autos estacionados no se mueven.
 - Sensores ideales salvo el ruido gaussiano opcional; sin oclusiones parciales ni fallas.
 - La visualización 3D (Three.js) solo representa el estado que entrega Python; no tiene física propia.

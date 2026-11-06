@@ -18,7 +18,7 @@ def cmd_serve(args):
 
     from api.server import SimulationSession, create_app
 
-    app = create_app(SimulationSession(args.difficulty, args.sensor_noise))
+    app = create_app(SimulationSession(args.level or "N2", args.sensor_noise if args.sensor_noise_set else None))
     print(f"Visualización 3D en http://{args.host}:{args.port}")
     uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
 
@@ -29,7 +29,7 @@ def cmd_train(args):
         agent, _ = load_or_create(args.agent)
     else:
         agent = AGENT_CLASSES[args.agent](seed=args.seed, **TRAIN_DEFAULTS[args.agent])
-    env = ParkingEnv(args.difficulty, args.sensor_noise)
+    env = ParkingEnv(args.difficulty, args.sensor_noise, pedestrians=args.pedestrians)
     history = train(agent, env, episodes, seed=args.seed, log_every=max(1, episodes // 20))
     path = agent.save()
     previous = json.loads(history_path(args.agent).read_text()) \
@@ -40,7 +40,7 @@ def cmd_train(args):
 
 def cmd_demo(args):
     agent = None if args.agent == "random" else AGENT_CLASSES[args.agent].load()
-    env = ParkingEnv(args.difficulty, args.sensor_noise)
+    env = ParkingEnv(args.difficulty, args.sensor_noise, pedestrians=args.pedestrians)
     env.action_space.seed(args.seed)
     for ep in range(args.episodes):
         obs, info = env.reset(seed=args.seed + ep)
@@ -72,7 +72,8 @@ def build_parser():
     def env_args(p):
         p.add_argument("--level", choices=LEVEL_IDS, help="nivel versionado; reemplaza --difficulty y --sensor-noise")
         p.add_argument("--difficulty", default="normal", choices=DIFFICULTIES)
-        p.add_argument("--sensor-noise", type=float, default=0.0)
+        p.add_argument("--sensor-noise", type=float)
+        p.add_argument("--pedestrians", type=int, default=0)
 
     p = sub.add_parser("serve", help="inicia la visualización 3D")
     p.add_argument("--host", default="127.0.0.1")
@@ -104,9 +105,14 @@ def build_parser():
 
 if __name__ == "__main__":
     args = build_parser().parse_args()
-    if getattr(args, "level", None):
-        level = load_level(args.level)
-        args.difficulty, args.sensor_noise = level["difficulty"], level["sensor_noise"]
+    if hasattr(args, "level"):
+        args.sensor_noise_set = args.sensor_noise is not None
+        if args.level:
+            level = load_level(args.level)
+            args.difficulty, args.pedestrians = level["difficulty"], level.get("pedestrians", 0)
+            if not args.sensor_noise_set:
+                args.sensor_noise = level["sensor_noise"]
+        args.sensor_noise = args.sensor_noise or 0.0
     if getattr(args, "episodes", None) is not None and args.episodes <= 0:
         raise SystemExit("--episodes debe ser positivo")
     args.func(args)

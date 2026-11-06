@@ -15,13 +15,14 @@ from fastapi.staticfiles import StaticFiles
 
 from agents.agent_base import Agent, train
 from agents.registry import AGENT_CLASSES, AGENT_NAMES, history_path, load_or_create
-from envs.parking_env import ACTION_NAMES, DIFFICULTIES, ParkingEnv
+from envs.levels import LEVEL_IDS, load_level
+from envs.parking_env import ACTION_NAMES, ENV_VERSION, ParkingEnv
 
 WEB_DIR = Path(__file__).resolve().parents[1] / "web"
 
 
 class SimulationSession:
-    def __init__(self, difficulty: str = "normal", sensor_noise: float = 0.0):
+    def __init__(self, level: str = "N2", sensor_noise: float | None = None):
         self._lock = threading.Lock()
         self.agents: dict[str, Agent] = {}
         self.trained: dict[str, bool] = {}
@@ -31,14 +32,14 @@ class SimulationSession:
         self.successes = 0
         self.training = {"running": False, "agent": None, "episode": 0, "total": 0,
                          "success_rate": 0.0, "returns": []}
-        self._configure(difficulty, sensor_noise)
+        self._configure(level, sensor_noise)
         self.reset()
 
     # ----------------------------------------------------------- comandos
     def handle(self, cmd: str, payload: dict | None = None) -> dict:
         payload = payload or {}
         handlers = {
-            "reset": lambda: self.reset(payload.get("seed"), payload.get("difficulty"),
+            "reset": lambda: self.reset(payload.get("seed"), payload.get("level"),
                                         payload.get("sensor_noise")),
             "step": lambda: self.step(payload.get("action")),
             "state": self.state,
@@ -52,24 +53,27 @@ class SimulationSession:
         return handlers[cmd]()
 
     def config(self) -> dict:
-        return {"type": "config", "agents": list(AGENT_NAMES), "difficulties": list(DIFFICULTIES),
-                "actions": ACTION_NAMES, "difficulty": self.difficulty,
-                "sensor_noise": self.sensor_noise, "agent": self.agent_name,
+        return {"type": "config", "agents": list(AGENT_NAMES),
+                "actions": ACTION_NAMES, "environment_version": ENV_VERSION,
+                "levels": [{"id": lid, "name": load_level(lid)["name"]} for lid in LEVEL_IDS],
+                "level": self.level_id, "sensor_noise": self.sensor_noise, "agent": self.agent_name,
                 "trained": {n: self._is_trained(n) for n in AGENT_NAMES}}
 
-    def reset(self, seed=None, difficulty=None, sensor_noise=None) -> dict:
+    def reset(self, seed=None, level=None, sensor_noise=None) -> dict:
         if seed is not None and (not isinstance(seed, int) or seed < 0):
             raise ValueError("seed debe ser un entero no negativo")
         with self._lock:
-            if difficulty is not None or sensor_noise is not None:
-                self._configure(difficulty or self.difficulty,
-                                self.sensor_noise if sensor_noise is None else float(sensor_noise))
+            if level is not None:
+                self._configure(level, sensor_noise)
+            elif sensor_noise is not None:
+                self._configure(self.level_id, sensor_noise)
             self.obs, _ = self.env.reset(seed=seed)
             self.episode += 1
             self.total_reward = 0.0
             self.last_reward = 0.0
             self.last_action = None
             self.status = "running"
+            self.collision_kind = None
             return {"type": "reset", "layout": self.env.layout(), **self._frame()}
 
     def step(self, action=None) -> dict:
@@ -86,6 +90,7 @@ class SimulationSession:
             self.total_reward += reward
             if info["collision"]:
                 self.status = "collision"
+                self.collision_kind = info["collision_kind"]
                 self.collisions += 1
             elif info["success"]:
                 self.status = "success"
@@ -120,9 +125,16 @@ class SimulationSession:
         return {"type": "training", "training": dict(self.training)}
 
     # ----------------------------------------------------------- internos
-    def _configure(self, difficulty: str, sensor_noise: float):
-        self.env = ParkingEnv(difficulty, sensor_noise)
-        self.difficulty, self.sensor_noise = difficulty, sensor_noise
+    def _configure(self, level_id: str, sensor_noise: float | None = None):
+        """Usa el nivel versionado; sensor_noise permite sobrescribir su ruido (botón «Ruido»)."""
+        level = load_level(level_id)
+        noise = level["sensor_noise"] if sensor_noise is None else float(sensor_noise)
+        if noise < 0:
+            raise ValueError("sensor_noise debe ser >= 0")
+        self.env_kwargs = {"difficulty": level["difficulty"], "sensor_noise": noise,
+                           "pedestrians": level.get("pedestrians", 0)}
+        self.env = ParkingEnv(**self.env_kwargs)
+        self.level_id, self.sensor_noise = level_id, noise
         self.status = "idle"
 
     def _agent(self, name: str) -> Agent:
@@ -143,7 +155,7 @@ class SimulationSession:
         return self._agent(self.agent_name).act(self.obs, greedy=True)
 
     def _train_worker(self, name: str, agent: Agent, episodes: int):
-        env = ParkingEnv(self.difficulty, self.sensor_noise)
+        env = ParkingEnv(**self.env_kwargs)
         successes: list[bool] = []
 
         def progress(ep, result):
@@ -169,6 +181,8 @@ class SimulationSession:
         return {
             **self.env.render_state(),
             "episode": self.episode,
+            "level": self.level_id,
+            "collision_kind": self.collision_kind,
             "status": self.status,
             "reward": self.last_reward,
             "total_reward": self.total_reward,

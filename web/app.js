@@ -26,7 +26,11 @@ const TITLE_LABELS = {
   idle: "Parquea el auto", running: "Parquea el auto", paused: "En pausa",
   success: "¡Estacionado!", collision: "¡Choque!", timeout: "Tiempo agotado",
 };
-const LEVELS = { easy: 1, normal: 2, hard: 3 };
+const LEVELS = { N1: 1, N2: 2, N3: 3 };
+const COLLISION_LABELS = {
+  pedestrian: "¡Atropellaste a un peatón!", obstacle: "¡Choque con un obstáculo!", boundary: "¡Te saliste del parqueadero!",
+};
+const COLLISION_CAUSES = { pedestrian: "peatón", obstacle: "obstáculo", boundary: "salida del área" };
 const BASE_STEP_MS = 200;      // dt del ambiente a velocidad 1×
 const AUTO_RESET_MS = 1800;
 const BRAKE_ACTION = 4;
@@ -706,6 +710,81 @@ function buildObstacles(layout) {
   }
 }
 
+// ============================================================ peatones (nivel 3)
+const pedestrianGroup = new THREE.Group();
+scene.add(pedestrianGroup);
+const PERSON = {
+  skin: [0xf1c7a6, 0xc68863, 0x8d5a3b].map((c) => std({ color: c, roughness: 0.7 })),
+  shirts: [0xf472b6, 0x2dd4bf, 0xfbbf24, 0x60a5fa].map((c) => std({ color: c, roughness: 0.6 })),
+  pants: std({ color: 0x3b3561, roughness: 0.8 }),
+  hair: std({ color: 0x2a1d1a, roughness: 0.9 }),
+  limb: new THREE.CapsuleGeometry(1, 1, 4, 10),
+  head: new THREE.SphereGeometry(0.13, 16, 12),
+  hairCap: new THREE.SphereGeometry(0.135, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2),
+};
+const pedestrianMeshes = [];
+
+function capsule(material, radius, length, y) {
+  const mesh = shadowed(new THREE.Mesh(PERSON.limb, material), true, false);
+  mesh.scale.set(radius, length / 2, radius);
+  mesh.position.y = y;
+  return mesh;
+}
+
+// Persona estilizada que mira hacia +x; piernas y brazos giran desde cadera y hombro
+function makePedestrian(index) {
+  const group = new THREE.Group();
+  const shirt = PERSON.shirts[index % PERSON.shirts.length];
+  const skin = PERSON.skin[index % PERSON.skin.length];
+  group.add(capsule(shirt, 0.17, 0.4, 1.22));
+  const head = shadowed(new THREE.Mesh(PERSON.head, skin), true, false);
+  head.position.y = 1.66;
+  const hair = new THREE.Mesh(PERSON.hairCap, PERSON.hair);
+  hair.position.y = 1.68;
+  group.add(head, hair);
+  const limbs = [];
+  for (const [y, z, material, radius, length] of [
+    [0.92, 0.09, PERSON.pants, 0.075, 0.72], [0.92, -0.09, PERSON.pants, 0.075, 0.72],
+    [1.44, 0.24, skin, 0.05, 0.5], [1.44, -0.24, skin, 0.05, 0.5],
+  ]) {
+    const pivot = new THREE.Group();
+    pivot.position.set(0, y, z);
+    pivot.add(capsule(material, radius, length, -length / 2 - radius));
+    group.add(pivot);
+    limbs.push(pivot);
+  }
+  pedestrianGroup.add(group);
+  return { group, limbs, phase: 0, last: null };
+}
+
+function ensurePedestrians(count) {
+  while (pedestrianMeshes.length < count) pedestrianMeshes.push(makePedestrian(pedestrianMeshes.length));
+  pedestrianMeshes.forEach((p, i) => {
+    p.group.visible = i < count;
+    p.last = null;
+  });
+}
+
+function renderPedestrians() {
+  const peds = sim.frame?.pedestrians ?? [];
+  peds.forEach((info, i) => {
+    const mesh = pedestrianMeshes[i];
+    const pose = sim.pose.peds?.[i];
+    if (!mesh || !pose) return;
+    mesh.group.position.copy(toWorld(pose.x, pose.y));
+    mesh.group.rotation.y = info.dir > 0 ? Math.PI / 2 : -Math.PI / 2;
+    if (mesh.last) mesh.phase += Math.hypot(pose.x - mesh.last.x, pose.y - mesh.last.y) / 0.32;
+    mesh.last = { x: pose.x, y: pose.y };
+    // Balanceo de la marcha; al esperar, las extremidades vuelven al reposo
+    const swing = info.moving ? Math.sin(mesh.phase) * 0.6 : 0;
+    const [legL, legR, armL, armR] = mesh.limbs;
+    legL.rotation.z = swing;
+    legR.rotation.z = -swing;
+    armL.rotation.z = -swing * 0.8;
+    armR.rotation.z = swing * 0.8;
+  });
+}
+
 // ============================================================ trayectoria
 const TRAIL_MAX = 800;
 const trailPoints = [];
@@ -749,7 +828,7 @@ function pushTrail(x, y) {
 // ============================================================ estado de la simulación
 const sim = {
   running: false, inFlight: false, lastStepAt: 0, episodeOver: false, autoResetAt: 0,
-  speed: 1, camera: "orbit", showSensors: true, showTrail: true, difficulty: "normal",
+  speed: 1, camera: "orbit", showSensors: true, showTrail: true, level: "N2",
   frame: null, carHalf: [2.1, 0.9],
   from: null, to: null, animStart: 0, animDuration: BASE_STEP_MS,
   pose: { x: 0, y: 0, heading: 0, steer: 0, sensors: [] },
@@ -765,6 +844,7 @@ function poseFromFrame(frame) {
   return {
     x: frame.car.x, y: frame.car.y, heading: frame.car.heading, steer: frame.car.steer,
     sensors: frame.sensors.map((s) => s.distance),
+    peds: frame.pedestrians.map((p) => ({ x: p.x, y: p.y })),
   };
 }
 
@@ -774,6 +854,7 @@ function applyReset(frame) {
   buildObstacles(frame.layout);
   placeTarget(frame.target, frame.layout.slots.find((s) => s.id === frame.target.id));
   ensureSensors(frame.sensors.length);
+  ensurePedestrians(frame.pedestrians.length);
   sim.pose = poseFromFrame(frame);
   sim.from = sim.to = sim.pose;
   sim.episodeOver = false;
@@ -786,7 +867,7 @@ function applyReset(frame) {
 function applyFrame(frame, animate = true) {
   sim.frame = frame;
   if (animate) {
-    sim.from = { ...sim.pose, sensors: [...sim.pose.sensors] };
+    sim.from = { ...sim.pose, sensors: [...sim.pose.sensors], peds: sim.pose.peds.map((p) => ({ ...p })) };
     sim.to = poseFromFrame(frame);
     sim.animStart = performance.now();
     sim.animDuration = stepInterval();
@@ -797,7 +878,7 @@ function applyFrame(frame, animate = true) {
     sim.episodeOver = true;
     sim.autoResetAt = performance.now() + AUTO_RESET_MS;
     sim.statusAt = performance.now();
-    showBanner(frame.status);
+    showBanner(frame.status, frame.collision_kind);
   }
   updateHud(frame);
   updateTraining(frame.training);
@@ -813,6 +894,10 @@ function updatePose(now) {
     heading: lerpAngle(from.heading, to.heading, t),
     steer: from.steer + (to.steer - from.steer) * t,
     sensors: to.sensors.map((d, i) => (from.sensors[i] ?? d) + (d - (from.sensors[i] ?? d)) * t),
+    peds: to.peds.map((p, i) => {
+      const f = from.peds[i] ?? p;
+      return { x: f.x + (p.x - f.x) * t, y: f.y + (p.y - f.y) * t };
+    }),
   };
 }
 
@@ -933,6 +1018,7 @@ function tick(now) {
   }
   updatePose(now);
   renderCar(now);
+  renderPedestrians();
   updateCamera(dt);
   composer.render();
   requestAnimationFrame(tick);
@@ -952,9 +1038,11 @@ function showError(err) {
   showError.timer = setTimeout(() => (el.hidden = true), 5000);
 }
 
-function showBanner(status) {
+function showBanner(status, collisionKind) {
   const el = $("banner");
-  el.textContent = { success: "¡Estacionado correctamente!", collision: "¡Choque!", timeout: "Tiempo agotado" }[status];
+  el.textContent = status === "collision"
+    ? COLLISION_LABELS[collisionKind] ?? "¡Choque!"
+    : { success: "¡Estacionado correctamente!", timeout: "Tiempo agotado" }[status];
   el.className = `banner ${status}`;
   el.hidden = false;
   const flash = $("flash");
@@ -972,7 +1060,7 @@ function updateHud(frame) {
   $("hud-title").dataset.state = status;
   setText("hud-title-text", TITLE_LABELS[status]);
   setText("hud-moves", `Movimientos: ${frame.steps}`);
-  setText("hud-level", `Nivel: ${LEVELS[sim.difficulty]}`);
+  setText("hud-level", `Nivel: ${LEVELS[sim.level]}`);
 
   setText("m-agent", AGENT_LABELS[frame.agent]);
   setText("m-distance", `${frame.distance.toFixed(1)} m`);
@@ -983,7 +1071,8 @@ function updateHud(frame) {
   setText("m-episode", frame.episode);
   setText("m-collisions", frame.collisions_total);
 
-  setText("m-status", STATUS_LABELS[status]);
+  setText("m-status", status === "collision" && frame.collision_kind
+    ? `Choque · ${COLLISION_CAUSES[frame.collision_kind]}` : STATUS_LABELS[status]);
   setText("m-total", frame.total_reward.toFixed(1));
   setText("m-heading", degrees(frame.heading_error));
   setText("m-steer", degrees(frame.car.steer));
@@ -1046,8 +1135,8 @@ async function refreshConfig() {
     b.classList.toggle("untrained", !config.trained[b.dataset.agent]);
     b.title = config.trained[b.dataset.agent] ? "" : "Sin entrenar";
   });
-  sim.difficulty = config.difficulty;
-  $("difficulty").value = config.difficulty;
+  sim.level = config.level;
+  $("difficulty").value = config.level;
   return config;
 }
 
@@ -1120,8 +1209,8 @@ $("speed").oninput = (e) => {
   setText("speed-label", `${sim.speed}×`);
 };
 $("difficulty").onchange = (e) => {
-  sim.difficulty = e.target.value;
-  doReset({ difficulty: e.target.value });
+  sim.level = e.target.value;
+  doReset({ level: e.target.value });
 };
 $("tg-sensors").onchange = (e) => setOverlays(e.target.checked, sim.showTrail);
 $("tg-trail").onchange = (e) => setOverlays(sim.showSensors, e.target.checked);

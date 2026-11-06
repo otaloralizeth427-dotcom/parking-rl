@@ -213,7 +213,7 @@ Hay columnas al final de cada fila y conos en el pasillo según la dificultad:
 |---|---|---|
 | `easy` | Frente al cupo, apuntando hacia él (±17°) | 0 |
 | `normal` | En el pasillo, 4–8 m a un lado del cupo | 2, fuera de la línea directa |
-| `hard` | Igual que normal | 5, pueden bloquear el camino |
+| `hard` (N3) | Igual que normal, con 2 peatones que cruzan el pasillo y ruido σ = 0.1 m | 5, pueden bloquear el camino |
 
 El vehículo (4.2 × 1.8 m, distancia entre ejes 2.6 m) sigue un **modelo de bicicleta cinemática**
 con `dt = 0.2 s` y 2 subpasos para que no atraviese obstáculos delgados.

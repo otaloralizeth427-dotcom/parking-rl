@@ -20,7 +20,7 @@ DIFFICULTIES = ("easy", "normal", "hard")
 
 # Cambia cuando cambian observaciones, acciones, dinámica o recompensa:
 # un modelo solo es compatible con la versión con que fue entrenado.
-ENV_VERSION = "parking-v1"
+ENV_VERSION = "parking-v2"   # v2: peatones opcionales (nivel N3)
 
 
 @dataclass(frozen=True)
@@ -49,6 +49,9 @@ class ParkingConfig:
     park_heading_tol: float = 0.25   # rad
     park_speed_tol: float = 0.4
     park_margin: float = 0.15        # holgura de las esquinas fuera del cupo
+    pedestrian_half: float = 0.25    # peatón como caja de 0.5 × 0.5 m
+    pedestrian_speed: tuple = (0.8, 1.3)   # m/s
+    pedestrian_clearance: float = 0.6      # se detienen si el auto está a menos de esto
     # Recompensas
     r_time: float = -0.05
     r_idle: float = -0.15            # detenido fuera del cupo: evita políticas que se "congelan"
@@ -136,13 +139,16 @@ class ParkingEnv(gym.Env):
     metadata = {"render_modes": []}
 
     def __init__(self, difficulty: str = "normal", sensor_noise: float = 0.0,
-                 config: ParkingConfig | None = None):
+                 config: ParkingConfig | None = None, pedestrians: int = 0):
         if difficulty not in DIFFICULTIES:
             raise ValueError(f"difficulty debe ser uno de {DIFFICULTIES}, no {difficulty!r}")
         if sensor_noise < 0:
             raise ValueError("sensor_noise debe ser >= 0")
+        if not isinstance(pedestrians, int) or pedestrians < 0:
+            raise ValueError("pedestrians debe ser un entero >= 0")
         self.difficulty = difficulty
         self.sensor_noise = sensor_noise
+        self.n_pedestrians = pedestrians
         self.cfg = config or ParkingConfig()
 
         n_obs = 6 + self.cfg.n_sensors
@@ -248,6 +254,7 @@ class ParkingEnv(gym.Env):
             obstacles.append({"center": tuple(p), "half": (0.25, 0.25), "angle": 0.0, "kind": "cone"})
             placed += 1
 
+        self._spawn_pedestrians(obstacles, start=np.array([x, y]))
         self.obstacles = obstacles
         self._obs_centers = np.array([o["center"] for o in obstacles], dtype=float)
         self._obs_halves = np.array([o["half"] for o in obstacles], dtype=float)
@@ -289,14 +296,16 @@ class ParkingEnv(gym.Env):
         self.speed = float(np.clip(self.speed * cfg.drag, -cfg.max_reverse_speed, cfg.max_speed))
         self.steer = float(np.clip(self.steer, -cfg.max_steer, cfg.max_steer))
 
-        collision = False
+        self._move_pedestrians(cfg.dt)
+        collision_kind = None
         h = cfg.dt / cfg.substeps
         for _ in range(cfg.substeps):
             self.pos = self.pos + self.speed * h * np.array([np.cos(self.heading), np.sin(self.heading)])
             self.heading = float(wrap_angle(self.heading + self.speed / cfg.wheelbase * np.tan(self.steer) * h))
-            if self._collides():
-                collision = True
+            collision_kind = self._collision_kind()
+            if collision_kind:
                 break
+        collision = collision_kind is not None
         self.steps += 1
         self.trajectory.append(self.pos.copy())
         self._sensors = self._read_sensors()
@@ -317,7 +326,7 @@ class ParkingEnv(gym.Env):
         terminated = collision or success
         truncated = not terminated and self.steps >= cfg.max_steps
         return self._observation(), float(reward), terminated, truncated, \
-            self._info(collision=collision, success=success)
+            self._info(collision=collision, success=success, collision_kind=collision_kind)
 
     # ------------------------------------------------------------------ helpers
     def _relative_target(self):
@@ -338,12 +347,63 @@ class ParkingEnv(gym.Env):
         return -self.cfg.w_distance * dist - self.cfg.w_heading * closeness * abs(self.heading_error())
 
     def _collides(self) -> bool:
+        return self._collision_kind() is not None
+
+    def _collision_kind(self) -> str | None:
+        """Causa del choque: "boundary", "obstacle", "pedestrian" o None."""
         w, h = self.cfg.lot_width / 2, self.cfg.lot_height / 2
         corners = box_corners(self.pos, self._car_half, self.heading)
         if np.any(np.abs(corners[:, 0]) > w) or np.any(np.abs(corners[:, 1]) > h):
-            return True
-        return bool(obb_overlaps(self.pos, self._car_half, self.heading,
-                                 self._obs_centers, self._obs_halves, self._obs_angles).any())
+            return "boundary"
+        if obb_overlaps(self.pos, self._car_half, self.heading,
+                        self._obs_centers, self._obs_halves, self._obs_angles).any():
+            return "obstacle"
+        if self.n_pedestrians and obb_overlaps(self.pos, self._car_half, self.heading,
+                                               *self._pedestrian_boxes()).any():
+            return "pedestrian"
+        return None
+
+    # ------------------------------------------------------------------ peatones
+    def _spawn_pedestrians(self, obstacles: list[dict], start: np.ndarray):
+        """Cada peatón cruza el pasillo de lado a lado (eje y) en una x fija, ida y vuelta."""
+        rng, cfg = self.np_random, self.cfg
+        aisle = cfg.lot_height / 2 - cfg.slot_depth - 0.6
+        cones = [np.array(o["center"]) for o in obstacles if o["kind"] == "cone"]
+        self.pedestrians = []
+        attempts = 0
+        while len(self.pedestrians) < self.n_pedestrians and attempts < 200:
+            attempts += 1
+            x = rng.uniform(-cfg.lot_width / 2 + 2, cfg.lot_width / 2 - 2)
+            if abs(x - start[0]) < 3.0 or any(abs(x - c[0]) < 1.2 for c in cones):
+                continue
+            if any(abs(x - p["x"]) < 2.0 for p in self.pedestrians):
+                continue
+            self.pedestrians.append({
+                "x": float(x), "y": float(rng.uniform(-aisle, aisle)),
+                "dir": float(rng.choice([-1.0, 1.0])),
+                "speed": float(rng.uniform(*cfg.pedestrian_speed)),
+                "limit": aisle, "moving": True,
+            })
+
+    def _pedestrian_boxes(self):
+        n = len(self.pedestrians)
+        centers = np.array([[p["x"], p["y"]] for p in self.pedestrians], dtype=float).reshape(n, 2)
+        return centers, np.full((n, 2), self.cfg.pedestrian_half), np.zeros(n)
+
+    def _move_pedestrians(self, dt: float):
+        cfg = self.cfg
+        safety = self._car_half + cfg.pedestrian_clearance
+        for p in self.pedestrians if self.n_pedestrians else []:
+            y = p["y"] + p["dir"] * p["speed"] * dt
+            if abs(y) > p["limit"]:                      # llegó al borde del pasillo: da la vuelta
+                p["dir"] *= -1
+                y = float(np.clip(y, -p["limit"], p["limit"]))
+            # Como un peatón real, espera si el auto está pegado a su camino
+            blocked = obb_overlaps(np.array([p["x"], y]), np.full(2, cfg.pedestrian_half), 0.0,
+                                   self.pos[None], safety[None], np.array([self.heading])).any()
+            p["moving"] = not blocked
+            if not blocked:
+                p["y"] = float(y)
 
     def _corners_in_slot(self, margin: float = 0.0) -> bool:
         slot = self.target
@@ -361,8 +421,12 @@ class ParkingEnv(gym.Env):
     def _read_sensors(self) -> np.ndarray:
         angles = self.sensor_angles
         dirs = np.stack([np.cos(self.heading + angles), np.sin(self.heading + angles)], -1)
-        hits = raycast_obbs(self.pos, dirs, self._obs_centers, self._obs_halves,
-                            self._obs_angles, self.cfg.sensor_range + 3.0)
+        centers, halves, rot_angles = self._obs_centers, self._obs_halves, self._obs_angles
+        if self.n_pedestrians and self.pedestrians:
+            pc, ph, pa = self._pedestrian_boxes()
+            centers, halves = np.vstack([centers, pc]), np.vstack([halves, ph])
+            rot_angles = np.concatenate([rot_angles, pa])
+        hits = raycast_obbs(self.pos, dirs, centers, halves, rot_angles, self.cfg.sensor_range + 3.0)
         # Distancia medida desde la carrocería, no desde el centro
         l, w = self._car_half
         with np.errstate(divide="ignore"):
@@ -388,8 +452,9 @@ class ParkingEnv(gym.Env):
         ])
         return obs.astype(np.float32)
 
-    def _info(self, collision: bool, success: bool) -> dict:
+    def _info(self, collision: bool, success: bool, collision_kind: str | None = None) -> dict:
         return {
+            "collision_kind": collision_kind,
             "distance": self.distance(),
             "heading_error": self.heading_error(),
             "speed": self.speed,
@@ -419,6 +484,8 @@ class ParkingEnv(gym.Env):
             "heading_error": self.heading_error(),
             "in_slot": self._corners_in_slot(),
             "steps": self.steps,
+            "pedestrians": [{"x": p["x"], "y": p["y"], "dir": p["dir"], "moving": p["moving"]}
+                            for p in (self.pedestrians if self.n_pedestrians else [])],
         }
 
     def layout(self) -> dict:

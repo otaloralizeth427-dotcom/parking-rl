@@ -1,9 +1,10 @@
 {
   "level_id": "N2",
   "name": "Más decisiones",
-  "environment_version": "parking-v1",
+  "environment_version": "parking-v2",
   "difficulty": "normal",
   "sensor_noise": 0.0,
   "description": "El vehículo arranca en el pasillo, a 4-8 m del cupo, con 2 conos fuera de la línea directa.",
-  "new_decision": "Planear el giro de 90° hacia el cupo sin rozar los autos vecinos."
+  "new_decision": "Planear el giro de 90° hacia el cupo sin rozar los autos vecinos.",
+  "pedestrians": 0
 }

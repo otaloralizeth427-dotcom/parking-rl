@@ -97,9 +97,9 @@
         </label>
         <label class="field">Nivel
           <select id="difficulty">
-            <option value="easy">1 · Frente al cupo</option>
-            <option value="normal" selected>2 · Desde el pasillo</option>
-            <option value="hard">3 · Con conos en el camino</option>
+            <option value="N1">1 · Frente al cupo</option>
+            <option value="N2" selected>2 · Desde el pasillo</option>
+            <option value="N3">3 · Conos, peatones y ruido</option>
           </select>
         </label>
         <div class="toggles">
@@ -136,6 +136,6 @@
     window.addEventListener("error", (e) => showLoadError(e.message || "Error al cargar un recurso"));
     window.addEventListener("unhandledrejection", (e) => showLoadError(String(e.reason)));
   </script>
-  <script type="module" src="app.js?v=6"></script>
+  <script type="module" src="app.js?v=7"></script>
 </body>
 </html>

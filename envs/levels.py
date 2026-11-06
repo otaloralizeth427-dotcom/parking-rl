@@ -23,4 +23,4 @@ def load_level(level_id: str) -> dict:
 
 def make_env(level_id: str) -> ParkingEnv:
     level = load_level(level_id)
-    return ParkingEnv(level["difficulty"], level["sensor_noise"])
+    return ParkingEnv(level["difficulty"], level["sensor_noise"], pedestrians=level.get("pedestrians", 0))

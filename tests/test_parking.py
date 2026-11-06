@@ -268,7 +268,7 @@ def client():
 
 
 def test_api_reset_and_step(client):
-    reset = client.post("/api/reset", json={"seed": 1, "difficulty": "easy"}).json()
+    reset = client.post("/api/reset", json={"seed": 1, "level": "N1"}).json()
     assert reset["type"] == "reset" and reset["layout"]["obstacles"]
     step = client.post("/api/step", json={"action": 0}).json()
     assert step["action_name"] == "Avanzar" and step["steps"] == 1
@@ -306,3 +306,57 @@ def test_levels_match_environment_version():
         assert obs.shape == (14,)
     with pytest.raises(ValueError):
         load_level("N9")
+
+
+# ---------------------------------------------------------------- peatones (N3)
+def test_levels_without_pedestrians_are_unchanged():
+    from envs.levels import make_env
+    for level_id, difficulty in [("N1", "easy"), ("N2", "normal")]:
+        a, b = make_env(level_id), ParkingEnv(difficulty)
+        np.testing.assert_array_equal(a.reset(seed=3)[0], b.reset(seed=3)[0])
+        assert a.render_state()["pedestrians"] == []
+
+
+def test_pedestrians_walk_and_turn_around():
+    env = ParkingEnv("hard", pedestrians=2)
+    env.reset(seed=0)
+    assert len(env.pedestrians) == 2
+    place(env, -14.0, 0.0, 0.0)  # auto lejos para que nadie se detenga
+    start = [p["y"] for p in env.pedestrians]
+    for _ in range(5):
+        env._move_pedestrians(env.cfg.dt)
+    assert all(abs(p["y"] - y0) > 0.5 for p, y0 in zip(env.pedestrians, start))
+    for _ in range(200):
+        env._move_pedestrians(env.cfg.dt)
+    assert all(abs(p["y"]) <= p["limit"] + 1e-9 for p in env.pedestrians)
+
+
+def test_pedestrian_waits_next_to_car():
+    env = ParkingEnv("hard", pedestrians=1)
+    env.reset(seed=0)
+    ped = env.pedestrians[0]
+    place(env, ped["x"], ped["y"] + ped["dir"] * 1.6, np.pi / 2)  # auto atravesado en su camino
+    y_before = ped["y"]
+    env._move_pedestrians(env.cfg.dt)
+    assert not ped["moving"] and ped["y"] == y_before
+
+
+def test_hitting_pedestrian_is_a_collision():
+    env = ParkingEnv("hard", pedestrians=1)
+    env.reset(seed=0)
+    ped = env.pedestrians[0]
+    ped["speed"] = 0.0
+    place(env, ped["x"], ped["y"], 0.0)
+    _, _, terminated, _, info = env.step(BRAKE)
+    assert terminated and info["collision"] and info["collision_kind"] == "pedestrian"
+
+
+def test_sensors_detect_pedestrians():
+    env = ParkingEnv("easy", pedestrians=1)
+    env.reset(seed=0)
+    ped = env.pedestrians[0]
+    ped["speed"] = 0.0
+    side = -1 if ped["x"] > 0 else 1   # el auto se ubica del lado con espacio, mirando al peatón
+    place(env, ped["x"] + side * 5.0, ped["y"], 0.0 if side < 0 else np.pi)
+    front = env._read_sensors()[0]
+    assert abs(front - (5.0 - env._car_half[0] - env.cfg.pedestrian_half)) < 1e-6
