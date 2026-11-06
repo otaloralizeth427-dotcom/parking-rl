@@ -9,7 +9,7 @@ from pathlib import Path
 
 import numpy as np
 
-from agent_base import MODELS_DIR, Agent
+from agents.agent_base import MODELS_DIR, Agent
 
 
 class MLP:

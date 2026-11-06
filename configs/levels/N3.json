@@ -1,0 +1,9 @@
+{
+  "level_id": "N3",
+  "name": "Operación exigente",
+  "environment_version": "parking-v1",
+  "difficulty": "hard",
+  "sensor_noise": 0.1,
+  "description": "Como N2, pero con 5 conos que pueden bloquear el camino y ruido gaussiano (σ = 0.1 m) en los sensores.",
+  "new_decision": "Esquivar obstáculos en la ruta confiando en sensores imprecisos."
+}

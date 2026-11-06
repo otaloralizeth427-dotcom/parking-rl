@@ -57,7 +57,7 @@ python run.py demo --agent random --episodes 3 --verbose
 Uso directo desde Python:
 
 ```python
-from parking_env import ParkingEnv
+from envs.parking_env import ParkingEnv
 
 env = ParkingEnv(difficulty="normal", sensor_noise=0.0)
 obs, info = env.reset(seed=42)
@@ -69,6 +69,7 @@ obs, reward, terminated, truncated, info = env.step(0)  # 0 = avanzar
 ```bash
 python run.py train --agent q_learning [--episodes 15000] [--difficulty normal] [--seed 0]
 python run.py train --agent neural     [--episodes 4000]
+python run.py train --agent neural --level N3   # usa configs/levels/N3.json
 python run.py train --agent neural --resume --episodes 1000   # continuar entrenando
 ```
 
@@ -80,7 +81,7 @@ entrenamiento queda en `models/<agente>_history.json` y se usa para las curvas d
 ```bash
 python run.py evaluate --episodes 200
 # o directamente, con más opciones:
-python evaluate.py --episodes 300 --difficulties normal hard --sensor-noise 0.1
+python -m pipelines.evaluate --episodes 300 --difficulties normal hard --sensor-noise 0.1
 ```
 
 Genera `results/metrics.json`, `results/comparison.png` y `results/training_curves.png`.
@@ -143,15 +144,22 @@ rojo = colisión, azul = sensores (se tornan rojos al acercarse a un obstáculo)
 
 ```
 Parking/
-├── parking_env.py        Ambiente Gymnasium (física, colisiones, sensores, recompensa)
-├── agent_base.py         Interfaz Agent, epsilon-greedy y bucle de entrenamiento compartido
-├── q_learning.py         Discretizador de estados + agente Q-learning tabular
-├── neural_q_learning.py  MLP con Adam, memoria de experiencias y agente DQN
-├── server.py             FastAPI: REST + WebSocket sobre una SimulationSession
-├── evaluate.py           Comparación de políticas y gráficas (Matplotlib)
+├── envs/
+│   ├── parking_env.py    Ambiente Gymnasium (física, colisiones, sensores, recompensa) · ENV_VERSION
+│   └── levels.py         Carga los niveles N1–N3 versionados
+├── agents/
+│   ├── agent_base.py     Interfaz Agent, epsilon-greedy y bucle de entrenamiento compartido
+│   ├── q_learning.py     Discretizador de estados + agente Q-learning tabular
+│   ├── neural_q_learning.py  MLP con Adam, memoria de experiencias y agente DQN
+│   └── registry.py       Catálogo de agentes y carga de modelos guardados
+├── api/server.py         FastAPI: REST + WebSocket sobre una SimulationSession
+├── pipelines/evaluate.py Comparación de políticas y gráficas (Matplotlib)
+├── configs/levels/       N1.json, N2.json, N3.json (perfiles de nivel versionados)
+├── manifests/            Manifiestos recuperables de cada modelo (próximo paso)
+├── docs/ficha_ambiente.md  Contrato del ambiente: unidades, rangos, acciones, éxito, fallos
 ├── run.py                CLI: serve | train | demo | evaluate
 ├── tests/test_parking.py Pruebas automáticas (pytest)
-└── web/                  index.html, styles.css, app.js (Three.js)
+└── web/                  index.html, styles.css, app.js (Three.js) y models/ (auto glTF)
 ```
 
 ```

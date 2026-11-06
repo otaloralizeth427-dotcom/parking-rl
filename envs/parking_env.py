@@ -18,6 +18,10 @@ ACTION_NAMES = ["Avanzar", "Retroceder", "Izquierda", "Derecha", "Frenar"]
 
 DIFFICULTIES = ("easy", "normal", "hard")
 
+# Cambia cuando cambian observaciones, acciones, dinámica o recompensa:
+# un modelo solo es compatible con la versión con que fue entrenado.
+ENV_VERSION = "parking-v1"
+
 
 @dataclass(frozen=True)
 class ParkingConfig:

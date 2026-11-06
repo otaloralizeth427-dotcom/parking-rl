@@ -6,7 +6,7 @@ from pathlib import Path
 
 import numpy as np
 
-from agent_base import MODELS_DIR, Agent
+from agents.agent_base import MODELS_DIR, Agent
 
 SENSOR_RANGE = 8.0
 DANGER_DISTANCE = 1.0

@@ -13,31 +13,11 @@ import numpy as np
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 
-from agent_base import MODELS_DIR, Agent, train
-from neural_q_learning import DQNAgent
-from parking_env import ACTION_NAMES, DIFFICULTIES, ParkingEnv
-from q_learning import QLearningAgent
+from agents.agent_base import Agent, train
+from agents.registry import AGENT_CLASSES, AGENT_NAMES, history_path, load_or_create
+from envs.parking_env import ACTION_NAMES, DIFFICULTIES, ParkingEnv
 
-AGENT_CLASSES: dict[str, type[Agent]] = {"q_learning": QLearningAgent, "neural": DQNAgent}
-AGENT_NAMES = (*AGENT_CLASSES, "random")
-TRAIN_DEFAULTS = {
-    "q_learning": {"epsilon_decay": 0.9995},
-    "neural": {"epsilon_decay": 0.998},
-}
-WEB_DIR = Path(__file__).parent / "web"
-
-
-def history_path(agent_name: str) -> Path:
-    return MODELS_DIR / f"{agent_name}_history.json"
-
-
-def load_or_create(agent_name: str) -> tuple[Agent, bool]:
-    """Carga el modelo guardado; si no existe devuelve un agente nuevo sin entrenar."""
-    cls = AGENT_CLASSES[agent_name]
-    try:
-        return cls.load(), True
-    except FileNotFoundError:
-        return cls(seed=0, **TRAIN_DEFAULTS[agent_name]), False
+WEB_DIR = Path(__file__).resolve().parents[1] / "web"
 
 
 class SimulationSession:

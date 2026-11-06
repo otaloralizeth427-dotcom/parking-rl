@@ -5,9 +5,10 @@ from __future__ import annotations
 import argparse
 import json
 
-from agent_base import run_episode, train
-from parking_env import ACTION_NAMES, DIFFICULTIES, ParkingEnv
-from server import AGENT_CLASSES, TRAIN_DEFAULTS, history_path, load_or_create
+from agents.agent_base import run_episode, train
+from agents.registry import AGENT_CLASSES, TRAIN_DEFAULTS, history_path, load_or_create
+from envs.levels import LEVEL_IDS, load_level
+from envs.parking_env import ACTION_NAMES, DIFFICULTIES, ParkingEnv
 
 DEFAULT_EPISODES = {"q_learning": 15_000, "neural": 4_000}
 
@@ -15,7 +16,7 @@ DEFAULT_EPISODES = {"q_learning": 15_000, "neural": 4_000}
 def cmd_serve(args):
     import uvicorn
 
-    from server import SimulationSession, create_app
+    from api.server import SimulationSession, create_app
 
     app = create_app(SimulationSession(args.difficulty, args.sensor_noise))
     print(f"Visualización 3D en http://{args.host}:{args.port}")
@@ -59,7 +60,7 @@ def cmd_demo(args):
 
 
 def cmd_evaluate(args):
-    from evaluate import main
+    from pipelines.evaluate import main
 
     main(["--episodes", str(args.episodes)])
 
@@ -69,6 +70,7 @@ def build_parser():
     sub = parser.add_subparsers(dest="command", required=True)
 
     def env_args(p):
+        p.add_argument("--level", choices=LEVEL_IDS, help="nivel versionado; reemplaza --difficulty y --sensor-noise")
         p.add_argument("--difficulty", default="normal", choices=DIFFICULTIES)
         p.add_argument("--sensor-noise", type=float, default=0.0)
 
@@ -102,6 +104,9 @@ def build_parser():
 
 if __name__ == "__main__":
     args = build_parser().parse_args()
+    if getattr(args, "level", None):
+        level = load_level(args.level)
+        args.difficulty, args.sensor_noise = level["difficulty"], level["sensor_noise"]
     if getattr(args, "episodes", None) is not None and args.episodes <= 0:
         raise SystemExit("--episodes debe ser positivo")
     args.func(args)

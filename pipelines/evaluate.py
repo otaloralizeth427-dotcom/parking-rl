@@ -12,11 +12,11 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 
-from agent_base import run_episode  # noqa: E402
-from parking_env import DIFFICULTIES, ParkingEnv  # noqa: E402
-from server import AGENT_CLASSES, history_path  # noqa: E402
+from agents.agent_base import run_episode  # noqa: E402
+from agents.registry import AGENT_CLASSES, history_path  # noqa: E402
+from envs.parking_env import DIFFICULTIES, ParkingEnv  # noqa: E402
 
-RESULTS_DIR = Path(__file__).parent / "results"
+RESULTS_DIR = Path(__file__).resolve().parents[1] / "results"
 COLORS = {"random": "#8a8f98", "q_learning": "#f59e0b", "neural": "#3b82f6"}
 LABELS = {"random": "Aleatoria", "q_learning": "Q-learning", "neural": "Red neuronal"}
 EVAL_SEED = 100_000  # semillas distintas a las del entrenamiento

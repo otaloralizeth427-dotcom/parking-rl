@@ -1,0 +1,9 @@
+{
+  "level_id": "N1",
+  "name": "Misión base",
+  "environment_version": "parking-v1",
+  "difficulty": "easy",
+  "sensor_noise": 0.0,
+  "description": "El vehículo arranca frente al cupo, casi alineado. Sin conos.",
+  "new_decision": "Entrar recto al cupo y frenar a tiempo dentro de él."
+}

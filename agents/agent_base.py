@@ -8,7 +8,7 @@ from typing import Callable
 
 import numpy as np
 
-MODELS_DIR = Path(__file__).parent / "models"
+MODELS_DIR = Path(__file__).resolve().parents[1] / "models"
 
 
 class Agent(ABC):

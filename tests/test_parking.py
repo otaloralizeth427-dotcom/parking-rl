@@ -2,11 +2,11 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
-from agent_base import run_episode, train
-from neural_q_learning import MLP, DQNAgent
-from parking_env import BRAKE, FORWARD, LEFT, REVERSE, ParkingEnv, raycast_obbs
-from q_learning import QLearningAgent
-from server import SimulationSession, create_app
+from agents.agent_base import run_episode, train
+from agents.neural_q_learning import MLP, DQNAgent
+from agents.q_learning import QLearningAgent
+from api.server import SimulationSession, create_app
+from envs.parking_env import BRAKE, FORWARD, LEFT, REVERSE, ParkingEnv, raycast_obbs
 
 
 @pytest.fixture
@@ -294,3 +294,15 @@ def test_websocket_commands(client):
         assert json.loads(ws.receive_text())["type"] == "state"
         ws.send_text(json.dumps({"cmd": "nope"}))
         assert json.loads(ws.receive_text())["type"] == "error"
+
+
+# ---------------------------------------------------------------- niveles
+def test_levels_match_environment_version():
+    from envs.levels import LEVEL_IDS, load_level, make_env
+    from envs.parking_env import ENV_VERSION
+    for level_id in LEVEL_IDS:
+        assert load_level(level_id)["environment_version"] == ENV_VERSION
+        obs, _ = make_env(level_id).reset(seed=0)
+        assert obs.shape == (14,)
+    with pytest.raises(ValueError):
+        load_level("N9")
