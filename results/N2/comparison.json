@@ -1,0 +1,244 @@
+{
+  "level_id": "N2",
+  "suite_id": "N2-suite-v1",
+  "policies": {
+    "random": {
+      "label": "Aleatoria (referencia)",
+      "episodes": 100,
+      "success_rate": 0.0,
+      "outcomes": {
+        "success": 0,
+        "obstacle": 57,
+        "pedestrian": 0,
+        "boundary": 13,
+        "timeout": 30
+      },
+      "mean_return": -46.646,
+      "mean_time_s": 20.502,
+      "mean_final_distance_m": 9.264,
+      "mean_final_heading_error_deg": 74.805,
+      "mean_latency_ms": 0.001
+    },
+    "rule": {
+      "label": "Regla (referencia)",
+      "episodes": 100,
+      "success_rate": 0.18,
+      "outcomes": {
+        "success": 18,
+        "obstacle": 77,
+        "pedestrian": 0,
+        "boundary": 5,
+        "timeout": 0
+      },
+      "mean_return": -22.918,
+      "mean_time_s": 4.394,
+      "mean_final_distance_m": 7.919,
+      "mean_final_heading_error_deg": 53.698,
+      "mean_latency_ms": 0.01
+    },
+    "N2-exp03-ppo-s42-e9a87a7d": {
+      "label": "PPO \u00b7 N2-exp03-ppo-s42-e9a87a7d",
+      "episodes": 100,
+      "success_rate": 0.0,
+      "outcomes": {
+        "success": 0,
+        "obstacle": 1,
+        "pedestrian": 0,
+        "boundary": 1,
+        "timeout": 98
+      },
+      "mean_return": -21.815,
+      "mean_time_s": 39.32,
+      "mean_final_distance_m": 9.269,
+      "mean_final_heading_error_deg": 82.091,
+      "mean_latency_ms": 0.063
+    },
+    "N2-exp03-ppo-s43-d1942f9e": {
+      "label": "PPO \u00b7 N2-exp03-ppo-s43-d1942f9e",
+      "episodes": 100,
+      "success_rate": 0.0,
+      "outcomes": {
+        "success": 0,
+        "obstacle": 2,
+        "pedestrian": 0,
+        "boundary": 0,
+        "timeout": 98
+      },
+      "mean_return": -19.855,
+      "mean_time_s": 39.29,
+      "mean_final_distance_m": 9.193,
+      "mean_final_heading_error_deg": 65.349,
+      "mean_latency_ms": 0.063
+    },
+    "N2-exp03-ppo-s44-ed2a1376": {
+      "label": "PPO \u00b7 N2-exp03-ppo-s44-ed2a1376",
+      "episodes": 100,
+      "success_rate": 0.0,
+      "outcomes": {
+        "success": 0,
+        "obstacle": 4,
+        "pedestrian": 0,
+        "boundary": 2,
+        "timeout": 94
+      },
+      "mean_return": -18.086,
+      "mean_time_s": 38.078,
+      "mean_final_distance_m": 8.654,
+      "mean_final_heading_error_deg": 72.544,
+      "mean_latency_ms": 0.063
+    },
+    "N2-exp04-ppo-8env-s42-77a671dc": {
+      "label": "PPO \u00b7 N2-exp04-ppo-8env-s42-77a671dc",
+      "episodes": 100,
+      "success_rate": 0.12,
+      "outcomes": {
+        "success": 12,
+        "obstacle": 7,
+        "pedestrian": 0,
+        "boundary": 0,
+        "timeout": 81
+      },
+      "mean_return": -6.665,
+      "mean_time_s": 34.412,
+      "mean_final_distance_m": 6.671,
+      "mean_final_heading_error_deg": 54.839,
+      "mean_latency_ms": 0.063
+    },
+    "N2-exp04-ppo-8env-s43-aa113dc5": {
+      "label": "PPO \u00b7 N2-exp04-ppo-8env-s43-aa113dc5",
+      "episodes": 100,
+      "success_rate": 0.05,
+      "outcomes": {
+        "success": 5,
+        "obstacle": 3,
+        "pedestrian": 0,
+        "boundary": 0,
+        "timeout": 92
+      },
+      "mean_return": -13.681,
+      "mean_time_s": 37.93,
+      "mean_final_distance_m": 6.948,
+      "mean_final_heading_error_deg": 55.655,
+      "mean_latency_ms": 0.063
+    },
+    "N2-exp04-ppo-8env-s44-53e4f679": {
+      "label": "PPO \u00b7 N2-exp04-ppo-8env-s44-53e4f679",
+      "episodes": 100,
+      "success_rate": 0.0,
+      "outcomes": {
+        "success": 0,
+        "obstacle": 11,
+        "pedestrian": 0,
+        "boundary": 0,
+        "timeout": 89
+      },
+      "mean_return": -25.224,
+      "mean_time_s": 36.652,
+      "mean_final_distance_m": 7.346,
+      "mean_final_heading_error_deg": 58.179,
+      "mean_latency_ms": 0.063
+    },
+    "N2-exp05-ppo-curriculo-s42-90d5388b": {
+      "label": "PPO \u00b7 N2-exp05-ppo-curriculo-s42-90d5388b",
+      "episodes": 100,
+      "success_rate": 0.37,
+      "outcomes": {
+        "success": 37,
+        "obstacle": 11,
+        "pedestrian": 0,
+        "boundary": 1,
+        "timeout": 51
+      },
+      "mean_return": 16.157,
+      "mean_time_s": 23.874,
+      "mean_final_distance_m": 5.735,
+      "mean_final_heading_error_deg": 47.827,
+      "mean_latency_ms": 0.063
+    },
+    "N2-exp05-ppo-curriculo-s43-d9ad3198": {
+      "label": "PPO \u00b7 N2-exp05-ppo-curriculo-s43-d9ad3198",
+      "episodes": 100,
+      "success_rate": 0.24,
+      "outcomes": {
+        "success": 24,
+        "obstacle": 4,
+        "pedestrian": 0,
+        "boundary": 0,
+        "timeout": 72
+      },
+      "mean_return": 5.672,
+      "mean_time_s": 30.584,
+      "mean_final_distance_m": 7.397,
+      "mean_final_heading_error_deg": 58.28,
+      "mean_latency_ms": 0.064
+    },
+    "N2-exp05-ppo-curriculo-s44-70fca591": {
+      "label": "PPO \u00b7 N2-exp05-ppo-curriculo-s44-70fca591",
+      "episodes": 100,
+      "success_rate": 0.3,
+      "outcomes": {
+        "success": 30,
+        "obstacle": 13,
+        "pedestrian": 0,
+        "boundary": 1,
+        "timeout": 56
+      },
+      "mean_return": 3.665,
+      "mean_time_s": 25.24,
+      "mean_final_distance_m": 6.412,
+      "mean_final_heading_error_deg": 49.933,
+      "mean_latency_ms": 0.064
+    },
+    "N2-exp06-ppo-curriculo-3m-s42-e08b96af": {
+      "label": "PPO \u00b7 N2-exp06-ppo-curriculo-3m-s42-e08b96af",
+      "episodes": 100,
+      "success_rate": 0.62,
+      "outcomes": {
+        "success": 62,
+        "obstacle": 13,
+        "pedestrian": 0,
+        "boundary": 0,
+        "timeout": 25
+      },
+      "mean_return": 49.1,
+      "mean_time_s": 15.906,
+      "mean_final_distance_m": 3.861,
+      "mean_final_heading_error_deg": 31.651,
+      "mean_latency_ms": 0.063
+    },
+    "N2-exp06-ppo-curriculo-3m-s43-fbd504dd": {
+      "label": "PPO \u00b7 N2-exp06-ppo-curriculo-3m-s43-fbd504dd",
+      "episodes": 100,
+      "success_rate": 0.67,
+      "outcomes": {
+        "success": 67,
+        "obstacle": 19,
+        "pedestrian": 0,
+        "boundary": 1,
+        "timeout": 13
+      },
+      "mean_return": 55.352,
+      "mean_time_s": 12.136,
+      "mean_final_distance_m": 3.321,
+      "mean_final_heading_error_deg": 29.575,
+      "mean_latency_ms": 0.064
+    },
+    "N2-exp06-ppo-curriculo-3m-s44-7f36a120": {
+      "label": "PPO \u00b7 N2-exp06-ppo-curriculo-3m-s44-7f36a120",
+      "episodes": 100,
+      "success_rate": 0.8,
+      "outcomes": {
+        "success": 80,
+        "obstacle": 6,
+        "pedestrian": 0,
+        "boundary": 0,
+        "timeout": 14
+      },
+      "mean_return": 76.043,
+      "mean_time_s": 12.028,
+      "mean_final_distance_m": 2.15,
+      "mean_final_heading_error_deg": 18.415,
+      "mean_latency_ms": 0.064
+    }
+  }
+}

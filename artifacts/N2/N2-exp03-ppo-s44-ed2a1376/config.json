@@ -1,0 +1,51 @@
+{
+  "experiment_id": "N2-exp03-ppo",
+  "level_id": "N2",
+  "agent": "ppo",
+  "hypothesis": "exp01 y exp02 fallaron porque el auto no veía el cono (en 36 de 67 choques ningún sensor lo detectó). Con 5 sensores de parachoques, la receta de N1-exp03-ppo desde cero aprende a rodearlo y supera al modelo de N1 sin reentrenar (33 %).",
+  "change_vs_baseline": "Igual que N2-exp01-ppo; cambia la observación (14 → 19 valores, ambiente parking-v3): es una familia de modelos nueva.",
+  "derived_from": "N2-exp01-ppo",
+  "seed": 44,
+  "budget": {
+    "timesteps": 1000000
+  },
+  "hyperparameters": {
+    "learning_rate": 0.0003,
+    "n_steps": 2048,
+    "batch_size": 64,
+    "n_epochs": 10,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "ent_coef": 0.05,
+    "net_arch": [
+      64,
+      64
+    ]
+  },
+  "validation": {
+    "seed_start": 200000,
+    "episodes": 20,
+    "every": 50000
+  },
+  "environment_version": "parking-v3",
+  "level": {
+    "level_id": "N2",
+    "name": "Conos en el pasillo",
+    "environment_version": "parking-v3",
+    "difficulty": "hard",
+    "cones": 3,
+    "blocking_cones": 1,
+    "bumper_sensors": 5,
+    "pedestrians": 0,
+    "sensor_noise": 0.0,
+    "description": "Igual que N1 (arranque en el pasillo a 4-8 m del cupo), pero con 3 conos sueltos en el pasillo y 1 más justo en la línea recta hacia el cupo. La entrada al cupo siempre queda libre. El vehículo suma 5 sensores de parachoques (rayos paralelos hacia adelante, alcance 4 m) para ver conos que caben entre los 8 rayos radiales.",
+    "new_decision": "Decidir por dónde rodear los conos (o frenar y corregir) antes de girar hacia el cupo."
+  },
+  "evaluation_suite": {
+    "suite_id": "N2-suite-v1",
+    "level_id": "N2",
+    "seed_start": 100000,
+    "episodes": 100,
+    "deterministic": true
+  }
+}

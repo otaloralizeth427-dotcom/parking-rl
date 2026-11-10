@@ -1,0 +1,67 @@
+{
+  "run_id": "N2-exp05-ppo-curriculo-s44-70fca591",
+  "experiment_id": "N2-exp05-ppo-curriculo",
+  "level_id": "N2",
+  "agent": "ppo",
+  "hypothesis": "exp03 y exp04 nunca encontraron un éxito: desde 4-8 m del cupo, explorar al azar casi nunca termina estacionado (1 de cada 500 episodios). Un currículo que empieza con la nariz en el cupo (40 de cada 500 al azar) y se aleja por etapas da señal desde el principio: las 3 semillas superan a la regla (18 %) y al modelo de N1 sin reentrenar (33 %).",
+  "change_vs_baseline": "Igual que N2-exp03-ppo (1 000 000 de pasos, mismos hiperparámetros) repartiendo los pasos en 4 etapas: práctica → fácil → pasillo sin conos → nivel completo. Validación y suite siempre en el nivel completo.",
+  "environment_version": "parking-v3",
+  "environment_kwargs": {
+    "difficulty": "hard",
+    "sensor_noise": 0.0,
+    "pedestrians": 0,
+    "cones": 3,
+    "blocking_cones": 1,
+    "bumper_sensors": 5
+  },
+  "observation_shape": [
+    19
+  ],
+  "git_commit": "4b81a8d6a394588ec8c7488fabe452360df590f9",
+  "git_branch": "feature/nivel-2",
+  "git_dirty": false,
+  "config_uri": "artifacts/N2/N2-exp05-ppo-curriculo-s44-70fca591/config.json",
+  "config_sha256": "c6ac7d946f2202c575d3b182a8162c4830eacf1d017f9c960f067f7de94045c8",
+  "seed": 44,
+  "parent_run_id": null,
+  "origin": "desde cero",
+  "parent_model_sha256": null,
+  "evaluation_suite_id": "N2-suite-v1",
+  "mlflow": {
+    "tracking_uri": "sqlite:///mlflow.db",
+    "experiment": "parking-N2",
+    "run_id": "70fca5917b0d4bb6a866988ca8225da4"
+  },
+  "created_at": "2026-11-10T20:07:12+00:00",
+  "status": "completed",
+  "model_uri": "artifacts/N2/N2-exp05-ppo-curriculo-s44-70fca591/model.zip",
+  "model_sha256": "d10cfb986085953dc7b44f9900b5b13de58a660f048221a7c7a9078728fcbeb2",
+  "normalization_uri": "envs/parking_env.py#ParkingEnv._observation (escalado fijo dentro del ambiente; sin normalización aprendida)",
+  "observation_contract": "Box(19,) float32 · ver docs/ficha_ambiente.md",
+  "action_contract": "Discrete(5): avanzar, retroceder, izquierda, derecha, frenar",
+  "runtime_ref": "python 3.12.7 · requirements.lock.txt sha256:76cff4f909c98d69",
+  "budget": {
+    "timesteps": 1000000,
+    "episodes": 17155,
+    "env_steps": 1000000,
+    "wall_time_s": 561.8
+  },
+  "optimizer_state": "no guardado: los runs no se continúan desde este checkpoint",
+  "evaluation_uri": "artifacts/N2/N2-exp05-ppo-curriculo-s44-70fca591/evaluation.json",
+  "evaluation_summary": {
+    "episodes": 100,
+    "success_rate": 0.3,
+    "outcomes": {
+      "success": 30,
+      "obstacle": 13,
+      "pedestrian": 0,
+      "boundary": 1,
+      "timeout": 56
+    },
+    "mean_return": 3.665,
+    "mean_time_s": 25.24,
+    "mean_final_distance_m": 6.412,
+    "mean_final_heading_error_deg": 49.933,
+    "mean_latency_ms": 0.064
+  }
+}
