@@ -529,3 +529,24 @@ def test_crossing_pedestrian_walks_across_the_route():
     assert placed > 15
     with pytest.raises(ValueError):
         ParkingEnv(pedestrians=0, crossing_pedestrians=1)
+
+
+def test_pedestrian_does_not_freeze_in_front_of_a_stopped_car():
+    """v4: si el auto se detiene a ceder el paso, el peatón sigue (antes ambos se esperaban hasta el timeout)."""
+    def frozen_steps(yield_):
+        env = ParkingEnv("normal", cones=0, pedestrians=1, pedestrians_yield=yield_)
+        env.reset(seed=0)
+        p = env.pedestrians[0]
+        p.update(x=float(env.pos[0] + 2.6), y=float(env.pos[1] - 2.0), dir=1.0)   # cruza justo delante
+        env.heading = 0.0
+        frozen = 0
+        for _ in range(40):
+            env._move_pedestrians(env.cfg.dt)         # el auto quieto, cediendo el paso
+            frozen += not p["moving"]
+        return frozen, env
+    old, _ = frozen_steps(False)
+    new, env = frozen_steps(True)
+    assert old > 20 and new == 0
+    assert env._collision_kind() is None                  # el peatón no se mete dentro del auto
+    from envs.levels import env_kwargs, load_level
+    assert "pedestrians_yield" not in env_kwargs(load_level("N1"))   # N1 y N2 no cambian
