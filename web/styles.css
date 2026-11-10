@@ -50,6 +50,27 @@
   --btn-bg: linear-gradient(180deg, #ff7ab6 0%, #e93d8f 55%, #c81f74 100%);
 }
 
+/* Nivel 4 · azul noche con ámbar y dorado: misma estética, otra paleta */
+:root[data-theme="N4"] {
+  --violet-900: #0f1a3a;
+  --violet-800: #18265a;
+  --violet-700: #b45309;
+  --violet-600: #d97706;
+  --violet-500: #f59e0b;
+  --violet-300: #fcd34d;
+  --violet-200: #fde68a;
+  --pink: #ffb347;
+  --sky: #fff1c2;
+  --muted: #fde9b8;
+  --shade: #92400e;
+  --edge: 255 236 200;
+  --glass: 120 64 10;
+  --deep: 12 18 48;
+  --shadow: 10 14 40;
+  --ink: 80 40 5;
+  --btn-bg: linear-gradient(180deg, #ffc65c 0%, #f59e0b 55%, #c2700a 100%);
+}
+
 /* Nivel 2 · menta y coral: misma estética, otra paleta */
 :root[data-theme="N2"] {
   --violet-900: #0d3b3e;

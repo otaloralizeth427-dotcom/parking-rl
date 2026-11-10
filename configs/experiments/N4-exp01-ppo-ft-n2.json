@@ -1,0 +1,19 @@
+{
+  "experiment_id": "N4-exp01-ppo-ft-n2",
+  "level_id": "N4",
+  "agent": "ppo",
+  "hypothesis": "El modelo de N2 ya rodea conos y logra 75 % en N4 sin reentrenar (11 atropellos, 9 timeouts). Continuarlo 1 000 000 de pasos en N4 le enseña a ceder el paso con sensores ruidosos: las 3 semillas superan el 80 %.",
+  "change_vs_baseline": "Continúa N2-exp06-ppo-curriculo-3m-s44-7f36a120 (misma familia, 19 valores) en N4 con ent_coef 0.01.",
+  "parent_run_id": "N2-exp06-ppo-curriculo-3m-s44-7f36a120",
+  "seed": 42,
+  "budget": {
+    "timesteps": 1000000
+  },
+  "hyperparameters": {
+    "ent_coef": 0.01
+  },
+  "validation": {
+    "episodes": 20,
+    "every": 50000
+  }
+}

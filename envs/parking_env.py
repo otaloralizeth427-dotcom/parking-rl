@@ -20,9 +20,10 @@ DIFFICULTIES = ("tutorial", "easy", "normal", "hard")   # tutorial: solo para et
 
 # Cambia cuando cambian observaciones, acciones, dinámica o recompensa:
 # un modelo solo es compatible con la versión con que fue entrenado.
-ENV_VERSION = "parking-v4"   # v3: cono bloqueante, peatón que cruza y sensores de parachoques; v4: peatones que no se congelan
+ENV_VERSION = "parking-v5"   # v3: cono bloqueante, peatón que cruza y parachoques; v4: peatones que no se congelan;
+                              # v5: con cono bloqueante y peatón que cruza a la vez, el peatón no atraviesa el cono
 # Versiones que este código reproduce: con sus valores por defecto, v3 se comporta exactamente como v2
-SUPPORTED_VERSIONS = ("parking-v2", "parking-v3", "parking-v4")
+SUPPORTED_VERSIONS = ("parking-v2", "parking-v3", "parking-v4", "parking-v5")
 
 
 @dataclass(frozen=True)
@@ -414,6 +415,14 @@ class ParkingEnv(gym.Env):
             tx = self.target["center"][0]
             direction = np.sign(tx - start[0])
             x = start[0] + direction * max(3.8, abs(tx - start[0]) / 2)
+            if self.blocking_cones:
+                # v5: con conos en el camino, el peatón cruza 1.5 m más allá del cono que tenga en su línea
+                # (camina todo el ancho del pasillo y no debe atravesarlos). Si no cabe antes del cupo, se omite.
+                for c in sorted(cones, key=lambda c: direction * c[0]):
+                    if abs(c[0] - x) < 1.2:
+                        x = c[0] + direction * 1.5
+                if direction * (tx - x) < 1.5:
+                    x = tx
             if abs(x - tx) >= 1.5:
                 side = float(rng.choice([-1.0, 1.0]))
                 y = float(np.clip(start[1] + side * rng.uniform(1.5, 3.5), -aisle, aisle))

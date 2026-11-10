@@ -550,3 +550,18 @@ def test_pedestrian_does_not_freeze_in_front_of_a_stopped_car():
     assert env._collision_kind() is None                  # el peatón no se mete dentro del auto
     from envs.levels import env_kwargs, load_level
     assert "pedestrians_yield" not in env_kwargs(load_level("N1"))   # N1 y N2 no cambian
+
+
+def test_n4_combines_everything_and_pedestrians_never_cross_a_cone():
+    from envs.levels import make_env
+    env = make_env("N4")
+    assert env.observation_space.shape == (19,) and env.sensor_noise > 0
+    crossing = 0
+    for seed in range(100):
+        env.reset(seed=seed)
+        cones = [o["center"] for o in env.obstacles if o["kind"] == "cone"]
+        assert len(cones) >= 3
+        for p in env.pedestrians:
+            crossing += bool(p.get("crossing"))
+            assert all(abs(c[0] - p["x"]) >= 0.6 for c in cones)
+    assert crossing > 20

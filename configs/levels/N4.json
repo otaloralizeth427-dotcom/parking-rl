@@ -1,0 +1,15 @@
+{
+  "level_id": "N4",
+  "name": "Todo junto",
+  "environment_version": "parking-v5",
+  "difficulty": "hard",
+  "cones": 3,
+  "blocking_cones": 1,
+  "pedestrians": 2,
+  "crossing_pedestrians": 1,
+  "pedestrians_yield": true,
+  "bumper_sensors": 5,
+  "sensor_noise": 0.1,
+  "description": "La unión de N2 y N3 con sensores imprecisos: 3 conos sueltos y 1 en la línea recta hacia el cupo (N2), 2 peatones que cruzan el pasillo, uno de ellos entre el auto y el cupo justo después del cono (N3), y ruido gaussiano en los sensores (σ = 0.1 m en las distancias y 0.05 m en la posición relativa del cupo). Mismos 19 valores de observación que N2 y N3.",
+  "new_decision": "Combinar todo: rodear el cono, ceder el paso al peatón y estacionar con mediciones que tiemblan."
+}
