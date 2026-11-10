@@ -1,0 +1,42 @@
+{
+  "experiment_id": "N3-exp01-ppo-ft",
+  "level_id": "N3",
+  "agent": "ppo",
+  "hypothesis": "El modelo de N2 ya estaciona y esquiva (70 % en N3 sin reentrenar, con 24 atropellos). Continuarlo 1 000 000 de pasos en N3 le enseña a ceder el paso: las 3 semillas superan el 70 % y bajan los atropellos.",
+  "change_vs_baseline": "Continúa el checkpoint N2-exp06-ppo-curriculo-3m-s44-7f36a120 (misma familia de observaciones, 19 valores) en N3 con ent_coef 0.01.",
+  "parent_run_id": "N2-exp06-ppo-curriculo-3m-s44-7f36a120",
+  "seed": 42,
+  "budget": {
+    "timesteps": 1000000
+  },
+  "hyperparameters": {
+    "ent_coef": 0.01
+  },
+  "validation": {
+    "seed_start": 200000,
+    "episodes": 20,
+    "every": 50000
+  },
+  "environment_version": "parking-v3",
+  "level": {
+    "level_id": "N3",
+    "name": "Peatones cruzando",
+    "environment_version": "parking-v3",
+    "difficulty": "normal",
+    "cones": 0,
+    "blocking_cones": 0,
+    "pedestrians": 2,
+    "crossing_pedestrians": 1,
+    "bumper_sensors": 5,
+    "sensor_noise": 0.0,
+    "description": "Como N1 (arranque en el pasillo a 4-8 m del cupo) con 2 peatones que cruzan el pasillo de ida y vuelta. Uno de ellos cruza justo entre el auto y el cupo, en el momento en que el auto pasa por ahí. Los peatones esperan si el auto está pegado a su camino. Mismos sensores de parachoques que N2.",
+    "new_decision": "Perturbación con recuperación: frenar y ceder el paso cuando un peatón se atraviesa, y retomar el estacionamiento cuando pasa."
+  },
+  "evaluation_suite": {
+    "suite_id": "N3-suite-v1",
+    "level_id": "N3",
+    "seed_start": 100000,
+    "episodes": 100,
+    "deterministic": true
+  }
+}

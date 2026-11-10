@@ -1,0 +1,89 @@
+{
+  "experiment_id": "N3-exp02-ppo-curriculo-3m",
+  "level_id": "N3",
+  "agent": "ppo",
+  "hypothesis": "La receta ganadora de N2 (currículo de 4 etapas, 3 M de pasos) entrenada desde cero en N3 llega al mismo nivel que continuar el modelo de N2: si es así, el currículo es una receta general y no depende del checkpoint.",
+  "change_vs_baseline": "Igual que N2-exp06-ppo-curriculo-3m; cambia el nivel (N2 → N3) y las etapas quitan peatones en lugar de conos.",
+  "derived_from": "N2-exp06-ppo-curriculo-3m",
+  "seed": 44,
+  "budget": {
+    "timesteps": 3000000
+  },
+  "curriculum": [
+    {
+      "name": "práctica: nariz en el cupo",
+      "overrides": {
+        "difficulty": "tutorial",
+        "cones": 0,
+        "pedestrians": 0,
+        "crossing_pedestrians": 0
+      },
+      "timesteps": 150000
+    },
+    {
+      "name": "fácil: frente al cupo",
+      "overrides": {
+        "difficulty": "easy",
+        "cones": 0,
+        "pedestrians": 0,
+        "crossing_pedestrians": 0
+      },
+      "timesteps": 150000
+    },
+    {
+      "name": "pasillo sin peatones",
+      "overrides": {
+        "difficulty": "normal",
+        "cones": 0,
+        "pedestrians": 0,
+        "crossing_pedestrians": 0
+      },
+      "timesteps": 250000
+    },
+    {
+      "name": "nivel completo",
+      "overrides": {},
+      "timesteps": 2450000
+    }
+  ],
+  "hyperparameters": {
+    "learning_rate": 0.0003,
+    "n_steps": 2048,
+    "batch_size": 64,
+    "n_epochs": 10,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "ent_coef": 0.05,
+    "net_arch": [
+      64,
+      64
+    ]
+  },
+  "validation": {
+    "seed_start": 200000,
+    "episodes": 20,
+    "every": 150000
+  },
+  "environment_version": "parking-v3",
+  "level": {
+    "level_id": "N3",
+    "name": "Peatones cruzando",
+    "environment_version": "parking-v3",
+    "difficulty": "normal",
+    "cones": 0,
+    "blocking_cones": 0,
+    "pedestrians": 2,
+    "crossing_pedestrians": 1,
+    "bumper_sensors": 5,
+    "sensor_noise": 0.0,
+    "description": "Como N1 (arranque en el pasillo a 4-8 m del cupo) con 2 peatones que cruzan el pasillo de ida y vuelta. Uno de ellos cruza justo entre el auto y el cupo, en el momento en que el auto pasa por ahí. Los peatones esperan si el auto está pegado a su camino. Mismos sensores de parachoques que N2.",
+    "new_decision": "Perturbación con recuperación: frenar y ceder el paso cuando un peatón se atraviesa, y retomar el estacionamiento cuando pasa."
+  },
+  "evaluation_suite": {
+    "suite_id": "N3-suite-v1",
+    "level_id": "N3",
+    "seed_start": 100000,
+    "episodes": 100,
+    "deterministic": true
+  }
+}

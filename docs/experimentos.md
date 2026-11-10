@@ -164,3 +164,60 @@ El 80 % se repite en episodios nunca vistos.
 
 1. Etapa intermedia con el cono bloqueante pero arranque cerca (para practicar el esquive aislado).
 2. Usar el modelo de N2 como punto de partida de N3 y N4 (misma familia de observaciones).
+
+---
+
+## Nivel 3 · Peatones cruzando (`configs/levels/N3.json`)
+
+Como N1 (sin conos), con 2 peatones que cruzan el pasillo de ida y vuelta. Uno de ellos
+(`crossing_pedestrians: 1`) cruza entre el arranque y el cupo, empezando a 1.5–3.5 m del carril del auto
+y caminando hacia él, de modo que se atraviesa más o menos cuando el auto pasa (57 de los 100 episodios
+de la suite lo tienen; en el resto el cupo está demasiado cerca para que quepa). Misma familia de
+observaciones que N2 (19 valores). Es la **perturbación con recuperación** que pide la guía: frenar, ceder
+el paso y retomar. Suite `N3-suite-v1`. Rama `feature/nivel-3`. Paleta de la web: rosado chicle y fucsia.
+
+### Referencias
+
+| Política | Éxito en `N3-suite-v1` | Atropellos | Qué muestra |
+|---|---|---|---|
+| Aleatoria | 0 % | 17 | piso |
+| Regla | 29 % | 35 | no cede el paso |
+| PPO de N2 (`N2-exp06-…-s44`) sin reentrenar | 70 % | 24 | estaciona y esquiva, pero no espera a los peatones |
+
+### Experimentos (commit `5ee17ac`, `git_dirty: false`)
+
+| Experimento | Hipótesis | Cambio | Resultado (s42 / s43 / s44) | Tiempo por run | Decisión |
+|---|---|---|---|---|---|
+| `N3-exp01-ppo-ft` | Continuar el modelo de N2 en N3 le enseña a ceder el paso: las 3 semillas superan el 70 % | `parent_run_id` = N2-exp06-s44; 1 M de pasos; `ent_coef` 0.01 | **87 / 85 / 81 %** · media 84 % ± 3 | ~20 min | **aceptada** |
+| `N3-exp02-ppo-curriculo-3m` | La receta de N2 desde cero llega al mismo nivel: el currículo es una receta general | currículo de 4 etapas sin peatones al inicio; 3 M de pasos | **84 / 85 / 86 %** · media 85 % ± 1 | ~44 min | **aceptada** |
+
+Los atropellos bajan de 24 (modelo de N2) a 7–12 por semilla, y ningún modelo choca con obstáculos ni se
+sale del área. Gráficas: `results/N3/comparison.png` y `results/N3/curves.png`.
+
+### Test final reservado (`N3-final-v1`)
+
+| Política | Éxito | Atropellos | Choques | Salidas | Tiempo agotado |
+|---|---|---|---|---|---|
+| Regla | 25 % | 41 | 14 | 20 | 0 |
+| **exp01 PPO continuación · s42** | **92 %** | 4 | 1 | 0 | 3 |
+| exp02 PPO currículo · s44 | 93 % | 4 | 0 | 0 | 3 |
+
+Los dos finalistas se mantienen (o mejoran) en episodios nunca vistos; la diferencia entre ellos (1 punto)
+está dentro de la variación entre semillas.
+
+### Análisis y decisión
+
+- **Las dos recetas son confiables:** 6 de 6 semillas por encima del 80 %. El currículo ya no depende de
+  partir de un checkpoint.
+- **Continuar un checkpoint es 3 veces más barato:** mismo resultado con 1 M de pasos en lugar de 3 M. La
+  curva de validación de exp01 ya está en ~95 % a los 250 000 pasos, así que su presupuesto sobró.
+- **Modelo servido en N3: `N3-exp01-ppo-ft-s42-5513c039`** (87 % en la suite, el mejor; 92 % en el test
+  final). Se elige con la suite, no con el test final, para no usar el test reservado como criterio.
+- Lo que falla todavía: 7–12 atropellos por cada 100 episodios. Para un auto real sigue siendo inaceptable;
+  es la principal causa de fallo y la meta del siguiente nivel.
+
+### Siguientes hipótesis razonables
+
+1. Penalizar más el atropello que el choque con un objeto (hoy los dos valen −50), o una distancia de
+   seguridad a los peatones en la recompensa.
+2. N4 (conos + peatones + ruido) partiendo del modelo de N3, con presupuesto corto (~250 000 pasos).
