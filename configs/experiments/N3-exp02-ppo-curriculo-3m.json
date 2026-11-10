@@ -1,0 +1,66 @@
+{
+  "experiment_id": "N3-exp02-ppo-curriculo-3m",
+  "level_id": "N3",
+  "agent": "ppo",
+  "hypothesis": "La receta ganadora de N2 (currículo de 4 etapas, 3 M de pasos) entrenada desde cero en N3 llega al mismo nivel que continuar el modelo de N2: si es así, el currículo es una receta general y no depende del checkpoint.",
+  "change_vs_baseline": "Igual que N2-exp06-ppo-curriculo-3m; cambia el nivel (N2 → N3) y las etapas quitan peatones en lugar de conos.",
+  "derived_from": "N2-exp06-ppo-curriculo-3m",
+  "seed": 42,
+  "budget": {
+    "timesteps": 3000000
+  },
+  "curriculum": [
+    {
+      "name": "práctica: nariz en el cupo",
+      "overrides": {
+        "difficulty": "tutorial",
+        "cones": 0,
+        "pedestrians": 0,
+        "crossing_pedestrians": 0
+      },
+      "timesteps": 150000
+    },
+    {
+      "name": "fácil: frente al cupo",
+      "overrides": {
+        "difficulty": "easy",
+        "cones": 0,
+        "pedestrians": 0,
+        "crossing_pedestrians": 0
+      },
+      "timesteps": 150000
+    },
+    {
+      "name": "pasillo sin peatones",
+      "overrides": {
+        "difficulty": "normal",
+        "cones": 0,
+        "pedestrians": 0,
+        "crossing_pedestrians": 0
+      },
+      "timesteps": 250000
+    },
+    {
+      "name": "nivel completo",
+      "overrides": {},
+      "timesteps": 2450000
+    }
+  ],
+  "hyperparameters": {
+    "learning_rate": 0.0003,
+    "n_steps": 2048,
+    "batch_size": 64,
+    "n_epochs": 10,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "ent_coef": 0.05,
+    "net_arch": [
+      64,
+      64
+    ]
+  },
+  "validation": {
+    "episodes": 20,
+    "every": 150000
+  }
+}

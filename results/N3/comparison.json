@@ -1,0 +1,142 @@
+{
+  "level_id": "N3",
+  "suite_id": "N3-suite-v1",
+  "policies": {
+    "random": {
+      "label": "Aleatoria (referencia)",
+      "episodes": 100,
+      "success_rate": 0.0,
+      "outcomes": {
+        "success": 0,
+        "obstacle": 6,
+        "pedestrian": 17,
+        "boundary": 13,
+        "timeout": 64
+      },
+      "mean_return": -36.027,
+      "mean_time_s": 31.758,
+      "mean_final_distance_m": 9.334,
+      "mean_final_heading_error_deg": 67.768,
+      "mean_latency_ms": 0.001
+    },
+    "rule": {
+      "label": "Regla (referencia)",
+      "episodes": 100,
+      "success_rate": 0.29,
+      "outcomes": {
+        "success": 29,
+        "obstacle": 21,
+        "pedestrian": 35,
+        "boundary": 15,
+        "timeout": 0
+      },
+      "mean_return": -6.949,
+      "mean_time_s": 7.3,
+      "mean_final_distance_m": 7.577,
+      "mean_final_heading_error_deg": 32.031,
+      "mean_latency_ms": 0.011
+    },
+    "N3-exp02-ppo-curriculo-3m-s42-c59d3cd9": {
+      "label": "PPO \u00b7 N3-exp02-ppo-curriculo-3m-s42-c59d3cd9",
+      "episodes": 100,
+      "success_rate": 0.84,
+      "outcomes": {
+        "success": 84,
+        "obstacle": 0,
+        "pedestrian": 7,
+        "boundary": 0,
+        "timeout": 9
+      },
+      "mean_return": 82.031,
+      "mean_time_s": 9.862,
+      "mean_final_distance_m": 1.658,
+      "mean_final_heading_error_deg": 14.839,
+      "mean_latency_ms": 0.064
+    },
+    "N3-exp02-ppo-curriculo-3m-s43-92d19fe6": {
+      "label": "PPO \u00b7 N3-exp02-ppo-curriculo-3m-s43-92d19fe6",
+      "episodes": 100,
+      "success_rate": 0.85,
+      "outcomes": {
+        "success": 85,
+        "obstacle": 0,
+        "pedestrian": 9,
+        "boundary": 0,
+        "timeout": 6
+      },
+      "mean_return": 83.59,
+      "mean_time_s": 8.382,
+      "mean_final_distance_m": 1.436,
+      "mean_final_heading_error_deg": 10.972,
+      "mean_latency_ms": 0.063
+    },
+    "N3-exp02-ppo-curriculo-3m-s44-e740c3fb": {
+      "label": "PPO \u00b7 N3-exp02-ppo-curriculo-3m-s44-e740c3fb",
+      "episodes": 100,
+      "success_rate": 0.86,
+      "outcomes": {
+        "success": 86,
+        "obstacle": 0,
+        "pedestrian": 12,
+        "boundary": 0,
+        "timeout": 2
+      },
+      "mean_return": 84.28,
+      "mean_time_s": 7.284,
+      "mean_final_distance_m": 1.449,
+      "mean_final_heading_error_deg": 10.577,
+      "mean_latency_ms": 0.065
+    },
+    "N3-exp01-ppo-ft-s42-5513c039": {
+      "label": "PPO \u00b7 N3-exp01-ppo-ft-s42-5513c039",
+      "episodes": 100,
+      "success_rate": 0.87,
+      "outcomes": {
+        "success": 87,
+        "obstacle": 0,
+        "pedestrian": 9,
+        "boundary": 0,
+        "timeout": 4
+      },
+      "mean_return": 86.185,
+      "mean_time_s": 7.838,
+      "mean_final_distance_m": 1.453,
+      "mean_final_heading_error_deg": 11.767,
+      "mean_latency_ms": 0.066
+    },
+    "N3-exp01-ppo-ft-s43-49e186ce": {
+      "label": "PPO \u00b7 N3-exp01-ppo-ft-s43-49e186ce",
+      "episodes": 100,
+      "success_rate": 0.85,
+      "outcomes": {
+        "success": 85,
+        "obstacle": 1,
+        "pedestrian": 7,
+        "boundary": 0,
+        "timeout": 7
+      },
+      "mean_return": 84.299,
+      "mean_time_s": 8.62,
+      "mean_final_distance_m": 1.554,
+      "mean_final_heading_error_deg": 12.581,
+      "mean_latency_ms": 0.066
+    },
+    "N3-exp01-ppo-ft-s44-01a5ac38": {
+      "label": "PPO \u00b7 N3-exp01-ppo-ft-s44-01a5ac38",
+      "episodes": 100,
+      "success_rate": 0.81,
+      "outcomes": {
+        "success": 81,
+        "obstacle": 1,
+        "pedestrian": 12,
+        "boundary": 0,
+        "timeout": 6
+      },
+      "mean_return": 77.323,
+      "mean_time_s": 8.15,
+      "mean_final_distance_m": 1.831,
+      "mean_final_heading_error_deg": 15.548,
+      "mean_latency_ms": 0.066
+    }
+  }
+}

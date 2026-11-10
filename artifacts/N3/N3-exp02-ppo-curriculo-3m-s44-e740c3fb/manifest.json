@@ -1,0 +1,68 @@
+{
+  "run_id": "N3-exp02-ppo-curriculo-3m-s44-e740c3fb",
+  "experiment_id": "N3-exp02-ppo-curriculo-3m",
+  "level_id": "N3",
+  "agent": "ppo",
+  "hypothesis": "La receta ganadora de N2 (currículo de 4 etapas, 3 M de pasos) entrenada desde cero en N3 llega al mismo nivel que continuar el modelo de N2: si es así, el currículo es una receta general y no depende del checkpoint.",
+  "change_vs_baseline": "Igual que N2-exp06-ppo-curriculo-3m; cambia el nivel (N2 → N3) y las etapas quitan peatones en lugar de conos.",
+  "environment_version": "parking-v3",
+  "environment_kwargs": {
+    "difficulty": "normal",
+    "sensor_noise": 0.0,
+    "pedestrians": 2,
+    "cones": 0,
+    "blocking_cones": 0,
+    "bumper_sensors": 5,
+    "crossing_pedestrians": 1
+  },
+  "observation_shape": [
+    19
+  ],
+  "git_commit": "5ee17acd06fa7d705b92fc03e11dc31744e045d1",
+  "git_branch": "feature/nivel-3",
+  "git_dirty": false,
+  "config_uri": "artifacts/N3/N3-exp02-ppo-curriculo-3m-s44-e740c3fb/config.json",
+  "config_sha256": "b8a1d4042b44355f2c2763d414cc3a82488ecffda72b5bc2b43efa592c139ff3",
+  "seed": 44,
+  "parent_run_id": null,
+  "origin": "desde cero",
+  "parent_model_sha256": null,
+  "evaluation_suite_id": "N3-suite-v1",
+  "mlflow": {
+    "tracking_uri": "sqlite:///mlflow.db",
+    "experiment": "parking-N3",
+    "run_id": "e740c3fbd19e42f5b0c31f2bdcc7759a"
+  },
+  "created_at": "2026-11-10T21:09:31+00:00",
+  "status": "completed",
+  "model_uri": "artifacts/N3/N3-exp02-ppo-curriculo-3m-s44-e740c3fb/model.zip",
+  "model_sha256": "7532df980c4224e049602ba230d3ee67e10d91eb2e7337efbccfdf4d783602c5",
+  "normalization_uri": "envs/parking_env.py#ParkingEnv._observation (escalado fijo dentro del ambiente; sin normalización aprendida)",
+  "observation_contract": "Box(19,) float32 · ver docs/ficha_ambiente.md",
+  "action_contract": "Discrete(5): avanzar, retroceder, izquierda, derecha, frenar",
+  "runtime_ref": "python 3.12.7 · requirements.lock.txt sha256:76cff4f909c98d69",
+  "budget": {
+    "timesteps": 3000000,
+    "episodes": 59976,
+    "env_steps": 3000000,
+    "wall_time_s": 2640.3
+  },
+  "optimizer_state": "no guardado: los runs no se continúan desde este checkpoint",
+  "evaluation_uri": "artifacts/N3/N3-exp02-ppo-curriculo-3m-s44-e740c3fb/evaluation.json",
+  "evaluation_summary": {
+    "episodes": 100,
+    "success_rate": 0.86,
+    "outcomes": {
+      "success": 86,
+      "obstacle": 0,
+      "pedestrian": 12,
+      "boundary": 0,
+      "timeout": 2
+    },
+    "mean_return": 84.28,
+    "mean_time_s": 7.284,
+    "mean_final_distance_m": 1.449,
+    "mean_final_heading_error_deg": 10.577,
+    "mean_latency_ms": 0.066
+  }
+}

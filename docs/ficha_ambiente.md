@@ -15,7 +15,7 @@
 | Cupos | 2 filas × 8 cupos de 3.0 × 5.5 m; pasillo central de 9 m |
 | Vehículo | 4.2 × 1.8 m, distancia entre ejes 2.6 m |
 | Obstáculos | autos estacionados (cada cupo ocupado con p = 0.6; p = 0.85 los vecinos del objetivo), 4 columnas de 0.8 × 0.8 m, conos de 0.5 × 0.5 m. Con `blocking_cones = 1` (N2) se agrega un cono extra en la línea recta entre el arranque y el cupo, a ≥ 3.2 m del auto y ≥ 1.7 m de la entrada (se omite si no cabe: 67 de 100 episodios de la suite lo tienen) |
-| Peatones (opcional, N3) | cajas de 0.5 × 0.5 m que cruzan el pasillo en una x fija, ida y vuelta entre y = ±3.9 m, a 0.8–1.3 m/s; se detienen si el auto está a menos de 0.6 m de su camino; los sensores los detectan |
+| Peatones (opcional, N3) | cajas de 0.5 × 0.5 m que cruzan el pasillo en una x fija, ida y vuelta entre y = ±3.9 m, a 0.8–1.3 m/s; se detienen si el auto está a menos de 0.6 m de su camino; los sensores los detectan. Con `crossing_pedestrians = 1` el primero cruza entre el arranque y el cupo (a ≥ 3.8 m del auto), empezando a 1.5–3.5 m del carril y caminando hacia él |
 | Aleatoriedad por episodio | cupo objetivo (16 posibles), ocupación de cupos, desplazamiento ±0.15 m de los autos, pose inicial y conos; reproducible con `reset(seed=...)` |
 
 ## Dinámica
@@ -89,11 +89,11 @@ tag. Los niveles anteriores siguen disponibles.
 | Nivel | Estado | Configuración | Qué decisión nueva debe tomar el agente |
 |---|---|---|---|
 | N1 · Misión base | ✅ `nivel-1` | arranca en el pasillo a 4–8 m del cupo, rodeado de autos estacionados; 0 conos, 0 peatones, sin ruido | girar 90° hacia el cupo sin rozar a los vecinos y detenerse alineado |
-| N2 · Conos | en curso (`feature/nivel-2`) | N1 + 3 conos sueltos + 1 cono en la ruta (`difficulty: hard`, `blocking_cones: 1`) + 5 sensores de parachoques | rodear un obstáculo fijo que tapa el camino directo |
-| N3 · Peatones | pendiente | N1 + peatones que cruzan el pasillo | ceder el paso a obstáculos en movimiento |
+| N2 · Conos | ✅ `nivel-2` | N1 + 3 conos sueltos + 1 cono en la ruta (`difficulty: hard`, `blocking_cones: 1`) + 5 sensores de parachoques | rodear un obstáculo fijo que tapa el camino directo |
+| N3 · Peatones | ✅ `nivel-3` | N1 + 2 peatones, uno cruza la ruta (`crossing_pedestrians: 1`) + sensores de parachoques | frenar y ceder el paso a un obstáculo en movimiento, y retomar (perturbación con recuperación) |
 | N4 · Todo junto | pendiente | conos + peatones + ruido en los sensores | combinar todo con sensores imprecisos (perturbación) |
 
-Todos los niveles comparten las acciones. N1 observa 14 valores y N2 en adelante 19: son dos familias de
+Todos los niveles comparten las acciones. N1 observa 14 valores y N2, N3 en adelante 19: son dos familias de
 modelos. Dentro de una familia, un modelo antiguo puede evaluarse en un nivel nuevo, pero no se espera que
 lo resuelva.
 
@@ -108,7 +108,7 @@ episodios (frente a ~0.2 % desde el pasillo).
 | `parking-v1` | Contrato inicial: cupos, autos estacionados, columnas, conos y ruido opcional |
 | `parking-v2` | Agrega peatones en movimiento (solo cuando `pedestrians > 0`, es decir en N3) y `info.collision_kind`. N1 y N2 producen exactamente las mismas transiciones que en v1 (lo verifica `test_levels_without_pedestrians_are_unchanged`) |
 
-| `parking-v3` | Agrega opciones de nivel: `blocking_cones`, `bumper_sensors` y la dificultad `tutorial`. Con sus valores por defecto reproduce v2 exactamente, por eso N1 sigue declarando `parking-v2` (`SUPPORTED_VERSIONS`). |
+| `parking-v3` | Agrega opciones de nivel: `blocking_cones`, `crossing_pedestrians`, `bumper_sensors` y la dificultad `tutorial`. Con sus valores por defecto reproduce v2 exactamente, por eso N1 sigue declarando `parking-v2` (`SUPPORTED_VERSIONS`). |
 
 ## Simplificaciones
 

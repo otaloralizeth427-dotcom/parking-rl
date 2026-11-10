@@ -29,6 +29,27 @@
   --btn-shadow: 0 4px 0 var(--shade), 0 8px 22px rgb(var(--shadow) / 0.45), inset 0 2px 0 rgba(255, 255, 255, 0.35);
 }
 
+/* Nivel 3 · rosado chicle y fucsia */
+:root[data-theme="N3"] {
+  --violet-900: #4a1035;
+  --violet-800: #6b1a4e;
+  --violet-700: #a52a6e;
+  --violet-600: #d63384;
+  --violet-500: #f0559c;
+  --violet-300: #ffb3d4;
+  --violet-200: #ffd6e8;
+  --pink: #ff7fb0;
+  --sky: #ffd6e6;
+  --muted: #ffd1e6;
+  --shade: #8a1350;
+  --edge: 255 214 232;
+  --glass: 140 28 86;
+  --deep: 60 6 36;
+  --shadow: 55 5 32;
+  --ink: 95 10 55;
+  --btn-bg: linear-gradient(180deg, #ff7ab6 0%, #e93d8f 55%, #c81f74 100%);
+}
+
 /* Nivel 2 · menta y coral: misma estética, otra paleta */
 :root[data-theme="N2"] {
   --violet-900: #0d3b3e;
