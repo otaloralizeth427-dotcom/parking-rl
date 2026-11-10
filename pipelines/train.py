@@ -22,6 +22,7 @@ import numpy as np
 
 from agents.registry import ARTIFACTS_DIR, MANIFESTS_DIR, load_manifest, sha256_file
 from envs.levels import env_kwargs, load_level, make_env
+from envs.parking_env import ParkingEnv
 from pipelines.evaluate import evaluate, run_case, suite_for_level
 
 os.environ.setdefault("MLFLOW_DISABLE_AGENT_HINT", "1")
@@ -52,6 +53,16 @@ def resolve(config: dict) -> dict:
     unit = "timesteps" if config["agent"] == "ppo" else "episodes"
     if unit not in budget or budget[unit] <= 0:
         raise ValueError(f"El agente {config['agent']} necesita budget.{unit} > 0")
+    curriculum = config.get("curriculum")
+    if curriculum:
+        if config["agent"] != "ppo":
+            raise ValueError("El currículo solo está implementado para PPO")
+        if sum(stage["timesteps"] for stage in curriculum) != budget["timesteps"]:
+            raise ValueError("La suma de timesteps del currículo debe ser igual a budget.timesteps")
+        level_kwargs = env_kwargs(load_level(config["level_id"]))
+        for stage in curriculum:
+            if "bumper_sensors" in stage.get("overrides", {}) or not set(stage.get("overrides", {})) <= set(level_kwargs):
+                raise ValueError(f"Etapa inválida {stage}: solo puede cambiar {sorted(set(level_kwargs) - {'bumper_sensors'})}")
     return {
         **config,
         "environment_version": load_level(config["level_id"])["environment_version"],
@@ -166,14 +177,23 @@ def train_ppo(resolved: dict, curves_factory):
 
     hyperparams = dict(resolved["hyperparameters"])
     n_envs = int(hyperparams.pop("n_envs", 1))   # copias del ambiente que recogen experiencia en paralelo
-    make = lambda: Monitor(make_env(resolved["level_id"]), info_keywords=("success",))  # noqa: E731
-    if n_envs > 1:
-        from stable_baselines3.common.vec_env import DummyVecEnv
-        env = DummyVecEnv([make] * n_envs)
-        env.seed(resolved["seed"])
-    else:
-        env = make()
-        env.reset(seed=resolved["seed"])
+    # Currículo: etapas más fáciles del mismo nivel (mismas observaciones) antes del nivel completo.
+    # La validación y la suite siempre usan el nivel completo.
+    stages = resolved.get("curriculum") or [{"overrides": {}, "timesteps": resolved["budget"]["timesteps"]}]
+
+    def build_env(overrides: dict, seed: int):
+        kwargs = {**env_kwargs(resolved["level"]), **overrides}
+        make = lambda: Monitor(ParkingEnv(**kwargs), info_keywords=("success",))  # noqa: E731
+        if n_envs > 1:
+            from stable_baselines3.common.vec_env import DummyVecEnv
+            vec = DummyVecEnv([make] * n_envs)
+            vec.seed(seed)
+            return vec
+        single = make()
+        single.reset(seed=seed)
+        return single
+
+    env = build_env(stages[0].get("overrides", {}), resolved["seed"])
     if resolved.get("parent_run_id"):
         agent = PPOAgent.continue_from(parent_policy(resolved), env, seed=resolved["seed"], **hyperparams)
     else:
@@ -191,7 +211,11 @@ def train_ppo(resolved: dict, curves_factory):
                                                         "success": info.get("success", False)})
             return True
 
-    agent.model.learn(total_timesteps=resolved["budget"]["timesteps"], callback=CurveCallback())
+    for i, stage in enumerate(stages):
+        if i > 0:
+            agent.model.set_env(build_env(stage.get("overrides", {}), resolved["seed"] + i))
+        agent.model.learn(total_timesteps=stage["timesteps"], callback=CurveCallback(),
+                          reset_num_timesteps=(i == 0))
     return agent, curves, {"timesteps": resolved["budget"]["timesteps"], "episodes": episodes,
                            "env_steps": resolved["budget"]["timesteps"]}
 

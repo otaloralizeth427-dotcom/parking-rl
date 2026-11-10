@@ -1,0 +1,19 @@
+{
+  "experiment_id": "N2-exp05-ppo-curriculo",
+  "level_id": "N2",
+  "agent": "ppo",
+  "hypothesis": "exp03 y exp04 nunca encontraron un éxito: desde 4-8 m del cupo, explorar al azar casi nunca termina estacionado (1 de cada 500 episodios). Un currículo que empieza con la nariz en el cupo (40 de cada 500 al azar) y se aleja por etapas da señal desde el principio: las 3 semillas superan a la regla (18 %) y al modelo de N1 sin reentrenar (33 %).",
+  "change_vs_baseline": "Igual que N2-exp03-ppo (1 000 000 de pasos, mismos hiperparámetros) repartiendo los pasos en 4 etapas: práctica → fácil → pasillo sin conos → nivel completo. Validación y suite siempre en el nivel completo.",
+  "derived_from": "N2-exp03-ppo",
+  "seed": 42,
+  "budget": {"timesteps": 1000000},
+  "curriculum": [
+    {"name": "práctica: nariz en el cupo", "overrides": {"difficulty": "tutorial", "cones": 0, "blocking_cones": 0}, "timesteps": 150000},
+    {"name": "fácil: frente al cupo", "overrides": {"difficulty": "easy", "cones": 0, "blocking_cones": 0}, "timesteps": 150000},
+    {"name": "pasillo sin conos", "overrides": {"difficulty": "normal", "cones": 0, "blocking_cones": 0}, "timesteps": 250000},
+    {"name": "nivel completo", "overrides": {}, "timesteps": 450000}
+  ],
+  "hyperparameters": {"learning_rate": 0.0003, "n_steps": 2048, "batch_size": 64, "n_epochs": 10,
+                      "gamma": 0.99, "gae_lambda": 0.95, "ent_coef": 0.05, "net_arch": [64, 64]},
+  "validation": {"episodes": 20, "every": 50000}
+}

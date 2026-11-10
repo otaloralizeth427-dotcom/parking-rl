@@ -16,7 +16,7 @@ from gymnasium import spaces
 FORWARD, REVERSE, LEFT, RIGHT, BRAKE = range(5)
 ACTION_NAMES = ["Avanzar", "Retroceder", "Izquierda", "Derecha", "Frenar"]
 
-DIFFICULTIES = ("easy", "normal", "hard")
+DIFFICULTIES = ("tutorial", "easy", "normal", "hard")   # tutorial: solo para etapas de currículo
 
 # Cambia cuando cambian observaciones, acciones, dinámica o recompensa:
 # un modelo solo es compatible con la versión con que fue entrenado.
@@ -241,7 +241,12 @@ class ParkingEnv(gym.Env):
 
         # Pose inicial en el pasillo
         aisle = cfg.lot_height / 2 - cfg.slot_depth
-        if self.difficulty == "easy":
+        if self.difficulty == "tutorial":
+            # La nariz ya entra al cupo: basta avanzar unos metros, alinearse y frenar
+            x = tc[0] + rng.uniform(-0.4, 0.4)
+            y = row_sign * (aisle - rng.uniform(0.2, 1.2))
+            heading = row_sign * np.pi / 2 + rng.uniform(-0.2, 0.2)
+        elif self.difficulty == "easy":
             x = tc[0] + rng.uniform(-1.0, 1.0)
             y = row_sign * rng.uniform(-1.5, 1.0)
             heading = row_sign * np.pi / 2 + rng.uniform(-0.3, 0.3)
@@ -264,7 +269,7 @@ class ParkingEnv(gym.Env):
                                                                       aisle - 0.8))),
                                   "half": (0.25, 0.25), "angle": 0.0, "kind": "cone"})
 
-        n_cones = {"easy": 0, "normal": 2, "hard": 5}[self.difficulty] if self.n_cones is None else self.n_cones
+        n_cones = {"tutorial": 0, "easy": 0, "normal": 2, "hard": 5}[self.difficulty] if self.n_cones is None else self.n_cones
         placed = 0
         attempts = 0
         while placed < n_cones and attempts < 200:

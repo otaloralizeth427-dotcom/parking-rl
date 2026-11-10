@@ -492,3 +492,24 @@ def test_ppo_continues_from_registered_checkpoint(tmp_path, monkeypatch):
     config["hyperparameters"] = {"n_steps": 64}
     with pytest.raises(ValueError, match="solo se pueden cambiar"):
         pipeline.run_experiment(config)
+
+
+def test_curriculum_is_validated_and_runs():
+    import pipelines.train as pipeline
+    config = pipeline.load_experiment("configs/experiments/N2-exp05-ppo-curriculo.json")
+    bad = {**config, "curriculum": config["curriculum"][:1]}
+    with pytest.raises(ValueError, match="suma"):
+        pipeline.resolve(bad)
+    sneaky = {**config, "budget": {"timesteps": 10},
+              "curriculum": [{"overrides": {"bumper_sensors": 0}, "timesteps": 10}]}
+    with pytest.raises(ValueError, match="Etapa inválida"):
+        pipeline.resolve(sneaky)
+    small = {**config, "budget": {"timesteps": 128},
+             "curriculum": [{"overrides": {"difficulty": "tutorial", "cones": 0, "blocking_cones": 0}, "timesteps": 64},
+                            {"overrides": {}, "timesteps": 64}],
+             "hyperparameters": {"n_steps": 32, "batch_size": 16, "n_epochs": 1, "net_arch": [8]}}
+    resolved = pipeline.resolve(small)
+    seen = []
+    curves = type("C", (), {"episode": lambda self, step, result: seen.append(step)})()
+    agent, _, budget = pipeline.train_ppo(resolved, lambda policy_fn: curves)
+    assert agent.model.num_timesteps >= 128 and budget["timesteps"] == 128
