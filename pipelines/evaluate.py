@@ -1,13 +1,22 @@
 """Evaluación con suites fijas: compara referencias (aleatoria, regla) y modelos registrados.
 
 Uso:  python -m pipelines.evaluate --level N1
+      python -m pipelines.evaluate --level N1 --new-final             # crea el test final reservado
+      python -m pipelines.evaluate --level N1 --final <run_id> [...]  # lo usa una sola vez
 Guarda en results/<nivel>/ los resultados por episodio, el resumen y las gráficas.
+
+Test final reservado: sus semillas viven fuera del repo (PARKING_SECRET_DIR, por defecto
+~/.parking-rl/). El repo solo guarda la huella SHA-256 de esas semillas, para comprobar después
+que el test no cambió sin revelarlo.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import os
+import secrets
 import time
 from collections import Counter
 from pathlib import Path
@@ -23,6 +32,7 @@ from envs.levels import LEVEL_IDS, make_env  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 SUITES_DIR = ROOT / "configs" / "suites"
 RESULTS_DIR = ROOT / "results"
+SECRET_DIR = Path(os.environ.get("PARKING_SECRET_DIR", Path.home() / ".parking-rl"))
 OUTCOMES = ("success", "obstacle", "pedestrian", "boundary", "timeout")
 OUTCOME_LABELS = {"success": "Éxito", "obstacle": "Choque con obstáculo", "pedestrian": "Atropello",
                   "boundary": "Salida del área", "timeout": "Tiempo agotado"}
@@ -42,6 +52,61 @@ def suite_for_level(level_id: str) -> dict:
     return load_suite(f"{level_id}-suite-v1")
 
 
+# ------------------------------------------------------------------ test final reservado
+def commitment(secret: dict) -> str:
+    return hashlib.sha256(json.dumps(secret, sort_keys=True).encode()).hexdigest()
+
+
+def create_final_suite(level_id: str, episodes: int = 100) -> dict:
+    suite_id = f"{level_id}-final-v1"
+    public_path = SUITES_DIR / f"{suite_id}.json"
+    if public_path.exists():
+        raise FileExistsError(f"{suite_id} ya existe: el test final no se regenera")
+    secret = {"suite_id": suite_id, "seed_start": 10_000_000 + secrets.randbelow(10_000_000),
+              "salt": secrets.token_hex(16)}
+    SECRET_DIR.mkdir(parents=True, exist_ok=True)
+    (SECRET_DIR / f"{suite_id}.json").write_text(json.dumps(secret, indent=2))
+    public = {"suite_id": suite_id, "level_id": level_id, "episodes": episodes, "deterministic": True,
+              "reserved": True, "seed_commitment": commitment(secret),
+              "description": "Test final reservado: las semillas no están en el repo; aquí solo su huella SHA-256."}
+    public_path.write_text(json.dumps(public, indent=2) + "\n")
+    return public
+
+
+def final_suite(level_id: str) -> dict:
+    public = load_suite(f"{level_id}-final-v1")
+    secret_path = SECRET_DIR / f"{public['suite_id']}.json"
+    if not secret_path.exists():
+        raise FileNotFoundError(f"Las semillas reservadas no están en {secret_path}")
+    secret = json.loads(secret_path.read_text())
+    if commitment(secret) != public["seed_commitment"]:
+        raise ValueError("Las semillas reservadas no coinciden con la huella publicada")
+    return {**public, "seed_start": secret["seed_start"]}
+
+
+def run_final(level_id: str, run_ids: list[str]) -> dict:
+    """Evalúa la regla y los modelos elegidos en el test reservado; publica solo resultados sin semillas."""
+    from agents.registry import load_manifest, load_policy
+
+    suite = final_suite(level_id)
+    policies = {"rule": baselines()["rule"]}
+    for run_id in run_ids:
+        manifest = load_manifest(run_id)
+        policies[run_id] = (f"{manifest['agent'].upper()} · {run_id}", load_policy(manifest))
+    report = {"level_id": level_id, "suite_id": suite["suite_id"], "seed_commitment": suite["seed_commitment"],
+              "evaluated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "policies": {}}
+    for key, (label, policy) in policies.items():
+        result = evaluate(policy, suite)
+        report["policies"][key] = {"label": label, **result["summary"],
+                                   "outcomes_by_case": [c["outcome"] for c in result["cases"]]}
+    out = RESULTS_DIR / level_id / "final_test.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(report, indent=2))
+    print_table(report["policies"])
+    return report
+
+
+# ------------------------------------------------------------------ episodios
 def run_case(env, policy, seed: int) -> dict:
     """Un episodio con un modelo congelado; policy=None es la política aleatoria."""
     obs, info = env.reset(seed=seed)
@@ -127,10 +192,18 @@ OUTCOME_COLORS = {"success": "#22c55e", "obstacle": "#f97316", "pedestrian": "#e
                   "boundary": "#a855f7", "timeout": "#9ca3af"}
 
 
+def short_label(key: str, label: str) -> str:
+    """«N1-exp03-ppo-s42-64bf7433» → «exp03 PPO\ns42»; las referencias conservan su nombre."""
+    parts = key.split("-")
+    if len(parts) < 4:
+        return label.split(" (")[0]
+    return f"{parts[1]} {parts[2].upper()}\n{parts[3]}"
+
+
 def plot_comparison(comparison: dict, path: Path, title: str):
     keys = list(comparison)
-    labels = [comparison[k]["label"].replace(" · ", "\n") for k in keys]
-    fig, axes = plt.subplots(1, 3, figsize=(16, 5))
+    labels = [short_label(k, comparison[k]["label"]) for k in keys]
+    fig, axes = plt.subplots(1, 3, figsize=(max(16, 1.7 * len(keys) * 3 / 2), 5.5))
 
     # Resultado de los episodios por causa (barras apiladas)
     bottom = np.zeros(len(keys))
@@ -147,7 +220,7 @@ def plot_comparison(comparison: dict, path: Path, title: str):
         ax.bar_label(bars, fmt="%.2f", fontsize=8)
         ax.set_title(name)
     for ax in axes:
-        ax.tick_params(axis="x", labelsize=8)
+        ax.tick_params(axis="x", labelsize=8, rotation=0)
         ax.spines[["top", "right"]].set_visible(False)
         ax.grid(axis="y", alpha=0.3)
     fig.suptitle(title)
@@ -164,8 +237,12 @@ def plot_curves(level_id: str, path: Path) -> bool:
             for m in list_manifests(level_id) if m["status"] == "completed"]
     if not runs:
         return False
-    fig, axes = plt.subplots(1, len(runs), figsize=(7 * len(runs), 4.5), squeeze=False)
-    for ax, (run_id, curves) in zip(axes[0], runs):
+    cols = min(3, len(runs))
+    rows = -(-len(runs) // cols)
+    fig, axes = plt.subplots(rows, cols, figsize=(7 * cols, 4.5 * rows), squeeze=False)
+    for ax in axes.flat[len(runs):]:
+        ax.set_visible(False)
+    for ax, (run_id, curves) in zip(axes.flat, runs):
         unit = "Pasos de interacción" if "-ppo" in run_id else "Episodios"
         train = curves["train"]
         ax.plot([p["step"] for p in train], [p["success_rate"] * 100 for p in train],
@@ -194,7 +271,17 @@ def print_table(comparison: dict):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--level", required=True, choices=LEVEL_IDS)
+    parser.add_argument("--new-final", action="store_true", help="crea el test final reservado del nivel")
+    parser.add_argument("--final", nargs="+", metavar="RUN_ID", help="evalúa estos modelos en el test reservado")
     args = parser.parse_args(argv)
+    if args.new_final:
+        suite = create_final_suite(args.level)
+        print(f"Creado {suite['suite_id']} · huella {suite['seed_commitment'][:12]}… · semillas en {SECRET_DIR}/")
+        return
+    if args.final:
+        run_final(args.level, args.final)
+        print(f"\nResultado en {RESULTS_DIR / args.level}/final_test.json")
+        return
     compare_level(args.level)
     print(f"\nResultados en {RESULTS_DIR / args.level}/")
 

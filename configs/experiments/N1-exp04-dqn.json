@@ -1,0 +1,13 @@
+{
+  "experiment_id": "N1-exp04-dqn",
+  "level_id": "N1",
+  "agent": "dqn",
+  "hypothesis": "La DQN de N1-exp01-dqn seguía mejorando al acabar su presupuesto: con el doble de episodios (6000) convierte parte de sus 47 tiempos agotados en éxitos y supera a la regla (49 %).",
+  "change_vs_baseline": "Igual que N1-exp01-dqn cambiando solo el presupuesto (3000 → 6000 episodios) y el decaimiento de epsilon (0.998 → 0.999) para que explore durante el mismo tramo relativo.",
+  "derived_from": "N1-exp01-dqn-s42-3ce2f0ec",
+  "seed": 42,
+  "budget": {"episodes": 6000},
+  "hyperparameters": {"hidden": [128, 128], "lr": 0.0005, "gamma": 0.98, "batch_size": 64,
+                      "buffer_size": 100000, "target_sync": 1000, "epsilon_decay": 0.999},
+  "validation": {"episodes": 20, "every": 500}
+}

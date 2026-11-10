@@ -1,6 +1,7 @@
 """Entrena un experimento versionado, lo registra en MLflow y empaqueta el modelo con su manifiesto.
 
-Uso:  python -m pipelines.train configs/experiments/N1-exp01-dqn.json
+Uso:  python -m pipelines.train configs/experiments/N1-exp01-dqn.json [--seed 43]
+--seed repite el mismo experimento con otra semilla (réplicas para medir la variación).
 """
 
 from __future__ import annotations
@@ -264,8 +265,12 @@ def run_experiment(config: dict, progress=None) -> dict:
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("experiment", help="archivo configs/experiments/*.json")
+    parser.add_argument("--seed", type=int, help="sobrescribe la semilla del experimento")
     args = parser.parse_args(argv)
-    manifest = run_experiment(load_experiment(args.experiment))
+    config = load_experiment(args.experiment)
+    if args.seed is not None:
+        config["seed"] = args.seed
+    manifest = run_experiment(config)
     s = manifest["evaluation_summary"]
     print(f"{manifest['run_id']}: éxito {s['success_rate']:.0%} en {manifest['evaluation_suite_id']} "
           f"· manifiesto en manifests/{manifest['run_id']}.json")

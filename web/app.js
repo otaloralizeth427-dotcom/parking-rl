@@ -831,6 +831,7 @@ const sim = {
   from: null, to: null, animStart: 0, animDuration: BASE_STEP_MS,
   pose: { x: 0, y: 0, heading: 0, steer: 0, sensors: [] },
   statusAt: 0,
+  agent: null, held: null,   // held: acción que el usuario mantiene presionada en modo manual
 };
 const stepInterval = () => BASE_STEP_MS / sim.speed;
 
@@ -1012,7 +1013,11 @@ function tick(now) {
   lastFrameTime = now;
   if (sim.running && !sim.inFlight) {
     if (sim.episodeOver && now >= sim.autoResetAt) doReset();
-    else if (!sim.episodeOver && now - sim.lastStepAt >= stepInterval()) doStep();
+    else if (!sim.episodeOver && now - sim.lastStepAt >= stepInterval()) {
+      // En modo manual el tiempo solo avanza mientras se mantiene presionada una acción
+      if (sim.agent !== "manual") doStep();
+      else if (sim.held !== null) doStep(sim.held);
+    }
   }
   updatePose(now);
   renderCar(now);
@@ -1143,6 +1148,7 @@ async function refreshConfig() {
     return option;
   }));
   $("agent-select").value = config.agent;
+  setManual(config.agent === "manual");
   $("difficulty").replaceChildren(...config.levels.map((l) => {
     const option = document.createElement("option");
     option.value = l.id;
@@ -1155,10 +1161,10 @@ async function refreshConfig() {
   return config;
 }
 
-async function doStep() {
+async function doStep(action) {
   sim.inFlight = true;
   try {
-    applyFrame(await connection.send("step"));
+    applyFrame(await connection.send("step", action === undefined ? {} : { action }));
   } catch (err) {
     showError(err);
     setRunning(false);
@@ -1212,6 +1218,7 @@ $("btn-panel-close").onclick = () => $("panel").classList.remove("open");
 $("agent-select").onchange = async (e) => {
   try {
     await connection.send("agent", { agent: e.target.value });
+    setManual(e.target.value === "manual");
     await doReset();
   } catch (err) {
     showError(err);
@@ -1256,8 +1263,40 @@ setInterval(async () => {
   } catch { /* la reconexión se maneja en Connection */ }
 }, 600);
 
+// ============================================================ control manual
+const MANUAL_KEYS = Object.fromEntries(
+  [...document.querySelectorAll("#dpad [data-action]")].map((b) => [b.dataset.key, Number(b.dataset.action)]));
+
+function setManual(on) {
+  sim.agent = on ? "manual" : $("agent-select").value;
+  $("dpad").hidden = !on;
+  hold(null);
+}
+
+function hold(action) {
+  sim.held = action;
+  document.querySelectorAll("#dpad [data-action]").forEach((b) => b.classList.toggle("held", Number(b.dataset.action) === action));
+  if (action !== null && !sim.running) $("btn-play").click();   // al primer movimiento arranca el episodio
+}
+
+document.querySelectorAll("#dpad [data-action]").forEach((b) => {
+  b.onpointerdown = (e) => { e.preventDefault(); b.setPointerCapture(e.pointerId); hold(Number(b.dataset.action)); };
+  b.onpointerup = b.onpointercancel = () => hold(null);
+});
+window.addEventListener("keyup", (e) => {
+  const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  if (sim.agent === "manual" && MANUAL_KEYS[key] === sim.held) hold(null);
+});
+window.addEventListener("blur", () => hold(null));
+
 window.addEventListener("keydown", (e) => {
   if (["INPUT", "SELECT", "TEXTAREA"].includes(document.activeElement?.tagName)) return;
+  const manualKey = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  if (sim.agent === "manual" && manualKey in MANUAL_KEYS) {
+    e.preventDefault();
+    if (!e.repeat) hold(MANUAL_KEYS[manualKey]);
+    return;
+  }
   const key = e.key.toLowerCase();
   if (key === " ") { e.preventDefault(); $("btn-play").click(); }
   else if (key === "r") doReset();

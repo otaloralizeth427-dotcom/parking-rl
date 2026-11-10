@@ -1,0 +1,49 @@
+{
+  "experiment_id": "N1-exp04-dqn",
+  "level_id": "N1",
+  "agent": "dqn",
+  "hypothesis": "La DQN de N1-exp01-dqn seguía mejorando al acabar su presupuesto: con el doble de episodios (6000) convierte parte de sus 47 tiempos agotados en éxitos y supera a la regla (49 %).",
+  "change_vs_baseline": "Igual que N1-exp01-dqn cambiando solo el presupuesto (3000 → 6000 episodios) y el decaimiento de epsilon (0.998 → 0.999) para que explore durante el mismo tramo relativo.",
+  "derived_from": "N1-exp01-dqn-s42-3ce2f0ec",
+  "seed": 42,
+  "budget": {
+    "episodes": 6000
+  },
+  "hyperparameters": {
+    "hidden": [
+      128,
+      128
+    ],
+    "lr": 0.0005,
+    "gamma": 0.98,
+    "batch_size": 64,
+    "buffer_size": 100000,
+    "target_sync": 1000,
+    "epsilon_decay": 0.999
+  },
+  "validation": {
+    "seed_start": 200000,
+    "episodes": 20,
+    "every": 500
+  },
+  "environment_version": "parking-v2",
+  "level": {
+    "level_id": "N1",
+    "name": "Misión base",
+    "environment_version": "parking-v2",
+    "difficulty": "normal",
+    "cones": 0,
+    "pedestrians": 0,
+    "sensor_noise": 0.0,
+    "description": "El vehículo arranca en el pasillo, a 4-8 m del cupo, rodeado de autos estacionados. Sin conos, sin peatones y sensores sin ruido.",
+    "new_decision": "Girar 90° desde el pasillo hacia el cupo libre, sin rozar a los vecinos, y detenerse alineado."
+  },
+  "evaluation_suite": {
+    "suite_id": "N1-suite-v1",
+    "level_id": "N1",
+    "description": "100 episodios deterministas del nivel N1. Semillas 100000-100099, distintas de las de entrenamiento (desde 0) y de validación (desde 200000).",
+    "seed_start": 100000,
+    "episodes": 100,
+    "deterministic": true
+  }
+}

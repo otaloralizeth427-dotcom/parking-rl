@@ -1,0 +1,60 @@
+{
+  "run_id": "N1-exp01-dqn-s43-c37b531a",
+  "experiment_id": "N1-exp01-dqn",
+  "level_id": "N1",
+  "agent": "dqn",
+  "hypothesis": "Una DQN pequeña (2 capas de 128) aprende a estacionar desde el pasillo en 3000 episodios y supera a la política por reglas (49 % de éxito en la suite N1).",
+  "change_vs_baseline": "Baseline aprendido: primer modelo entrenado; se compara contra las referencias aleatoria y de regla.",
+  "environment_version": "parking-v2",
+  "environment_kwargs": {
+    "difficulty": "normal",
+    "sensor_noise": 0.0,
+    "pedestrians": 0,
+    "cones": 0
+  },
+  "git_commit": "7f7a57400e802f3898d94e75dd7a0172916e0473",
+  "git_branch": "feature/nivel-1",
+  "git_dirty": false,
+  "config_uri": "artifacts/N1/N1-exp01-dqn-s43-c37b531a/config.json",
+  "config_sha256": "d8c9807c79de77e0d4b3e795bd75bdae487dd0c56f935a4c83552cf61a529b21",
+  "seed": 43,
+  "parent_run_id": null,
+  "origin": "desde cero",
+  "evaluation_suite_id": "N1-suite-v1",
+  "mlflow": {
+    "tracking_uri": "sqlite:///mlflow.db",
+    "experiment": "parking-N1",
+    "run_id": "c37b531af9de458d95d83a43d8317c9c"
+  },
+  "created_at": "2026-11-10T18:49:02+00:00",
+  "status": "completed",
+  "model_uri": "artifacts/N1/N1-exp01-dqn-s43-c37b531a/model.npz",
+  "model_sha256": "a0f3d5a1e74b7cd29dc9b2fe551f8261431bf6d5c2b44ef7d16e2656e0c607ec",
+  "normalization_uri": "envs/parking_env.py#ParkingEnv._observation (escalado fijo dentro del ambiente; sin normalización aprendida)",
+  "observation_contract": "Box(14,) float32 · ver docs/ficha_ambiente.md",
+  "action_contract": "Discrete(5): avanzar, retroceder, izquierda, derecha, frenar",
+  "runtime_ref": "python 3.12.7 · requirements.lock.txt sha256:76cff4f909c98d69",
+  "budget": {
+    "episodes": 3000,
+    "env_steps": 467127,
+    "wall_time_s": 715.8
+  },
+  "optimizer_state": "no guardado: los runs no se continúan desde este checkpoint",
+  "evaluation_uri": "artifacts/N1/N1-exp01-dqn-s43-c37b531a/evaluation.json",
+  "evaluation_summary": {
+    "episodes": 100,
+    "success_rate": 0.0,
+    "outcomes": {
+      "success": 0,
+      "obstacle": 31,
+      "pedestrian": 0,
+      "boundary": 8,
+      "timeout": 61
+    },
+    "mean_return": -43.956,
+    "mean_time_s": 26.992,
+    "mean_final_distance_m": 13.633,
+    "mean_final_heading_error_deg": 32.917,
+    "mean_latency_ms": 0.017
+  }
+}

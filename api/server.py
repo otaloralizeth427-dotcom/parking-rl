@@ -24,6 +24,7 @@ EXPERIMENTS_DIR = ROOT / "configs" / "experiments"
 BASELINES = {
     "random": {"label": "Aleatoria", "mode": "Aleatorio"},
     "rule": {"label": "Regla", "mode": "Referencia (regla)"},
+    "manual": {"label": "Manual (teclado)", "mode": "Manual"},
 }
 
 
@@ -103,6 +104,8 @@ class SimulationSession:
             if self.status != "running":
                 raise ValueError("El episodio terminó; llama a reset")
             if action is None:
+                if self.agent_name == "manual":
+                    raise ValueError("En modo manual cada paso necesita una acción (flechas del teclado)")
                 action = self._policy_action()
             elif not isinstance(action, int) or not self.env.action_space.contains(action):
                 raise ValueError(f"Acción inválida: {action!r}. Usa 0-{self.env.action_space.n - 1}")
@@ -181,7 +184,7 @@ class SimulationSession:
         return max(models, key=lambda a: a["test_success_rate"] or 0)["id"] if models else "rule"
 
     def _policy(self, name: str):
-        if name == "random":
+        if name in ("random", "manual"):
             return None
         if name not in self._policies:
             self._policies[name] = RuleBasedPolicy() if name == "rule" else load_policy(load_manifest(name))

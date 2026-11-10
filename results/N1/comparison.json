@@ -51,7 +51,7 @@
       "mean_time_s": 21.786,
       "mean_final_distance_m": 3.38,
       "mean_final_heading_error_deg": 30.38,
-      "mean_latency_ms": 0.012
+      "mean_latency_ms": 0.011
     },
     "N1-exp02-ppo-s42-52969c85": {
       "label": "PPO \u00b7 N1-exp02-ppo-s42-52969c85",
@@ -68,7 +68,109 @@
       "mean_time_s": 40.0,
       "mean_final_distance_m": 7.043,
       "mean_final_heading_error_deg": 87.199,
-      "mean_latency_ms": 0.065
+      "mean_latency_ms": 0.064
+    },
+    "N1-exp03-ppo-s42-64bf7433": {
+      "label": "PPO \u00b7 N1-exp03-ppo-s42-64bf7433",
+      "episodes": 100,
+      "success_rate": 0.97,
+      "outcomes": {
+        "success": 97,
+        "obstacle": 0,
+        "pedestrian": 0,
+        "boundary": 0,
+        "timeout": 3
+      },
+      "mean_return": 103.078,
+      "mean_time_s": 6.648,
+      "mean_final_distance_m": 0.721,
+      "mean_final_heading_error_deg": 3.603,
+      "mean_latency_ms": 0.063
+    },
+    "N1-exp04-dqn-s42-2216c023": {
+      "label": "DQN \u00b7 N1-exp04-dqn-s42-2216c023",
+      "episodes": 100,
+      "success_rate": 0.0,
+      "outcomes": {
+        "success": 0,
+        "obstacle": 0,
+        "pedestrian": 0,
+        "boundary": 10,
+        "timeout": 90
+      },
+      "mean_return": -29.961,
+      "mean_time_s": 36.49,
+      "mean_final_distance_m": 11.466,
+      "mean_final_heading_error_deg": 76.238,
+      "mean_latency_ms": 0.012
+    },
+    "N1-exp03-ppo-s43-422ab16e": {
+      "label": "PPO \u00b7 N1-exp03-ppo-s43-422ab16e",
+      "episodes": 100,
+      "success_rate": 0.0,
+      "outcomes": {
+        "success": 0,
+        "obstacle": 0,
+        "pedestrian": 0,
+        "boundary": 0,
+        "timeout": 100
+      },
+      "mean_return": -7.76,
+      "mean_time_s": 40.0,
+      "mean_final_distance_m": 6.408,
+      "mean_final_heading_error_deg": 82.543,
+      "mean_latency_ms": 0.063
+    },
+    "N1-exp01-dqn-s43-c37b531a": {
+      "label": "DQN \u00b7 N1-exp01-dqn-s43-c37b531a",
+      "episodes": 100,
+      "success_rate": 0.0,
+      "outcomes": {
+        "success": 0,
+        "obstacle": 31,
+        "pedestrian": 0,
+        "boundary": 8,
+        "timeout": 61
+      },
+      "mean_return": -43.956,
+      "mean_time_s": 26.992,
+      "mean_final_distance_m": 13.633,
+      "mean_final_heading_error_deg": 32.917,
+      "mean_latency_ms": 0.011
+    },
+    "N1-exp03-ppo-s44-aade6f7d": {
+      "label": "PPO \u00b7 N1-exp03-ppo-s44-aade6f7d",
+      "episodes": 100,
+      "success_rate": 0.0,
+      "outcomes": {
+        "success": 0,
+        "obstacle": 4,
+        "pedestrian": 0,
+        "boundary": 0,
+        "timeout": 96
+      },
+      "mean_return": -8.61,
+      "mean_time_s": 39.292,
+      "mean_final_distance_m": 5.435,
+      "mean_final_heading_error_deg": 78.99,
+      "mean_latency_ms": 0.064
+    },
+    "N1-exp01-dqn-s44-efdbe060": {
+      "label": "DQN \u00b7 N1-exp01-dqn-s44-efdbe060",
+      "episodes": 100,
+      "success_rate": 0.08,
+      "outcomes": {
+        "success": 8,
+        "obstacle": 12,
+        "pedestrian": 0,
+        "boundary": 4,
+        "timeout": 76
+      },
+      "mean_return": -21.941,
+      "mean_time_s": 33.082,
+      "mean_final_distance_m": 7.674,
+      "mean_final_heading_error_deg": 59.112,
+      "mean_latency_ms": 0.011
     }
   }
 }

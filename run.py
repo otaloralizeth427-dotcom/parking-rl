@@ -21,7 +21,7 @@ def cmd_serve(args):
 def cmd_train(args):
     from pipelines.train import main
 
-    main([args.experiment])
+    main([args.experiment] + ([] if args.seed is None else ["--seed", str(args.seed)]))
 
 
 def load_named_policy(name: str):
@@ -76,6 +76,7 @@ def build_parser():
 
     p = sub.add_parser("train", help="entrena un experimento de configs/experiments/")
     p.add_argument("experiment")
+    p.add_argument("--seed", type=int, help="sobrescribe la semilla del experimento")
     p.set_defaults(func=cmd_train)
 
     p = sub.add_parser("demo", help="ejecuta episodios en la terminal")

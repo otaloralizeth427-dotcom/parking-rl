@@ -1,0 +1,13 @@
+{
+  "experiment_id": "N1-exp03-ppo",
+  "level_id": "N1",
+  "agent": "ppo",
+  "hypothesis": "PPO no falló por el algoritmo sino por falta de exploración: con 1 000 000 de pasos y más entropía (ent_coef 0.05) encuentra éxitos y supera el 0 % de N1-exp02-ppo.",
+  "change_vs_baseline": "Igual que N1-exp02-ppo cambiando el presupuesto (300 000 → 1 000 000 pasos) y ent_coef (0.01 → 0.05).",
+  "derived_from": "N1-exp02-ppo-s42-52969c85",
+  "seed": 42,
+  "budget": {"timesteps": 1000000},
+  "hyperparameters": {"learning_rate": 0.0003, "n_steps": 2048, "batch_size": 64, "n_epochs": 10,
+                      "gamma": 0.99, "gae_lambda": 0.95, "ent_coef": 0.05, "net_arch": [64, 64]},
+  "validation": {"episodes": 20, "every": 50000}
+}
