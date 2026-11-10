@@ -1,3 +1,5 @@
+import json
+
 import numpy as np
 import pytest
 from fastapi.testclient import TestClient
@@ -283,6 +285,14 @@ def test_api_rejects_invalid_input(client):
     assert client.post("/api/reset", json={"seed": -1}).status_code == 400
 
 
+def test_manual_mode_requires_an_action(client):
+    client.post("/api/agent", json={"agent": "manual"})
+    client.post("/api/reset", json={"seed": 3})
+    assert client.post("/api/step", json={}).status_code == 400
+    step = client.post("/api/step", json={"action": 2}).json()
+    assert step["mode"] == "Manual" and step["action_name"] == "Izquierda"
+
+
 def test_websocket_commands(client):
     import json
     with client.websocket_connect("/ws") as ws:
@@ -423,3 +433,20 @@ def test_pipeline_packages_a_run(tmp_path, monkeypatch, agent):
         assert key in saved
     saved["model_uri"] = str(model)
     assert load_policy(saved) is not None
+
+
+def test_final_suite_keeps_seeds_out_of_repo(tmp_path, monkeypatch):
+    import pipelines.evaluate as ev
+    monkeypatch.setattr(ev, "SUITES_DIR", tmp_path / "suites")
+    monkeypatch.setattr(ev, "SECRET_DIR", tmp_path / "secret")
+    (tmp_path / "suites").mkdir()
+    public = ev.create_final_suite("N1", episodes=2)
+    assert "seed_start" not in public and public["reserved"]
+    assert ev.final_suite("N1")["seed_start"] >= 10_000_000
+    with pytest.raises(FileExistsError):
+        ev.create_final_suite("N1")
+    secret = tmp_path / "secret" / "N1-final-v1.json"
+    data = json.loads(secret.read_text())
+    secret.write_text(json.dumps({**data, "seed_start": data["seed_start"] + 1}))
+    with pytest.raises(ValueError, match="huella"):
+        ev.final_suite("N1")

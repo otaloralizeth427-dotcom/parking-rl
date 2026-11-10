@@ -129,6 +129,27 @@ html, body {
   z-index: 3;
 }
 
+/* ---------- Control manual ---------- */
+.dpad {
+  position: absolute;
+  right: 28px;
+  bottom: 110px;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: repeat(3, 56px);
+  grid-template-areas: ". up ." "left brake right" ". down .";
+  gap: 8px;
+  touch-action: none;
+}
+.dpad[hidden] { display: none; }
+.dpad [data-action="0"] { grid-area: up; }
+.dpad [data-action="1"] { grid-area: down; }
+.dpad [data-action="2"] { grid-area: left; }
+.dpad [data-action="3"] { grid-area: right; }
+.dpad [data-action="4"] { grid-area: brake; }
+.dpad .brake { background: linear-gradient(180deg, #f87171, #dc2626 60%, #b91c1c); border-color: #fee2e2; }
+.dpad .round.held { filter: brightness(1.25); transform: translateY(3px); }
+
 /* ---------- Estadísticas inferiores ---------- */
 .stats {
   position: absolute;
@@ -345,6 +366,8 @@ button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
   .round svg { width: 24px; height: 24px; }
   .round.small { width: 46px; height: 46px; }
   .settings { right: 16px; bottom: 96px; }
+  .dpad { right: 16px; bottom: 164px; grid-template-columns: repeat(3, 48px); }
+  .dpad .round { width: 48px; height: 48px; }
   .stats { left: 16px; right: 16px; transform: none; bottom: 16px; overflow-x: auto; }
   .stats > div { min-width: 76px; }
   .panel { top: 110px; bottom: 16px; right: 16px; left: 16px; width: auto; }
