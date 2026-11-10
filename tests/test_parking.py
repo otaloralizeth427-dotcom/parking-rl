@@ -513,3 +513,19 @@ def test_curriculum_is_validated_and_runs():
     curves = type("C", (), {"episode": lambda self, step, result: seen.append(step)})()
     agent, _, budget = pipeline.train_ppo(resolved, lambda policy_fn: curves)
     assert agent.model.num_timesteps >= 128 and budget["timesteps"] == 128
+
+
+def test_crossing_pedestrian_walks_across_the_route():
+    env = ParkingEnv("normal", cones=0, pedestrians=2, crossing_pedestrians=1, bumper_sensors=5)
+    placed = 0
+    for seed in range(30):
+        env.reset(seed=seed)
+        x0, tx = env.pos[0], env.target["center"][0]
+        first = env.pedestrians[0]
+        if first.get("crossing"):
+            assert min(x0, tx) < first["x"] < max(x0, tx)
+            placed += 1
+            assert abs(first["x"] - x0) >= 3.8 - 1e-9 and np.sign(env.pos[1] - first["y"]) == first["dir"]
+    assert placed > 15
+    with pytest.raises(ValueError):
+        ParkingEnv(pedestrians=0, crossing_pedestrians=1)

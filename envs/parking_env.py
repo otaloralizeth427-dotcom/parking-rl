@@ -20,7 +20,7 @@ DIFFICULTIES = ("tutorial", "easy", "normal", "hard")   # tutorial: solo para et
 
 # Cambia cuando cambian observaciones, acciones, dinámica o recompensa:
 # un modelo solo es compatible con la versión con que fue entrenado.
-ENV_VERSION = "parking-v3"   # v3: cono bloqueante y sensores de parachoques opcionales (nivel N2)
+ENV_VERSION = "parking-v3"   # v3: cono bloqueante, peatón que cruza la ruta y sensores de parachoques (N2, N3)
 # Versiones que este código reproduce: con sus valores por defecto, v3 se comporta exactamente como v2
 SUPPORTED_VERSIONS = ("parking-v2", "parking-v3")
 
@@ -144,7 +144,7 @@ class ParkingEnv(gym.Env):
 
     def __init__(self, difficulty: str = "normal", sensor_noise: float = 0.0,
                  config: ParkingConfig | None = None, pedestrians: int = 0, cones: int | None = None,
-                 blocking_cones: int = 0, bumper_sensors: int = 0):
+                 blocking_cones: int = 0, bumper_sensors: int = 0, crossing_pedestrians: int = 0):
         if difficulty not in DIFFICULTIES:
             raise ValueError(f"difficulty debe ser uno de {DIFFICULTIES}, no {difficulty!r}")
         if sensor_noise < 0:
@@ -155,6 +155,8 @@ class ParkingEnv(gym.Env):
             raise ValueError("cones debe ser None o un entero >= 0")
         if blocking_cones not in (0, 1):
             raise ValueError("blocking_cones debe ser 0 o 1")
+        if crossing_pedestrians not in (0, 1) or crossing_pedestrians > pedestrians:
+            raise ValueError("crossing_pedestrians debe ser 0 o 1, y no mayor que pedestrians")
         if not isinstance(bumper_sensors, int) or bumper_sensors < 0 or bumper_sensors == 1:
             raise ValueError("bumper_sensors debe ser 0 o un entero >= 2")
         self.difficulty = difficulty
@@ -162,6 +164,7 @@ class ParkingEnv(gym.Env):
         self.n_pedestrians = pedestrians
         self.n_cones = cones   # None = la cantidad por defecto de la dificultad
         self.blocking_cones = blocking_cones   # 1 = un cono extra justo en la línea recta hacia el cupo
+        self.crossing_pedestrians = crossing_pedestrians   # 1 = uno de los peatones cruza frente a la ruta
         self.bumper_sensors = bumper_sensors   # rayos hacia adelante repartidos a lo ancho del parachoques
         self.cfg = config or ParkingConfig()
 
@@ -402,6 +405,18 @@ class ParkingEnv(gym.Env):
         aisle = cfg.lot_height / 2 - cfg.slot_depth - 0.6
         cones = [np.array(o["center"]) for o in obstacles if o["kind"] == "cone"]
         self.pedestrians = []
+        if self.crossing_pedestrians:
+            # Cruza entre el arranque y el cupo, empezando a 1.5-3.5 m del carril del auto y caminando hacia él:
+            # llega a la ruta más o menos cuando el auto pasa por ahí. Se omite si no cabe.
+            tx = self.target["center"][0]
+            direction = np.sign(tx - start[0])
+            x = start[0] + direction * max(3.8, abs(tx - start[0]) / 2)
+            if abs(x - tx) >= 1.5:
+                side = float(rng.choice([-1.0, 1.0]))
+                y = float(np.clip(start[1] + side * rng.uniform(1.5, 3.5), -aisle, aisle))
+                self.pedestrians.append({"x": float(x), "y": y, "dir": -side,
+                                         "speed": float(rng.uniform(*cfg.pedestrian_speed)),
+                                         "limit": aisle, "moving": True, "crossing": True})
         attempts = 0
         while len(self.pedestrians) < self.n_pedestrians and attempts < 200:
             attempts += 1

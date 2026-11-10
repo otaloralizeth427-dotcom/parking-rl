@@ -1,0 +1,12 @@
+{
+  "experiment_id": "N3-exp01-ppo-ft",
+  "level_id": "N3",
+  "agent": "ppo",
+  "hypothesis": "El modelo de N2 ya estaciona y esquiva (70 % en N3 sin reentrenar, con 24 atropellos). Continuarlo 1 000 000 de pasos en N3 le enseña a ceder el paso: las 3 semillas superan el 70 % y bajan los atropellos.",
+  "change_vs_baseline": "Continúa el checkpoint N2-exp06-ppo-curriculo-3m-s44-7f36a120 (misma familia de observaciones, 19 valores) en N3 con ent_coef 0.01.",
+  "parent_run_id": "N2-exp06-ppo-curriculo-3m-s44-7f36a120",
+  "seed": 42,
+  "budget": {"timesteps": 1000000},
+  "hyperparameters": {"ent_coef": 0.01},
+  "validation": {"episodes": 20, "every": 50000}
+}
