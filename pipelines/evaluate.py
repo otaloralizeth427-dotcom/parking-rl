@@ -192,10 +192,18 @@ OUTCOME_COLORS = {"success": "#22c55e", "obstacle": "#f97316", "pedestrian": "#e
                   "boundary": "#a855f7", "timeout": "#9ca3af"}
 
 
+def short_label(key: str, label: str) -> str:
+    """«N1-exp03-ppo-s42-64bf7433» → «exp03 PPO\ns42»; las referencias conservan su nombre."""
+    parts = key.split("-")
+    if len(parts) < 4:
+        return label.split(" (")[0]
+    return f"{parts[1]} {parts[2].upper()}\n{parts[3]}"
+
+
 def plot_comparison(comparison: dict, path: Path, title: str):
     keys = list(comparison)
-    labels = [comparison[k]["label"].replace(" · ", "\n") for k in keys]
-    fig, axes = plt.subplots(1, 3, figsize=(16, 5))
+    labels = [short_label(k, comparison[k]["label"]) for k in keys]
+    fig, axes = plt.subplots(1, 3, figsize=(max(16, 1.7 * len(keys) * 3 / 2), 5.5))
 
     # Resultado de los episodios por causa (barras apiladas)
     bottom = np.zeros(len(keys))
@@ -212,7 +220,7 @@ def plot_comparison(comparison: dict, path: Path, title: str):
         ax.bar_label(bars, fmt="%.2f", fontsize=8)
         ax.set_title(name)
     for ax in axes:
-        ax.tick_params(axis="x", labelsize=8)
+        ax.tick_params(axis="x", labelsize=8, rotation=0)
         ax.spines[["top", "right"]].set_visible(False)
         ax.grid(axis="y", alpha=0.3)
     fig.suptitle(title)
@@ -229,8 +237,12 @@ def plot_curves(level_id: str, path: Path) -> bool:
             for m in list_manifests(level_id) if m["status"] == "completed"]
     if not runs:
         return False
-    fig, axes = plt.subplots(1, len(runs), figsize=(7 * len(runs), 4.5), squeeze=False)
-    for ax, (run_id, curves) in zip(axes[0], runs):
+    cols = min(3, len(runs))
+    rows = -(-len(runs) // cols)
+    fig, axes = plt.subplots(rows, cols, figsize=(7 * cols, 4.5 * rows), squeeze=False)
+    for ax in axes.flat[len(runs):]:
+        ax.set_visible(False)
+    for ax, (run_id, curves) in zip(axes.flat, runs):
         unit = "Pasos de interacción" if "-ppo" in run_id else "Episodios"
         train = curves["train"]
         ax.plot([p["step"] for p in train], [p["success_rate"] * 100 for p in train],

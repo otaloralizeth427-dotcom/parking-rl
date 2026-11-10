@@ -26,41 +26,68 @@ Código: commit `4d94880` (rama `feature/nivel-1`), ambiente `parking-v2`.
 
 | Experimento | Hipótesis | Cambio frente a la referencia | Presupuesto |
 |---|---|---|---|
-| `N1-exp01-dqn` | Una DQN de 2×128 aprende a estacionar en 3000 episodios y supera a la regla (49 %) | baseline aprendido | 3000 episodios (400 803 pasos) · 164 s |
-| `N1-exp02-ppo` | PPO (referencia del curso) con 300 000 pasos iguala o supera a la DQN | solo el algoritmo: DQN → PPO | 300 000 pasos (1557 episodios) · 147 s |
+| `N1-exp01-dqn` | Una DQN de 2×128 aprende a estacionar en 3000 episodios y supera a la regla (49 %) | baseline aprendido | 3000 episodios · ~3 min |
+| `N1-exp02-ppo` | PPO (referencia del curso) con 300 000 pasos iguala o supera a la DQN | solo el algoritmo: DQN → PPO | 300 000 pasos · ~2.5 min |
+| `N1-exp03-ppo` | PPO falló por falta de exploración: con 1 M de pasos y `ent_coef` 0.05 encuentra éxitos | exp02 con más presupuesto y más entropía | 1 000 000 pasos · ~8 min |
+| `N1-exp04-dqn` | La DQN seguía mejorando: con el doble de episodios supera a la regla | exp01 con 6000 episodios y `epsilon_decay` 0.999 | 6000 episodios · ~6 min |
 
-Ambos con semilla 42.
+Primera ronda con semilla 42. Los dos finalistas (exp03 y exp01) se repitieron con las semillas 43 y 44
+(`python -m pipelines.train <config> --seed 43`). Código de todos los runs de esta ronda: commit `7f7a574`
+en `feature/nivel-1`, sin cambios locales (`git_dirty: false`).
 
-### Resultados en `N1-suite-v1`
+### Resultados en `N1-suite-v1` (100 episodios, modelo congelado)
 
-| Política | Éxito | Choque con obstáculo | Salida del área | Tiempo agotado | Tiempo medio | Error final de posición |
+| Política | Éxito | Choque | Salida | Tiempo agotado | Tiempo medio | Error final |
 |---|---|---|---|---|---|---|
 | Aleatoria | **0 %** | 8 | 14 | 78 | 35.1 s | 9.30 m |
 | Regla | **49 %** | 31 | 20 | 0 | 10.0 s | 6.39 m |
-| DQN · `N1-exp01-dqn-s42-3ce2f0ec` | **42 %** | 9 | 2 | 47 | 21.8 s | 3.38 m |
-| PPO · `N1-exp02-ppo-s42-52969c85` | **0 %** | 0 | 0 | 100 | 40.0 s | 7.04 m |
+| exp01 DQN · s42 `3ce2f0ec` | **42 %** | 9 | 2 | 47 | 21.8 s | 3.38 m |
+| exp01 DQN · s43 `c37b531a` | 0 % | 31 | 8 | 61 | 27.0 s | 13.63 m |
+| exp01 DQN · s44 `efdbe060` | 8 % | 12 | 4 | 76 | 33.1 s | 7.67 m |
+| exp02 PPO · s42 `52969c85` | 0 % | 0 | 0 | 100 | 40.0 s | 7.04 m |
+| **exp03 PPO · s42 `64bf7433`** | **97 %** | 0 | 0 | 3 | 6.6 s | 0.72 m |
+| exp03 PPO · s43 `422ab16e` | 0 % | 0 | 0 | 100 | 40.0 s | 6.41 m |
+| exp03 PPO · s44 `aade6f7d` | 0 % | 4 | 0 | 96 | 39.3 s | 5.43 m |
+| exp04 DQN · s42 `2216c023` | 0 % | 0 | 10 | 90 | 36.5 s | 11.47 m |
 
-Gráficas: `results/N1/comparison.png` (resultado por causa) y `results/N1/curves.png` (entrenamiento
-frente a validación). Latencia de inferencia media: regla 0.01 ms, DQN 0.012 ms, PPO 0.065 ms por acción.
+**Variación por semilla (finalistas):**
+
+| Receta | s42 | s43 | s44 | Media ± desv. |
+|---|---|---|---|---|
+| exp03 PPO | 97 % | 0 % | 0 % | 32 % ± 46 |
+| exp01 DQN | 42 % | 0 % | 8 % | 17 % ± 18 |
+
+Gráficas: `results/N1/comparison.png` y `results/N1/curves.png` (entrenamiento frente a validación por run).
+
+### Test final reservado (`N1-final-v1`)
+
+100 episodios cuyas semillas **no están en el repo** (viven en `~/.parking-rl/`); el repo solo guarda su
+huella SHA-256 (`configs/suites/N1-final-v1.json`), así se puede verificar que el test no cambió. Se usó
+una sola vez, con los modelos elegidos y la regla (`results/N1/final_test.json`):
+
+| Política | Éxito | Choque | Salida | Tiempo agotado |
+|---|---|---|---|---|
+| Regla | 53 % | 31 | 16 | 0 |
+| **exp03 PPO · s42** | **97 %** | 0 | 0 | 3 |
+| exp01 DQN · s42 | 48 % | 13 | 0 | 39 |
+
+El 97 % se mantiene en casos nunca vistos: el modelo no memorizó la suite de selección.
 
 ### Análisis y decisión
 
-- **exp01 · DQN → hipótesis rechazada.** Aprende (de 0 % a 42 %) y choca mucho menos que la regla
-  (11 fallos por choque o salida contra 51), pero no la supera en éxito: en 47 episodios se queda sin
-  terminar. Es más prudente pero menos decidida que la regla.
-- **exp02 · PPO → hipótesis rechazada.** No consiguió ni un éxito durante el entrenamiento (curva de
-  entrenamiento y de validación en 0 %). Sin éxitos no hay señal que aprender: convergió a moverse sin
-  chocar hasta agotar el tiempo. Es un problema de exploración con este presupuesto.
-- **Modelo recomendado del N1: DQN `N1-exp01-dqn-s42-3ce2f0ec`**, el mejor modelo aprendido. La regla
-  sigue siendo la mejor política del nivel y queda como referencia a superar.
-- Nota de trazabilidad: el run de PPO registra `git_dirty: true` porque mientras entrenaba se agregó la
-  función `plot_curves` a `pipelines/evaluate.py`. El cambio solo añade una gráfica; no modifica el
-  entrenamiento ni la evaluación (`run_case`, `evaluate`).
+- **exp01 · DQN → rechazada.** 42 % con s42, pero 0 % y 8 % con las otras semillas: no supera a la regla.
+- **exp02 · PPO → rechazada.** Sin éxitos durante el entrenamiento, no hay señal que aprender.
+- **exp03 · PPO → aceptada para el modelo, rechazada para la receta.** Con s42 llega a 97 % (suite y test
+  final), choca 0 veces y estaciona en 6.6 s. Pero con s43 y s44 se queda en 0 %: el éxito depende de que
+  la exploración encuentre el cupo a tiempo. El modelo s42 es bueno; la receta no es confiable todavía.
+- **exp04 · DQN → rechazada.** Con exploración más lenta nunca encontró éxitos (0 % en todo el entrenamiento).
+- **Modelo servido en N1: PPO `N1-exp03-ppo-s42-64bf7433`.** La web lo carga por defecto (mayor éxito en la
+  suite) y verifica su hash antes de usarlo. Referencia a superar en los siguientes niveles: la regla.
+- Nota de trazabilidad: el run `N1-exp02-ppo` registra `git_dirty: true` porque mientras entrenaba se agregó
+  `plot_curves` a `pipelines/evaluate.py` (solo una gráfica; no cambia entrenamiento ni evaluación).
 
 ### Siguientes hipótesis razonables
 
-1. PPO con más presupuesto (1–2 millones de pasos) y mayor entropía (`ent_coef` 0.05) para que explore
-   lo suficiente como para encontrar éxitos.
-2. DQN con más episodios o una penalización mayor por agotar el tiempo, para convertir esos 47 episodios
-   sin terminar en intentos de estacionar.
-3. Tres semillas para los dos finalistas (DQN y el mejor PPO), como pide la guía.
+1. Hacer confiable la receta: currículo (empezar más cerca del cupo) o más entropía al inicio, y repetir
+   con 3 semillas. Éxito = las 3 semillas por encima de la regla.
+2. Usar el PPO s42 como punto de partida (`parent_run_id`) para los niveles 2 a 4 en lugar de entrenar desde cero.

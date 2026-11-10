@@ -58,6 +58,8 @@ referencia, el agente, la semilla, el presupuesto y los hiperparámetros. El pip
 5. Guarda el paquete en `artifacts/<nivel>/<run_id>/` (`model`, `config.json`, `curves.json`,
    `evaluation.json`, `manifest.json`) y el manifiesto en `manifests/<run_id>.json`.
 
+Para repetir un experimento con otra semilla (réplicas): `run.py train <config> --seed 43`.
+
 Si el entrenamiento falla, el run queda en MLflow y en `manifests/` con `status: "failed"`, su
 diagnóstico y «sin checkpoint disponible». Al cargar un modelo (API, web o `demo`) se verifica que el
 SHA-256 del archivo coincida con el del manifiesto.
@@ -71,6 +73,15 @@ SHA-256 del archivo coincida con el del manifiesto.
 Usa la suite `configs/suites/<nivel>-suite-v1.json` y guarda en `results/<nivel>/`: `eval_<política>.json`
 (resultado por episodio con causa de fallo, tiempo, error final y latencia), `comparison.json`,
 `comparison.png` y `curves.png`.
+
+**Test final reservado.** Sus semillas no están en el repo: viven en `~/.parking-rl/` (o en
+`PARKING_SECRET_DIR`) y el repo solo guarda su huella SHA-256 en `configs/suites/<nivel>-final-v1.json`.
+Se crea una vez y se usa una vez, con los modelos ya elegidos:
+
+```bash
+.venv/bin/python -m pipelines.evaluate --level N1 --new-final
+.venv/bin/python -m pipelines.evaluate --level N1 --final <run_id> [<run_id> ...]   # → results/N1/final_test.json
+```
 
 ### Ejecutar el ambiente
 
@@ -96,7 +107,9 @@ obs, reward, terminated, truncated, info = env.step(0)  # 0 = avanzar
 Abrir **http://127.0.0.1:8000**. En el panel se elige el nivel y el agente: aleatoria, regla o
 cualquier modelo registrado, con su % de éxito en la suite. La barra superior indica el **modo**
 (Aleatorio, Referencia, Evaluación con modelo congelado o Manual) y el panel muestra el commit, la
-semilla y el hash del modelo activo. «Entrenar DQN» lanza el pipeline real, así que ese entrenamiento
+semilla y el hash del modelo activo. Con el agente **«Manual (teclado)»** se maneja con las flechas
+(↑ avanzar, ↓ retroceder, ← → girar, F frenar) o con los botones en pantalla; el tiempo solo avanza
+mientras se mantiene presionada una acción. «Entrenar DQN» lanza el pipeline real, así que ese entrenamiento
 también queda registrado en MLflow y con manifiesto.
 
 ### Pruebas

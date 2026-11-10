@@ -1,0 +1,61 @@
+{
+  "run_id": "N1-exp03-ppo-s42-64bf7433",
+  "experiment_id": "N1-exp03-ppo",
+  "level_id": "N1",
+  "agent": "ppo",
+  "hypothesis": "PPO no falló por el algoritmo sino por falta de exploración: con 1 000 000 de pasos y más entropía (ent_coef 0.05) encuentra éxitos y supera el 0 % de N1-exp02-ppo.",
+  "change_vs_baseline": "Igual que N1-exp02-ppo cambiando el presupuesto (300 000 → 1 000 000 pasos) y ent_coef (0.01 → 0.05).",
+  "environment_version": "parking-v2",
+  "environment_kwargs": {
+    "difficulty": "normal",
+    "sensor_noise": 0.0,
+    "pedestrians": 0,
+    "cones": 0
+  },
+  "git_commit": "7f7a57400e802f3898d94e75dd7a0172916e0473",
+  "git_branch": "feature/nivel-1",
+  "git_dirty": false,
+  "config_uri": "artifacts/N1/N1-exp03-ppo-s42-64bf7433/config.json",
+  "config_sha256": "f8be6e7eb426559e87b9a573b5992852fb3b920964b206676bd219075a340095",
+  "seed": 42,
+  "parent_run_id": null,
+  "origin": "desde cero",
+  "evaluation_suite_id": "N1-suite-v1",
+  "mlflow": {
+    "tracking_uri": "sqlite:///mlflow.db",
+    "experiment": "parking-N1",
+    "run_id": "64bf74330c634ab48799e7fb69394039"
+  },
+  "created_at": "2026-11-10T18:40:58+00:00",
+  "status": "completed",
+  "model_uri": "artifacts/N1/N1-exp03-ppo-s42-64bf7433/model.zip",
+  "model_sha256": "64e0b0593f3731e87d8caadb4e5204cc255921039e258920d385b127b045a6b8",
+  "normalization_uri": "envs/parking_env.py#ParkingEnv._observation (escalado fijo dentro del ambiente; sin normalización aprendida)",
+  "observation_contract": "Box(14,) float32 · ver docs/ficha_ambiente.md",
+  "action_contract": "Discrete(5): avanzar, retroceder, izquierda, derecha, frenar",
+  "runtime_ref": "python 3.12.7 · requirements.lock.txt sha256:76cff4f909c98d69",
+  "budget": {
+    "timesteps": 1000000,
+    "episodes": 14428,
+    "env_steps": 1000000,
+    "wall_time_s": 457.9
+  },
+  "optimizer_state": "no guardado: los runs no se continúan desde este checkpoint",
+  "evaluation_uri": "artifacts/N1/N1-exp03-ppo-s42-64bf7433/evaluation.json",
+  "evaluation_summary": {
+    "episodes": 100,
+    "success_rate": 0.97,
+    "outcomes": {
+      "success": 97,
+      "obstacle": 0,
+      "pedestrian": 0,
+      "boundary": 0,
+      "timeout": 3
+    },
+    "mean_return": 103.078,
+    "mean_time_s": 6.648,
+    "mean_final_distance_m": 0.721,
+    "mean_final_heading_error_deg": 3.603,
+    "mean_latency_ms": 0.066
+  }
+}
