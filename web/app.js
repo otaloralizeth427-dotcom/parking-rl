@@ -8,14 +8,19 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+import { themeFor } from "./themes.js";
+
+// La paleta depende del nivel activo en el servidor; al cambiar de nivel la página se recarga
+const THEME = themeFor(await fetch("api/config").then((r) => r.json()).then((c) => c.level).catch(() => "N1"));
+document.documentElement.dataset.theme = THEME.id;
 
 // ============================================================ constantes
 const PALETTE = {
-  ego: 0x7c3aed,
+  ego: THEME.ego,
   success: 0x22c55e,
   collision: 0xef4444,
   sensor: 0x38bdf8,
-  parked: [0xf5f5f7, 0xd81e2c, 0x1f4fd8, 0xf5c518, 0xc8ccd6, 0x18161f],
+  parked: THEME.parked,
 };
 const STATUS_LABELS = {
   idle: "En espera", running: "En curso", paused: "Pausado",
@@ -35,6 +40,7 @@ const BRAKE_ACTION = 4;
 const CEILING_H = 5.6;
 
 const $ = (id) => document.getElementById(id);
+const THEMES_DIFFER = (level) => themeFor(level).id !== THEME.id;
 
 // ============================================================ conexión
 class Connection {
@@ -82,8 +88,8 @@ renderer.toneMappingExposure = 0.95;
 viewport.prepend(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x2a1a52);
-scene.fog = new THREE.Fog(0x3b2a6e, 45, 95);
+scene.background = new THREE.Color(THEME.background);
+scene.fog = new THREE.Fog(THEME.fog, 45, 95);
 scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
 
 const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 300);
@@ -100,8 +106,8 @@ const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.45, 0.4, 1.15);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 
-scene.add(new THREE.HemisphereLight(0xe0d2ff, 0x5a4680, 0.8));
-const keyLight = new THREE.DirectionalLight(0xfff0fa, 1.1);
+scene.add(new THREE.HemisphereLight(THEME.hemiSky, THEME.hemiGround, 0.8));
+const keyLight = new THREE.DirectionalLight(THEME.keyLight, 1.1);
 keyLight.position.set(6, 22, 9);
 keyLight.castShadow = true;
 keyLight.shadow.mapSize.set(2048, 2048);
@@ -148,7 +154,7 @@ const rand = () => ((decorSeed = (decorSeed * 16807) % 2147483647) / 2147483647)
 // ============================================================ texturas procedurales
 function floorTexture() {
   const texture = canvasTexture(1024, 1024, (ctx, w, h) => {
-    ctx.fillStyle = "#a99ecf";
+    ctx.fillStyle = THEME.floor;
     ctx.fillRect(0, 0, w, h);
     const image = ctx.getImageData(0, 0, w, h);
     for (let i = 0; i < image.data.length; i += 4) {
@@ -156,7 +162,7 @@ function floorTexture() {
       image.data[i] += n; image.data[i + 1] += n; image.data[i + 2] += n;
     }
     ctx.putImageData(image, 0, 0);
-    ctx.strokeStyle = "rgba(90,70,140,0.12)";   // juntas del concreto pulido
+    ctx.strokeStyle = THEME.floorJoint;   // juntas del concreto pulido
     ctx.lineWidth = 2;
     for (let i = 0; i <= 4; i++) {
       ctx.beginPath(); ctx.moveTo((i * w) / 4, 0); ctx.lineTo((i * w) / 4, h); ctx.stroke();
@@ -186,7 +192,8 @@ function hazardTexture(repeat) {
 
 function pillarTexture() {
   return canvasTexture(128, 512, (ctx, w, h) => {
-    const bands = [[0, 0.3, "#f2a7c9"], [0.3, 0.5, "#86b6f2"], [0.5, 0.82, "#f2a7c9"], [0.82, 1, "#86b6f2"]];
+    const [a, b] = THEME.pillarBands;
+    const bands = [[0, 0.3, a], [0.3, 0.5, b], [0.5, 0.82, a], [0.82, 1, b]];
     for (const [a, b, color] of bands) {
       ctx.fillStyle = color;
       ctx.fillRect(0, a * h, w, (b - a) * h + 1);
@@ -204,23 +211,20 @@ function pillarTexture() {
 function skylineTexture() {
   return canvasTexture(1024, 384, (ctx, w, h) => {
     const sky = ctx.createLinearGradient(0, 0, 0, h);
-    sky.addColorStop(0, "#3b2a78");
-    sky.addColorStop(0.45, "#8a5bc4");
-    sky.addColorStop(0.75, "#f193b8");
-    sky.addColorStop(1, "#ffc29b");
+    [0, 0.45, 0.75, 1].forEach((stop, i) => sky.addColorStop(stop, THEME.sky[i]));
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, w, h);
     for (let layer = 0; layer < 2; layer++) {
       let x = -20;
       while (x < w) {
         const bw = 40 + rand() * 70, bh = (layer ? 120 : 70) + rand() * (layer ? 170 : 120);
-        ctx.fillStyle = layer ? "#2a1d55" : "#54408a";
+        ctx.fillStyle = THEME.buildings[layer];
         ctx.fillRect(x, h - bh, bw, bh);
         if (layer) {
           for (let wy = h - bh + 10; wy < h - 10; wy += 14) {
             for (let wx = x + 6; wx < x + bw - 8; wx += 11) {
               if (rand() < 0.45) {
-                ctx.fillStyle = rand() < 0.8 ? "#ffd98a" : "#f9a8d4";
+                ctx.fillStyle = THEME.windows[rand() < 0.8 ? 0 : 1];
                 ctx.fillRect(wx, wy, 5, 7);
               }
             }
@@ -230,7 +234,7 @@ function skylineTexture() {
       }
     }
     // Marco y parteluces de la ventana
-    ctx.strokeStyle = "#efe7ff";
+    ctx.strokeStyle = THEME.windowFrame;
     ctx.lineWidth = 14;
     ctx.strokeRect(0, 0, w, h);
     ctx.lineWidth = 8;
@@ -242,9 +246,9 @@ function skylineTexture() {
 
 function neonTexture() {
   return canvasTexture(1024, 256, (ctx, w, h) => {
-    ctx.strokeStyle = "#ff7ac8";
-    ctx.fillStyle = "#ffd3ee";
-    ctx.shadowColor = "#ff4fb4";
+    ctx.strokeStyle = THEME.neon.stroke;
+    ctx.fillStyle = THEME.neon.fill;
+    ctx.shadowColor = THEME.neon.shadow;
     ctx.shadowBlur = 28;
     ctx.lineWidth = 10;
     ctx.beginPath();
@@ -277,7 +281,7 @@ function targetTexture(aspect) {
   });
 }
 
-function labelTexture(text, color = "#efe7ff") {
+function labelTexture(text, color = THEME.label) {
   return canvasTexture(256, 128, (ctx, w, h) => {
     ctx.fillStyle = color;
     ctx.font = "600 72px Fredoka, sans-serif";
@@ -304,10 +308,10 @@ function boxPart(material, size, position, geometry = unitBox) {
 const unitBox = new THREE.BoxGeometry(1, 1, 1);
 
 // ============================================================ garaje estático
-const paint = std({ color: 0xffffff, roughness: 0.5, emissive: 0x3a3450 });
+const paint = std({ color: 0xffffff, roughness: 0.5, emissive: THEME.paintEmissive });
 const pillarMaterials = (() => {
   const side = std({ map: pillarTexture(), roughness: 0.6 });
-  const cap = std({ color: 0xf2a7c9, roughness: 0.6 });
+  const cap = std({ color: THEME.pillarCap, roughness: 0.6 });
   return [side, side, cap, cap, side, side];
 })();
 const ceilingGroup = new THREE.Group();
@@ -350,7 +354,7 @@ function buildGarage(layout) {
 
   // Piso brillante: espejo debajo de una capa de concreto semitransparente
   const mirror = new Reflector(new THREE.PlaneGeometry(2 * GX, 2 * GY), {
-    textureWidth: 1024, textureHeight: 1024, color: 0x6a6190, clipBias: 0.003,
+    textureWidth: 1024, textureHeight: 1024, color: THEME.mirror, clipBias: 0.003,
   });
   mirror.rotation.x = -Math.PI / 2;
   group.add(mirror);
@@ -360,8 +364,8 @@ function buildGarage(layout) {
   group.add(floor);
 
   // Paredes orientadas hacia adentro: desde afuera son invisibles (vista de "maqueta")
-  const wallMat = std({ color: 0xbfaee6, roughness: 0.85 });
-  const baseMat = std({ color: 0x8f7cc4, roughness: 0.8 });
+  const wallMat = std({ color: THEME.wall, roughness: 0.85 });
+  const baseMat = std({ color: THEME.wallBase, roughness: 0.8 });
   const skyline = glow(0xffffff, 1, { map: skylineTexture() });
   const walls = [
     { x: 0, y: GY, rot: 0, len: 2 * GX },
@@ -397,22 +401,22 @@ function buildGarage(layout) {
   }
 
   // Techo: losa, vigas, tuberías y lámparas lineales
-  const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(2 * GX, 2 * GY), std({ color: 0x8475b3, roughness: 0.9 }));
+  const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(2 * GX, 2 * GY), std({ color: THEME.ceiling, roughness: 0.9 }));
   ceiling.rotation.x = Math.PI / 2;
   ceiling.position.y = CEILING_H;
   ceilingGroup.add(ceiling);
-  const beamMat = std({ color: 0x6c5d9c, roughness: 0.8 });
+  const beamMat = std({ color: THEME.beam, roughness: 0.8 });
   for (let x = -GX + 3; x < GX; x += 6) ceilingGroup.add(boxPart(beamMat, [0.45, 0.5, 2 * GY], [x, CEILING_H - 0.25, 0]));
   const pipeGeo = new THREE.CylinderGeometry(1, 1, 1, 12).rotateZ(Math.PI / 2);
-  const pipeMats = [std({ color: 0xd0587e, roughness: 0.4, metalness: 0.3 }), std({ color: 0xd8d2e8, roughness: 0.4, metalness: 0.5 })];
+  const pipeMats = [std({ color: THEME.pipes[0], roughness: 0.4, metalness: 0.3 }), std({ color: THEME.pipes[1], roughness: 0.4, metalness: 0.5 })];
   [[8.6, 0.1, 0], [9.0, 0.07, 1], [-9.2, 0.08, 0]].forEach(([y, r, m]) => {
     const pipe = new THREE.Mesh(pipeGeo, pipeMats[m]);
     pipe.scale.set(2 * GX, r, r);
     pipe.position.copy(toWorld(0, y, CEILING_H - 0.6 - r));
     ceilingGroup.add(pipe);
   });
-  const lampMat = glow(0xfff4fb, 2.6);
-  const lampHousing = std({ color: 0xe9e4f5, roughness: 0.5 });
+  const lampMat = glow(THEME.lamp, 2.6);
+  const lampHousing = std({ color: THEME.lampHousing, roughness: 0.5 });
   for (const y of [-4.2, 0, 4.2]) {
     for (let x = -12; x <= 12; x += 6) {
       ceilingGroup.add(boxPart(lampHousing, [2.8, 0.1, 0.42], [x, CEILING_H - 0.55, -y]));
@@ -421,7 +425,7 @@ function buildGarage(layout) {
   }
   scene.add(ceilingGroup);
   for (const [x, y] of [[-10, 4], [0, 4], [10, 4], [-10, -4], [0, -4], [10, -4]]) {
-    const light = new THREE.PointLight(0xffeaf6, 14, 16, 1.5);
+    const light = new THREE.PointLight(THEME.pointLight, 14, 16, 1.5);
     light.position.copy(toWorld(x, y, CEILING_H - 0.9));
     group.add(light);
   }
@@ -608,7 +612,7 @@ function mountEgoCar() {
   Object.assign(ego, car, { group: ego.group });
 }
 
-const egoArrow = new THREE.Mesh(arrowGeometry, glow(0xf5d0fe, 1.2, { transparent: true, opacity: 0.95, side: THREE.DoubleSide }));
+const egoArrow = new THREE.Mesh(arrowGeometry, glow(THEME.egoArrow, 1.2, { transparent: true, opacity: 0.95, side: THREE.DoubleSide }));
 egoArrow.rotation.x = -Math.PI / 2;
 const arrowHolder = new THREE.Group();
 arrowHolder.position.y = 1.9;
@@ -616,14 +620,14 @@ arrowHolder.add(egoArrow);
 ego.group.add(arrowHolder);
 
 const egoGlow = new THREE.Mesh(new THREE.CircleGeometry(2.6, 48),
-  new THREE.MeshBasicMaterial({ color: 0xa855f7, transparent: true, opacity: 0.16, depthWrite: false }));
+  new THREE.MeshBasicMaterial({ color: THEME.egoGlow, transparent: true, opacity: 0.16, depthWrite: false }));
 egoGlow.rotation.x = -Math.PI / 2;
 egoGlow.position.y = 0.025;
 egoGlow.scale.set(1.12, 0.6, 1);
 ego.group.add(egoGlow);
 
 for (const z of [-0.58, 0.58]) {
-  const spot = new THREE.SpotLight(0xf4f0ff, 22, 14, 0.5, 0.6, 1.4);
+  const spot = new THREE.SpotLight(THEME.headlights, 22, 14, 0.5, 0.6, 1.4);
   spot.position.set(2.0, 0.62, z);
   spot.target.position.set(8, 0, z * 2);
   ego.group.add(spot, spot.target);
@@ -795,7 +799,7 @@ function rebuildTrail() {
   const n = trailPoints.length;
   if (n < 2) { trailMesh.geometry.setDrawRange(0, 0); return; }
   const positions = new Float32Array(n * 6), colors = new Float32Array(n * 6), indices = [];
-  const color = new THREE.Color(), dim = new THREE.Color(0x5b2a8c), bright = new THREE.Color(0xf0abfc);
+  const color = new THREE.Color(), dim = new THREE.Color(THEME.trail[0]), bright = new THREE.Color(THEME.trail[1]);
   for (let i = 0; i < n; i++) {
     const a = trailPoints[Math.max(0, i - 1)], b = trailPoints[Math.min(n - 1, i + 1)];
     let nx = -(b.y - a.y), ny = b.x - a.x;
@@ -925,7 +929,7 @@ function renderCar(now) {
   collisionRing.scale.setScalar(crashed ? 1 + 0.15 * pulse : 1);
   ego.bodyMat.emissive.setHex(crashed ? PALETTE.collision : 0x000000);
   ego.bodyMat.emissiveIntensity = crashed ? 0.6 * pulse : 0;
-  egoGlow.material.color.setHex(crashed ? PALETTE.collision : 0xa855f7);
+  egoGlow.material.color.setHex(crashed ? PALETTE.collision : THEME.egoGlow);
 
   // Sensores
   const [hl, hw] = sim.carHalf;
@@ -1118,14 +1122,14 @@ function drawSparkline(values) {
   const min = Math.min(...values), max = Math.max(...values), span = max - min || 1;
   const y = (v) => h - 4 - ((v - min) / span) * (h - 8);
   if (min < 0 && max > 0) {
-    ctx.strokeStyle = "rgba(221,208,255,0.3)";
+    ctx.strokeStyle = THEME.sparkAxis;
     ctx.setLineDash([3, 3]);
     ctx.beginPath(); ctx.moveTo(0, y(0)); ctx.lineTo(w, y(0)); ctx.stroke();
     ctx.setLineDash([]);
   }
   const gradient = ctx.createLinearGradient(0, 0, w, 0);
-  gradient.addColorStop(0, "#f5a3c7");
-  gradient.addColorStop(1, "#86efac");
+  gradient.addColorStop(0, THEME.spark[0]);
+  gradient.addColorStop(1, THEME.spark[1]);
   ctx.strokeStyle = gradient;
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -1234,6 +1238,7 @@ $("speed").oninput = (e) => {
 $("difficulty").onchange = async (e) => {
   sim.level = e.target.value;
   await doReset({ level: e.target.value });
+  if (THEMES_DIFFER(e.target.value)) return location.reload();
   await refreshConfig();
 };
 $("tg-sensors").onchange = (e) => setOverlays(e.target.checked, sim.showTrail);

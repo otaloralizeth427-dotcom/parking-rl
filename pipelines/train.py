@@ -20,7 +20,7 @@ from pathlib import Path
 
 import numpy as np
 
-from agents.registry import ARTIFACTS_DIR, MANIFESTS_DIR, sha256_file
+from agents.registry import ARTIFACTS_DIR, MANIFESTS_DIR, load_manifest, sha256_file
 from envs.levels import env_kwargs, load_level, make_env
 from envs.parking_env import ENV_VERSION
 from pipelines.evaluate import evaluate, run_case, suite_for_level
@@ -124,6 +124,18 @@ class Curves:
         self.mlflow.log_metric("val_success_rate", rate, step=step)
 
 
+def parent_policy(resolved: dict):
+    """Checkpoint del que parte un run (verificado por hash). Debe compartir agente, ambiente y contratos."""
+    from agents.registry import load_manifest, load_policy
+
+    parent = load_manifest(resolved["parent_run_id"])
+    if parent["agent"] != resolved["agent"]:
+        raise ValueError(f"El padre es {parent['agent']}, no {resolved['agent']}")
+    if parent["environment_version"] != ENV_VERSION:
+        raise ValueError(f"El padre usa {parent['environment_version']}; las observaciones podrían no coincidir")
+    return load_policy(parent)
+
+
 # ------------------------------------------------------------------ entrenamiento por algoritmo
 def train_tabular_or_dqn(resolved: dict, curves_factory):
     from agents.agent_base import train
@@ -153,7 +165,11 @@ def train_ppo(resolved: dict, curves_factory):
 
     env = Monitor(make_env(resolved["level_id"]), info_keywords=("success",))
     env.reset(seed=resolved["seed"])
-    agent = PPOAgent.create(env, seed=resolved["seed"], **resolved["hyperparameters"])
+    if resolved.get("parent_run_id"):
+        agent = PPOAgent.continue_from(parent_policy(resolved), env, seed=resolved["seed"],
+                                       **resolved["hyperparameters"])
+    else:
+        agent = PPOAgent.create(env, seed=resolved["seed"], **resolved["hyperparameters"])
     curves = curves_factory(lambda: agent)
     episodes = 0
 
@@ -209,6 +225,8 @@ def run_experiment(config: dict, progress=None) -> dict:
             "config_uri": str((out_dir / "config.json").relative_to(ROOT)), "config_sha256": cfg_sha,
             "seed": resolved["seed"], "parent_run_id": resolved.get("parent_run_id"),
             "origin": "continuación de checkpoint" if resolved.get("parent_run_id") else "desde cero",
+            "parent_model_sha256": (load_manifest(resolved["parent_run_id"])["model_sha256"]
+                                    if resolved.get("parent_run_id") else None),
             "evaluation_suite_id": resolved["evaluation_suite"]["suite_id"],
             "mlflow": {"tracking_uri": "sqlite:///mlflow.db", "experiment": experiment_name,
                        "run_id": active.info.run_id},

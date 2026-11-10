@@ -450,3 +450,40 @@ def test_final_suite_keeps_seeds_out_of_repo(tmp_path, monkeypatch):
     secret.write_text(json.dumps({**data, "seed_start": data["seed_start"] + 1}))
     with pytest.raises(ValueError, match="huella"):
         ev.final_suite("N1")
+
+
+def test_blocking_cone_sits_between_start_and_slot():
+    env = ParkingEnv("hard", cones=0, blocking_cones=1)
+    placed = 0
+    for seed in range(30):
+        env.reset(seed=seed)
+        cones = [o["center"] for o in env.obstacles if o["kind"] == "cone"]
+        if cones:
+            placed += 1
+            (cx, _), x0, tx = cones[0], env.pos[0], env.target["center"][0]
+            assert min(x0, tx) < cx < max(x0, tx) and abs(cx - tx) >= 1.7 and abs(cx - x0) >= 3.2
+    assert placed > 15
+    with pytest.raises(ValueError):
+        ParkingEnv(blocking_cones=2)
+
+
+def test_ppo_continues_from_registered_checkpoint(tmp_path, monkeypatch):
+    import pipelines.train as pipeline
+    for name, value in {"ROOT": tmp_path, "ARTIFACTS_DIR": tmp_path / "artifacts",
+                        "MANIFESTS_DIR": tmp_path / "manifests",
+                        "MLFLOW_URI": f"sqlite:///{tmp_path / 'mlflow.db'}",
+                        "MLFLOW_ARTIFACTS": tmp_path / "mlartifacts"}.items():
+        monkeypatch.setattr(pipeline, name, value)
+    (tmp_path / "manifests").mkdir()
+    (tmp_path / "requirements.lock.txt").write_text("numpy\n")
+    monkeypatch.setattr(pipeline, "suite_for_level", lambda level: {
+        "suite_id": "mini", "level_id": level, "seed_start": 100000, "episodes": 2})
+    config = pipeline.load_experiment("configs/experiments/N2-exp02-ppo-ft.json")
+    config.update({"experiment_id": "test-ft", "budget": {"timesteps": 128},
+                   "validation": {"episodes": 1, "every": 128}})
+    manifest = pipeline.run_experiment(config)
+    assert manifest["status"] == "completed" and manifest["origin"] == "continuación de checkpoint"
+    assert manifest["parent_model_sha256"] == pipeline.load_manifest(config["parent_run_id"])["model_sha256"]
+    config["hyperparameters"] = {"n_steps": 64}
+    with pytest.raises(ValueError, match="solo se pueden cambiar"):
+        pipeline.run_experiment(config)

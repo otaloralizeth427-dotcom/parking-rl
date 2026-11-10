@@ -139,7 +139,8 @@ class ParkingEnv(gym.Env):
     metadata = {"render_modes": []}
 
     def __init__(self, difficulty: str = "normal", sensor_noise: float = 0.0,
-                 config: ParkingConfig | None = None, pedestrians: int = 0, cones: int | None = None):
+                 config: ParkingConfig | None = None, pedestrians: int = 0, cones: int | None = None,
+                 blocking_cones: int = 0):
         if difficulty not in DIFFICULTIES:
             raise ValueError(f"difficulty debe ser uno de {DIFFICULTIES}, no {difficulty!r}")
         if sensor_noise < 0:
@@ -148,10 +149,13 @@ class ParkingEnv(gym.Env):
             raise ValueError("pedestrians debe ser un entero >= 0")
         if cones is not None and (not isinstance(cones, int) or cones < 0):
             raise ValueError("cones debe ser None o un entero >= 0")
+        if blocking_cones not in (0, 1):
+            raise ValueError("blocking_cones debe ser 0 o 1")
         self.difficulty = difficulty
         self.sensor_noise = sensor_noise
         self.n_pedestrians = pedestrians
         self.n_cones = cones   # None = la cantidad por defecto de la dificultad
+        self.blocking_cones = blocking_cones   # 1 = un cono extra justo en la línea recta hacia el cupo
         self.cfg = config or ParkingConfig()
 
         n_obs = 6 + self.cfg.n_sensors
@@ -239,6 +243,16 @@ class ParkingEnv(gym.Env):
                 x = float(np.clip(tc[0] - side * rng.uniform(4.0, 8.0), -limit, limit))
             y = rng.uniform(-1.5, 1.5)
             heading = (np.pi if x > tc[0] else 0.0) + rng.uniform(-0.2, 0.2)
+
+        if self.blocking_cones:
+            # Entre el arranque y el cupo, a la altura del auto: obliga a rodearlo. Se omite si el cupo
+            # está tan cerca que el cono taparía su entrada.
+            direction = np.sign(tc[0] - x)
+            cx = x + direction * max(3.2, abs(tc[0] - x) / 2)
+            if abs(cx - tc[0]) >= 1.7:
+                obstacles.append({"center": (float(cx), float(np.clip(y + rng.uniform(-0.4, 0.4), -aisle + 0.8,
+                                                                      aisle - 0.8))),
+                                  "half": (0.25, 0.25), "angle": 0.0, "kind": "cone"})
 
         n_cones = {"easy": 0, "normal": 2, "hard": 5}[self.difficulty] if self.n_cones is None else self.n_cones
         placed = 0

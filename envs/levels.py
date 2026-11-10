@@ -30,4 +30,5 @@ def make_env(level_id: str) -> ParkingEnv:
 def env_kwargs(level: dict) -> dict:
     """Argumentos de ParkingEnv que define un nivel."""
     return {"difficulty": level["difficulty"], "sensor_noise": level["sensor_noise"],
-            "pedestrians": level.get("pedestrians", 0), "cones": level.get("cones")}
+            "pedestrians": level.get("pedestrians", 0), "cones": level.get("cones"),
+            "blocking_cones": level.get("blocking_cones", 0)}
