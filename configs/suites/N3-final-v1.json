@@ -1,6 +1,7 @@
 {
   "suite_id": "N3-final-v1",
   "level_id": "N3",
+  "environment_version": "parking-v3",
   "episodes": 100,
   "deterministic": true,
   "reserved": true,

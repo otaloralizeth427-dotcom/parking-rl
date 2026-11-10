@@ -216,6 +216,32 @@ está dentro de la variación entre semillas.
 - Lo que falla todavía: 7–12 atropellos por cada 100 episodios. Para un auto real sigue siendo inaceptable;
   es la principal causa de fallo y la meta del siguiente nivel.
 
+### Incidente: el auto y el peatón se esperaban mutuamente (`parking-v3` → `parking-v4`)
+
+En la web se vio al auto detenido frente a un peatón quieto hasta agotar el tiempo. Causa: en v3 el peatón
+espera si el auto está a menos de 0.6 m de su camino, y el modelo espera si el peatón está enfrente, así que
+ninguno se movía («usted primero»). Medido con el modelo servido (`N3-exp01-…-s42`): **4 de 100 episodios**
+de la suite, que eran exactamente todos sus timeouts.
+
+**Intervención:** opción `pedestrians_yield` del ambiente (`parking-v4`, solo en N3): si el auto está quieto
+(|v| ≤ 0.1 m/s) el peatón sigue caminando, o se devuelve si no cabe. N1 y N2 no cambian
+(`test_pedestrian_does_not_freeze_in_front_of_a_stopped_car`). Con el cambio, los 3 modelos de exp01 pasan a
+**0 atascos**. Como cambió la dinámica del nivel, los modelos de v3 quedan como históricos («otra versión
+del nivel») y la receta ganadora se vuelve a entrenar en v4 con un test final nuevo (`N3-final-v2`; las
+semillas de `N3-final-v1` no se reutilizan, su resultado queda en `results/N3/final_test_N3-final-v1.json`).
+
+| Experimento (commit `9326ea3`) | Hipótesis | Cambio | Resultado (s42 / s43 / s44) | Decisión |
+|---|---|---|---|---|
+| `N3-exp03-ppo-ft-v4` | Con v4 la receta de exp01 elimina los atascos y mantiene ≥ 85 % en las 3 semillas | igual que exp01, en `parking-v4` | **86 / 92 / 88 %** · media 89 % ± 3 · 0 atascos | **aceptada** |
+
+| Test final `N3-final-v2` | Éxito | Atropellos | Choques | Salidas | Tiempo agotado |
+|---|---|---|---|---|---|
+| Regla | 25 % | 39 | 23 | 13 | 0 |
+| **exp03 · s43** | **91 %** | 9 | 0 | 0 | 0 |
+
+**Modelo servido en N3 (v4): `N3-exp03-ppo-ft-v4-s43-d35e07f1`** (92 % en la suite, elegido con la suite).
+Los atropellos (8–13 por 100) siguen siendo la causa de fallo principal.
+
 ### Siguientes hipótesis razonables
 
 1. Penalizar más el atropello que el choque con un objeto (hoy los dos valen −50), o una distancia de
