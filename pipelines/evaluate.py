@@ -162,9 +162,10 @@ def baselines() -> dict:
 
 def registered_models(level_id: str) -> dict:
     from agents.registry import list_manifests, load_policy
+    from envs.levels import model_matches_level
     models = {}
     for manifest in list_manifests(level_id):
-        if manifest["status"] == "completed":
+        if manifest["status"] == "completed" and model_matches_level(manifest, level_id):
             label = f"{manifest['agent'].upper()} · {manifest['run_id']}"
             models[manifest["run_id"]] = (label, load_policy(manifest))
     return models
@@ -195,9 +196,10 @@ OUTCOME_COLORS = {"success": "#22c55e", "obstacle": "#f97316", "pedestrian": "#e
 def short_label(key: str, label: str) -> str:
     """«N1-exp03-ppo-s42-64bf7433» → «exp03 PPO\ns42»; las referencias conservan su nombre."""
     parts = key.split("-")
-    if len(parts) < 4:
+    seed = next((p for p in parts[3:] if p[0] == "s" and p[1:].isdigit()), None)
+    if len(parts) < 4 or seed is None:
         return label.split(" (")[0]
-    return f"{parts[1]} {parts[2].upper()}\n{parts[3]}"
+    return f"{parts[1]} {parts[2].upper()}\n{seed}"
 
 
 def plot_comparison(comparison: dict, path: Path, title: str):

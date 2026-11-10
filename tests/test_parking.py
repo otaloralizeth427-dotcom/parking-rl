@@ -309,11 +309,12 @@ def test_websocket_commands(client):
 # ---------------------------------------------------------------- niveles
 def test_levels_match_environment_version():
     from envs.levels import LEVEL_IDS, load_level, make_env
-    from envs.parking_env import ENV_VERSION
+    from envs.parking_env import SUPPORTED_VERSIONS
     for level_id in LEVEL_IDS:
-        assert load_level(level_id)["environment_version"] == ENV_VERSION
-        obs, _ = make_env(level_id).reset(seed=0)
-        assert obs.shape == (14,)
+        assert load_level(level_id)["environment_version"] in SUPPORTED_VERSIONS
+        env = make_env(level_id)
+        obs, _ = env.reset(seed=0)
+        assert obs.shape == env.observation_space.shape == (14 + env.bumper_sensors,)
     with pytest.raises(ValueError):
         load_level("N9")
 
@@ -450,3 +451,65 @@ def test_final_suite_keeps_seeds_out_of_repo(tmp_path, monkeypatch):
     secret.write_text(json.dumps({**data, "seed_start": data["seed_start"] + 1}))
     with pytest.raises(ValueError, match="huella"):
         ev.final_suite("N1")
+
+
+def test_blocking_cone_sits_between_start_and_slot():
+    env = ParkingEnv("hard", cones=0, blocking_cones=1)
+    placed = 0
+    for seed in range(30):
+        env.reset(seed=seed)
+        cones = [o["center"] for o in env.obstacles if o["kind"] == "cone"]
+        if cones:
+            placed += 1
+            (cx, _), x0, tx = cones[0], env.pos[0], env.target["center"][0]
+            assert min(x0, tx) < cx < max(x0, tx) and abs(cx - tx) >= 1.7 and abs(cx - x0) >= 3.2
+    assert placed > 15
+    with pytest.raises(ValueError):
+        ParkingEnv(blocking_cones=2)
+
+
+def test_ppo_continues_from_registered_checkpoint(tmp_path, monkeypatch):
+    import pipelines.train as pipeline
+    for name, value in {"ROOT": tmp_path, "ARTIFACTS_DIR": tmp_path / "artifacts",
+                        "MANIFESTS_DIR": tmp_path / "manifests",
+                        "MLFLOW_URI": f"sqlite:///{tmp_path / 'mlflow.db'}",
+                        "MLFLOW_ARTIFACTS": tmp_path / "mlartifacts"}.items():
+        monkeypatch.setattr(pipeline, name, value)
+    (tmp_path / "manifests").mkdir()
+    (tmp_path / "requirements.lock.txt").write_text("numpy\n")
+    monkeypatch.setattr(pipeline, "suite_for_level", lambda level: {
+        "suite_id": "mini", "level_id": level, "seed_start": 100000, "episodes": 2})
+    config = pipeline.load_experiment("configs/experiments/N2-exp02-ppo-ft.json")
+    config.update({"experiment_id": "test-ft", "budget": {"timesteps": 128},
+                   "validation": {"episodes": 1, "every": 128}})
+    # N2 observa 19 valores (sensores de parachoques) y el padre de N1 observa 14: otra familia
+    with pytest.raises(ValueError, match="otra familia"):
+        pipeline.run_experiment(config)
+    config["level_id"] = "N1"
+    manifest = pipeline.run_experiment(config)
+    assert manifest["status"] == "completed" and manifest["origin"] == "continuación de checkpoint"
+    assert manifest["parent_model_sha256"] == pipeline.load_manifest(config["parent_run_id"])["model_sha256"]
+    config["hyperparameters"] = {"n_steps": 64}
+    with pytest.raises(ValueError, match="solo se pueden cambiar"):
+        pipeline.run_experiment(config)
+
+
+def test_curriculum_is_validated_and_runs():
+    import pipelines.train as pipeline
+    config = pipeline.load_experiment("configs/experiments/N2-exp05-ppo-curriculo.json")
+    bad = {**config, "curriculum": config["curriculum"][:1]}
+    with pytest.raises(ValueError, match="suma"):
+        pipeline.resolve(bad)
+    sneaky = {**config, "budget": {"timesteps": 10},
+              "curriculum": [{"overrides": {"bumper_sensors": 0}, "timesteps": 10}]}
+    with pytest.raises(ValueError, match="Etapa inválida"):
+        pipeline.resolve(sneaky)
+    small = {**config, "budget": {"timesteps": 128},
+             "curriculum": [{"overrides": {"difficulty": "tutorial", "cones": 0, "blocking_cones": 0}, "timesteps": 64},
+                            {"overrides": {}, "timesteps": 64}],
+             "hyperparameters": {"n_steps": 32, "batch_size": 16, "n_epochs": 1, "net_arch": [8]}}
+    resolved = pipeline.resolve(small)
+    seen = []
+    curves = type("C", (), {"episode": lambda self, step, result: seen.append(step)})()
+    agent, _, budget = pipeline.train_ppo(resolved, lambda policy_fn: curves)
+    assert agent.model.num_timesteps >= 128 and budget["timesteps"] == 128

@@ -16,11 +16,13 @@ from gymnasium import spaces
 FORWARD, REVERSE, LEFT, RIGHT, BRAKE = range(5)
 ACTION_NAMES = ["Avanzar", "Retroceder", "Izquierda", "Derecha", "Frenar"]
 
-DIFFICULTIES = ("easy", "normal", "hard")
+DIFFICULTIES = ("tutorial", "easy", "normal", "hard")   # tutorial: solo para etapas de currículo
 
 # Cambia cuando cambian observaciones, acciones, dinámica o recompensa:
 # un modelo solo es compatible con la versión con que fue entrenado.
-ENV_VERSION = "parking-v2"   # v2: peatones opcionales (nivel N3)
+ENV_VERSION = "parking-v3"   # v3: cono bloqueante y sensores de parachoques opcionales (nivel N2)
+# Versiones que este código reproduce: con sus valores por defecto, v3 se comporta exactamente como v2
+SUPPORTED_VERSIONS = ("parking-v2", "parking-v3")
 
 
 @dataclass(frozen=True)
@@ -45,6 +47,7 @@ class ParkingConfig:
     max_steps: int = 200
     n_sensors: int = 8
     sensor_range: float = 8.0
+    bumper_range: float = 4.0        # alcance de los sensores de parachoques (tipo ultrasonido)
     occupancy: float = 0.6           # probabilidad de que un cupo vecino esté ocupado
     park_heading_tol: float = 0.25   # rad
     park_speed_tol: float = 0.4
@@ -108,8 +111,8 @@ def obb_overlaps(center, half, angle, centers, halves, angles) -> np.ndarray:
 def raycast_obbs(origin, directions, centers, halves, angles, max_range) -> np.ndarray:
     """Distancia del primer impacto de cada rayo contra N cajas (método de slabs)."""
     c, s = np.cos(angles), np.sin(angles)
-    d = origin - centers                                            # (N,2)
-    o_local = np.stack([c * d[:, 0] + s * d[:, 1], -s * d[:, 0] + c * d[:, 1]], -1)
+    d = np.atleast_2d(origin)[:, None, :] - centers[None]           # (1 o R, N, 2): un origen o uno por rayo
+    o_local = np.stack([c * d[..., 0] + s * d[..., 1], -s * d[..., 0] + c * d[..., 1]], -1)
     dir_x = directions[:, None, 0] * c + directions[:, None, 1] * s  # (R,N)
     dir_y = -directions[:, None, 0] * s + directions[:, None, 1] * c
     dirs = np.stack([dir_x, dir_y], -1)                              # (R,N,2)
@@ -134,12 +137,14 @@ class ParkingEnv(gym.Env):
         4    ángulo de dirección / dirección máxima
         5    1 si el vehículo está dentro del cupo
         6-13 distancias de los sensores (8 rayos) / alcance
+        14-  (solo con bumper_sensors > 0) rayos paralelos desde el parachoques delantero / su alcance
     """
 
     metadata = {"render_modes": []}
 
     def __init__(self, difficulty: str = "normal", sensor_noise: float = 0.0,
-                 config: ParkingConfig | None = None, pedestrians: int = 0, cones: int | None = None):
+                 config: ParkingConfig | None = None, pedestrians: int = 0, cones: int | None = None,
+                 blocking_cones: int = 0, bumper_sensors: int = 0):
         if difficulty not in DIFFICULTIES:
             raise ValueError(f"difficulty debe ser uno de {DIFFICULTIES}, no {difficulty!r}")
         if sensor_noise < 0:
@@ -148,13 +153,19 @@ class ParkingEnv(gym.Env):
             raise ValueError("pedestrians debe ser un entero >= 0")
         if cones is not None and (not isinstance(cones, int) or cones < 0):
             raise ValueError("cones debe ser None o un entero >= 0")
+        if blocking_cones not in (0, 1):
+            raise ValueError("blocking_cones debe ser 0 o 1")
+        if not isinstance(bumper_sensors, int) or bumper_sensors < 0 or bumper_sensors == 1:
+            raise ValueError("bumper_sensors debe ser 0 o un entero >= 2")
         self.difficulty = difficulty
         self.sensor_noise = sensor_noise
         self.n_pedestrians = pedestrians
         self.n_cones = cones   # None = la cantidad por defecto de la dificultad
+        self.blocking_cones = blocking_cones   # 1 = un cono extra justo en la línea recta hacia el cupo
+        self.bumper_sensors = bumper_sensors   # rayos hacia adelante repartidos a lo ancho del parachoques
         self.cfg = config or ParkingConfig()
 
-        n_obs = 6 + self.cfg.n_sensors
+        n_obs = 6 + self.cfg.n_sensors + bumper_sensors
         low = np.full(n_obs, -1.0, dtype=np.float32)
         high = np.full(n_obs, 1.0, dtype=np.float32)
         low[:2], high[:2] = -5.0, 5.0
@@ -165,6 +176,9 @@ class ParkingEnv(gym.Env):
         # Rayos relativos al vehículo: frente, diagonales, lados, traseras, atrás
         self.sensor_angles = np.linspace(0, 2 * np.pi, self.cfg.n_sensors, endpoint=False)
         self._car_half = np.array([self.cfg.car_length / 2, self.cfg.car_width / 2])
+        # Origen de los rayos del parachoques en el marco del vehículo (adelante, izquierda)
+        self._bumper_offsets = np.stack([np.full(bumper_sensors, self._car_half[0]),
+                                         np.linspace(-self._car_half[1], self._car_half[1], bumper_sensors)], -1)
         self._walls = self._build_walls()
         self.slots = self._build_slots()
         self._state_ready = False
@@ -227,7 +241,12 @@ class ParkingEnv(gym.Env):
 
         # Pose inicial en el pasillo
         aisle = cfg.lot_height / 2 - cfg.slot_depth
-        if self.difficulty == "easy":
+        if self.difficulty == "tutorial":
+            # La nariz ya entra al cupo: basta avanzar unos metros, alinearse y frenar
+            x = tc[0] + rng.uniform(-0.4, 0.4)
+            y = row_sign * (aisle - rng.uniform(0.2, 1.2))
+            heading = row_sign * np.pi / 2 + rng.uniform(-0.2, 0.2)
+        elif self.difficulty == "easy":
             x = tc[0] + rng.uniform(-1.0, 1.0)
             y = row_sign * rng.uniform(-1.5, 1.0)
             heading = row_sign * np.pi / 2 + rng.uniform(-0.3, 0.3)
@@ -240,7 +259,17 @@ class ParkingEnv(gym.Env):
             y = rng.uniform(-1.5, 1.5)
             heading = (np.pi if x > tc[0] else 0.0) + rng.uniform(-0.2, 0.2)
 
-        n_cones = {"easy": 0, "normal": 2, "hard": 5}[self.difficulty] if self.n_cones is None else self.n_cones
+        if self.blocking_cones:
+            # Entre el arranque y el cupo, a la altura del auto: obliga a rodearlo. Se omite si el cupo
+            # está tan cerca que el cono taparía su entrada.
+            direction = np.sign(tc[0] - x)
+            cx = x + direction * max(3.2, abs(tc[0] - x) / 2)
+            if abs(cx - tc[0]) >= 1.7:
+                obstacles.append({"center": (float(cx), float(np.clip(y + rng.uniform(-0.4, 0.4), -aisle + 0.8,
+                                                                      aisle - 0.8))),
+                                  "half": (0.25, 0.25), "angle": 0.0, "kind": "cone"})
+
+        n_cones = {"tutorial": 0, "easy": 0, "normal": 2, "hard": 5}[self.difficulty] if self.n_cones is None else self.n_cones
         placed = 0
         attempts = 0
         while placed < n_cones and attempts < 200:
@@ -435,10 +464,20 @@ class ParkingEnv(gym.Env):
         with np.errstate(divide="ignore"):
             body = np.minimum(l / np.abs(np.cos(angles)), w / np.abs(np.sin(angles)))
         dist = np.clip(hits - body, 0.0, self.cfg.sensor_range)
+        if self.bumper_sensors:
+            c, s = np.cos(self.heading), np.sin(self.heading)
+            origins = self.pos + self._bumper_offsets @ np.array([[c, s], [-s, c]])
+            forward = np.repeat([[c, s]], self.bumper_sensors, 0)
+            bumper = raycast_obbs(origins, forward, centers, halves, rot_angles, self.cfg.bumper_range)
+            dist = np.concatenate([dist, np.clip(bumper, 0.0, self.cfg.bumper_range)])
         if self.sensor_noise > 0:
             dist = np.clip(dist + self.np_random.normal(0, self.sensor_noise, dist.shape),
-                           0.0, self.cfg.sensor_range)
+                           0.0, self._sensor_ranges())
         return dist
+
+    def _sensor_ranges(self) -> np.ndarray:
+        return np.concatenate([np.full(self.cfg.n_sensors, self.cfg.sensor_range),
+                               np.full(self.bumper_sensors, self.cfg.bumper_range)])
 
     def _observation(self) -> np.ndarray:
         cfg = self.cfg
@@ -451,7 +490,7 @@ class ParkingEnv(gym.Env):
              np.clip(self.speed / cfg.max_speed, -1, 1),
              self.steer / cfg.max_steer,
              float(self._corners_in_slot())],
-            self._sensors / cfg.sensor_range,
+            self._sensors / self._sensor_ranges(),
         ])
         return obs.astype(np.float32)
 
@@ -481,7 +520,10 @@ class ParkingEnv(gym.Env):
             "target": {"id": self.target["id"], "x": float(self.target["center"][0]),
                        "y": float(self.target["center"][1]), "angle": self.target["angle"]},
             "sensors": [{"angle": float(a), "distance": float(d)}
-                        for a, d in zip(self.sensor_angles, self._sensors)],
+                        for a, d in zip(self.sensor_angles, self._sensors)]
+                       + [{"angle": 0.0, "distance": float(d), "origin": [float(o[0]), float(o[1])],
+                           "range": cfg.bumper_range}
+                          for o, d in zip(self._bumper_offsets, self._sensors[cfg.n_sensors:])],
             "sensor_range": cfg.sensor_range,
             "distance": self.distance(),
             "heading_error": self.heading_error(),

@@ -1,0 +1,12 @@
+{
+  "experiment_id": "N2-exp02-ppo-ft",
+  "level_id": "N2",
+  "agent": "ppo",
+  "hypothesis": "Partir del PPO de N1 (que ya sabe estacionar) evita depender de la suerte de la exploración: con 500 000 pasos en N2 aprende a rodear el cono, supera el 33 % sin reentrenar y funciona con las 3 semillas.",
+  "change_vs_baseline": "Continúa el checkpoint N1-exp03-ppo-s42-64bf7433 en N2 con la mitad de pasos y ent_coef 0.01 (menos exploración: ya parte de una política buena).",
+  "parent_run_id": "N1-exp03-ppo-s42-64bf7433",
+  "seed": 42,
+  "budget": {"timesteps": 500000},
+  "hyperparameters": {"ent_coef": 0.01},
+  "validation": {"episodes": 20, "every": 25000}
+}

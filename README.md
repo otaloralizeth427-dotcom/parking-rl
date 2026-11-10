@@ -59,6 +59,9 @@ referencia, el agente, la semilla, el presupuesto y los hiperparámetros. El pip
    `evaluation.json`, `manifest.json`) y el manifiesto en `manifests/<run_id>.json`.
 
 Para repetir un experimento con otra semilla (réplicas): `run.py train <config> --seed 43`.
+Opciones de PPO en el experimento: `parent_run_id` (continuar un checkpoint verificado de la misma familia
+de observaciones), `hyperparameters.n_envs` (ambientes en paralelo) y `curriculum` (etapas más fáciles del
+mismo nivel antes del nivel completo; ver `configs/experiments/N2-exp06-ppo-curriculo-3m.json`).
 
 Si el entrenamiento falla, el run queda en MLflow y en `manifests/` con `status: "failed"`, su
 diagnóstico y «sin checkpoint disponible». Al cargar un modelo (API, web o `demo`) se verifica que el
@@ -131,9 +134,9 @@ de neón con *bloom*, ventanales con la ciudad al atardecer, columnas "P1" y jar
 | ↻ (`R`) | Nuevo episodio: nuevo cupo objetivo, vehículos y conos. |
 | 💡 Pista (`S` sensores, `T` trayectoria) | Muestra u oculta los rayos de los sensores y el rastro del vehículo. |
 | 📷 (`C`) | Alterna cámara orbital (arrastrar para rotar), superior y de seguimiento. |
-| Panel (`P`, botón inferior derecho) | Estado detallado, agente (Q-learning / red neuronal / aleatorio), velocidad 0.25×–10×, nivel, ruido en sensores, cámara y entrenamiento con progreso en vivo. |
+| Panel (`P`, botón inferior derecho) | Estado detallado, agente (aleatorio, regla, manual o un modelo registrado), velocidad 0.25×–10×, nivel, ruido en sensores, cámara y entrenamiento con progreso en vivo. |
 
-La barra superior muestra el **nivel** (1 fácil, 2 normal, 3 difícil), el estado del episodio y
+La barra superior muestra el **nivel** (cada nivel tiene su propia paleta: N1 lavanda, N2 menta y coral), el estado del episodio y
 los **movimientos** (pasos). La barra inferior muestra agente, distancia al cupo, velocidad,
 recompensa, episodio y choques.
 
@@ -162,7 +165,7 @@ rojo = colisión, azul = sensores (se tornan rojos al acercarse a un obstáculo)
 Parking/
 ├── envs/
 │   ├── parking_env.py    Ambiente Gymnasium (física, colisiones, sensores, recompensa) · ENV_VERSION
-│   └── levels.py         Carga los niveles N1–N3 versionados
+│   └── levels.py         Carga los niveles versionados (N1, N2, …)
 ├── agents/
 │   ├── agent_base.py     Interfaz Agent, epsilon-greedy y bucle de entrenamiento compartido
 │   ├── q_learning.py     Discretizador de estados + agente Q-learning tabular
@@ -343,16 +346,15 @@ imágenes) y se necesita generalizar a situaciones no vistas, como en este parqu
 
 ## Resultados
 
-Nivel 1 (`N1-suite-v1`, 100 episodios con semillas no vistas en el entrenamiento):
+Éxito en la suite fija de cada nivel (100 episodios con semillas no vistas en el entrenamiento) y en el
+test final reservado. Los finalistas se entrenaron con 3 semillas.
 
-| Política | Éxito | Choques | Salidas del área | Tiempo agotado | Tiempo medio |
-|---|---|---|---|---|---|
-| Aleatoria | 0 % | 8 | 14 | 78 | 35.1 s |
-| Regla | **49 %** | 31 | 20 | 0 | 10.0 s |
-| DQN `N1-exp01-dqn-s42-3ce2f0ec` | 42 % | 9 | 2 | 47 | 21.8 s |
-| PPO `N1-exp02-ppo-s42-52969c85` | 0 % | 0 | 0 | 100 | 40.0 s |
+| Nivel | Aleatoria | Regla | Modelo servido | Suite | Test final | Receta (3 semillas) |
+|---|---|---|---|---|---|---|
+| N1 · Misión base | 0 % | 49 % | PPO `N1-exp03-ppo-s42-64bf7433` | **97 %** | **97 %** | 97 / 0 / 0 % (depende de la semilla) |
+| N2 · Conos | 0 % | 18 % | PPO `N2-exp06-ppo-curriculo-3m-s44-7f36a120` | **80 %** | **80 %** | 62 / 67 / 80 % (currículo por etapas) |
 
-![Curvas N1](results/N1/curves.png)
+![Comparación N2](results/N2/comparison.png)
 
 El análisis, las hipótesis rechazadas y las siguientes hipótesis están en
 [docs/experimentos.md](docs/experimentos.md). Los resultados anteriores a la reorganización por
@@ -373,7 +375,7 @@ niveles se conservan en `results/legacy/`.
 ## Próximos pasos
 
 - **Acciones continuas** (aceleración y dirección reales) con SAC o PPO, y maniobras en varios tiempos.
-- **Currículo automático:** empezar en `easy` y aumentar la dificultad según la tasa de éxito.
+- **Currículo adaptativo:** hoy las etapas tienen duración fija; pasar de etapa según la tasa de éxito.
 - **Estacionamiento en paralelo y en diagonal**, y cupos con orientaciones arbitrarias.
 - **Obstáculos dinámicos:** peatones y otros vehículos en movimiento.
 - **Modelo dinámico** con derrape, latencia del actuador y ruido en el actuador.

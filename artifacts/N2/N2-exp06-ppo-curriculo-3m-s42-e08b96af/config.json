@@ -1,0 +1,85 @@
+{
+  "experiment_id": "N2-exp06-ppo-curriculo-3m",
+  "level_id": "N2",
+  "agent": "ppo",
+  "hypothesis": "exp05 aprende con las 3 semillas (24-37 %) y su validación seguía subiendo al acabar el presupuesto. Con 2 000 000 de pasos más en la etapa final (3 M en total), las 3 semillas superan el 60 %.",
+  "change_vs_baseline": "Igual que N2-exp05-ppo-curriculo cambiando solo la duración de la etapa final (450 000 → 2 450 000 pasos).",
+  "derived_from": "N2-exp05-ppo-curriculo",
+  "seed": 42,
+  "budget": {
+    "timesteps": 3000000
+  },
+  "curriculum": [
+    {
+      "name": "práctica: nariz en el cupo",
+      "overrides": {
+        "difficulty": "tutorial",
+        "cones": 0,
+        "blocking_cones": 0
+      },
+      "timesteps": 150000
+    },
+    {
+      "name": "fácil: frente al cupo",
+      "overrides": {
+        "difficulty": "easy",
+        "cones": 0,
+        "blocking_cones": 0
+      },
+      "timesteps": 150000
+    },
+    {
+      "name": "pasillo sin conos",
+      "overrides": {
+        "difficulty": "normal",
+        "cones": 0,
+        "blocking_cones": 0
+      },
+      "timesteps": 250000
+    },
+    {
+      "name": "nivel completo",
+      "overrides": {},
+      "timesteps": 2450000
+    }
+  ],
+  "hyperparameters": {
+    "learning_rate": 0.0003,
+    "n_steps": 2048,
+    "batch_size": 64,
+    "n_epochs": 10,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "ent_coef": 0.05,
+    "net_arch": [
+      64,
+      64
+    ]
+  },
+  "validation": {
+    "seed_start": 200000,
+    "episodes": 20,
+    "every": 150000
+  },
+  "environment_version": "parking-v3",
+  "level": {
+    "level_id": "N2",
+    "name": "Conos en el pasillo",
+    "environment_version": "parking-v3",
+    "difficulty": "hard",
+    "cones": 3,
+    "blocking_cones": 1,
+    "bumper_sensors": 5,
+    "pedestrians": 0,
+    "sensor_noise": 0.0,
+    "description": "Igual que N1 (arranque en el pasillo a 4-8 m del cupo), pero con 3 conos sueltos en el pasillo y 1 más justo en la línea recta hacia el cupo. La entrada al cupo siempre queda libre. El vehículo suma 5 sensores de parachoques (rayos paralelos hacia adelante, alcance 4 m) para ver conos que caben entre los 8 rayos radiales.",
+    "new_decision": "Decidir por dónde rodear los conos (o frenar y corregir) antes de girar hacia el cupo."
+  },
+  "evaluation_suite": {
+    "suite_id": "N2-suite-v1",
+    "level_id": "N2",
+    "seed_start": 100000,
+    "episodes": 100,
+    "deterministic": true
+  }
+}

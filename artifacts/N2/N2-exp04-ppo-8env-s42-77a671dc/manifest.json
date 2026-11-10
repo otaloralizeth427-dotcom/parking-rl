@@ -1,0 +1,67 @@
+{
+  "run_id": "N2-exp04-ppo-8env-s42-77a671dc",
+  "experiment_id": "N2-exp04-ppo-8env",
+  "level_id": "N2",
+  "agent": "ppo",
+  "hypothesis": "En N1 la receta PPO dependió de la semilla (97 %, 0 %, 0 %). Recoger experiencia en 8 copias del ambiente a la vez da lotes más variados: con el mismo presupuesto de pasos, las 3 semillas superan a la regla.",
+  "change_vs_baseline": "Igual que N2-exp03-ppo cambiando solo n_envs (1 → 8); los pasos totales no cambian (1 000 000).",
+  "environment_version": "parking-v3",
+  "environment_kwargs": {
+    "difficulty": "hard",
+    "sensor_noise": 0.0,
+    "pedestrians": 0,
+    "cones": 3,
+    "blocking_cones": 1,
+    "bumper_sensors": 5
+  },
+  "observation_shape": [
+    19
+  ],
+  "git_commit": "e115cbbf923c1b48124a3954a04c31d27551a576",
+  "git_branch": "feature/nivel-2",
+  "git_dirty": false,
+  "config_uri": "artifacts/N2/N2-exp04-ppo-8env-s42-77a671dc/config.json",
+  "config_sha256": "b8250cadaccfb10b62cbc61ada9870a3a9d5ccedb7b9ae22b6e356ac59c8eae7",
+  "seed": 42,
+  "parent_run_id": null,
+  "origin": "desde cero",
+  "parent_model_sha256": null,
+  "evaluation_suite_id": "N2-suite-v1",
+  "mlflow": {
+    "tracking_uri": "sqlite:///mlflow.db",
+    "experiment": "parking-N2",
+    "run_id": "77a671dc1e1d4f0e8a3cdebb394bd88e"
+  },
+  "created_at": "2026-11-10T19:53:03+00:00",
+  "status": "completed",
+  "model_uri": "artifacts/N2/N2-exp04-ppo-8env-s42-77a671dc/model.zip",
+  "model_sha256": "0e36094fe741f4a215ab2132d2fdc9173f533dd246cfb068a4422643a68d7dc6",
+  "normalization_uri": "envs/parking_env.py#ParkingEnv._observation (escalado fijo dentro del ambiente; sin normalización aprendida)",
+  "observation_contract": "Box(19,) float32 · ver docs/ficha_ambiente.md",
+  "action_contract": "Discrete(5): avanzar, retroceder, izquierda, derecha, frenar",
+  "runtime_ref": "python 3.12.7 · requirements.lock.txt sha256:76cff4f909c98d69",
+  "budget": {
+    "timesteps": 1000000,
+    "episodes": 5921,
+    "env_steps": 1000000,
+    "wall_time_s": 686.9
+  },
+  "optimizer_state": "no guardado: los runs no se continúan desde este checkpoint",
+  "evaluation_uri": "artifacts/N2/N2-exp04-ppo-8env-s42-77a671dc/evaluation.json",
+  "evaluation_summary": {
+    "episodes": 100,
+    "success_rate": 0.12,
+    "outcomes": {
+      "success": 12,
+      "obstacle": 7,
+      "pedestrian": 0,
+      "boundary": 0,
+      "timeout": 81
+    },
+    "mean_return": -6.665,
+    "mean_time_s": 34.412,
+    "mean_final_distance_m": 6.671,
+    "mean_final_heading_error_deg": 54.839,
+    "mean_latency_ms": 0.142
+  }
+}

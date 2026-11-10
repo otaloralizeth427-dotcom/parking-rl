@@ -1,0 +1,67 @@
+{
+  "run_id": "N2-exp03-ppo-s44-ed2a1376",
+  "experiment_id": "N2-exp03-ppo",
+  "level_id": "N2",
+  "agent": "ppo",
+  "hypothesis": "exp01 y exp02 fallaron porque el auto no veía el cono (en 36 de 67 choques ningún sensor lo detectó). Con 5 sensores de parachoques, la receta de N1-exp03-ppo desde cero aprende a rodearlo y supera al modelo de N1 sin reentrenar (33 %).",
+  "change_vs_baseline": "Igual que N2-exp01-ppo; cambia la observación (14 → 19 valores, ambiente parking-v3): es una familia de modelos nueva.",
+  "environment_version": "parking-v3",
+  "environment_kwargs": {
+    "difficulty": "hard",
+    "sensor_noise": 0.0,
+    "pedestrians": 0,
+    "cones": 3,
+    "blocking_cones": 1,
+    "bumper_sensors": 5
+  },
+  "observation_shape": [
+    19
+  ],
+  "git_commit": "e115cbbf923c1b48124a3954a04c31d27551a576",
+  "git_branch": "feature/nivel-2",
+  "git_dirty": false,
+  "config_uri": "artifacts/N2/N2-exp03-ppo-s44-ed2a1376/config.json",
+  "config_sha256": "0d2c9009f71166845874f695043fa87286fee535d50d01c3a424c7ae9c9ed296",
+  "seed": 44,
+  "parent_run_id": null,
+  "origin": "desde cero",
+  "parent_model_sha256": null,
+  "evaluation_suite_id": "N2-suite-v1",
+  "mlflow": {
+    "tracking_uri": "sqlite:///mlflow.db",
+    "experiment": "parking-N2",
+    "run_id": "ed2a13765ee34038a23cc88b5583d31e"
+  },
+  "created_at": "2026-11-10T19:52:55+00:00",
+  "status": "completed",
+  "model_uri": "artifacts/N2/N2-exp03-ppo-s44-ed2a1376/model.zip",
+  "model_sha256": "ca0bbacd8494f56d9915e37f29d87aa428da7ef7072c6c9dd7e64d0989d884b3",
+  "normalization_uri": "envs/parking_env.py#ParkingEnv._observation (escalado fijo dentro del ambiente; sin normalización aprendida)",
+  "observation_contract": "Box(19,) float32 · ver docs/ficha_ambiente.md",
+  "action_contract": "Discrete(5): avanzar, retroceder, izquierda, derecha, frenar",
+  "runtime_ref": "python 3.12.7 · requirements.lock.txt sha256:76cff4f909c98d69",
+  "budget": {
+    "timesteps": 1000000,
+    "episodes": 5974,
+    "env_steps": 1000000,
+    "wall_time_s": 816.2
+  },
+  "optimizer_state": "no guardado: los runs no se continúan desde este checkpoint",
+  "evaluation_uri": "artifacts/N2/N2-exp03-ppo-s44-ed2a1376/evaluation.json",
+  "evaluation_summary": {
+    "episodes": 100,
+    "success_rate": 0.0,
+    "outcomes": {
+      "success": 0,
+      "obstacle": 4,
+      "pedestrian": 0,
+      "boundary": 2,
+      "timeout": 94
+    },
+    "mean_return": -18.086,
+    "mean_time_s": 38.078,
+    "mean_final_distance_m": 8.654,
+    "mean_final_heading_error_deg": 72.544,
+    "mean_latency_ms": 0.066
+  }
+}

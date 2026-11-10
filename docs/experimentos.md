@@ -91,3 +91,76 @@ El 97 % se mantiene en casos nunca vistos: el modelo no memorizó la suite de se
 1. Hacer confiable la receta: currículo (empezar más cerca del cupo) o más entropía al inicio, y repetir
    con 3 semillas. Éxito = las 3 semillas por encima de la regla.
 2. Usar el PPO s42 como punto de partida (`parent_run_id`) para los niveles 2 a 4 en lugar de entrenar desde cero.
+
+---
+
+## Nivel 2 · Conos en el pasillo (`configs/levels/N2.json`)
+
+Igual que N1, más 3 conos sueltos en el pasillo y 1 cono justo en la línea recta entre el arranque y el
+cupo (67 de los 100 episodios de la suite lo tienen). Suite: `N2-suite-v1` (100 episodios, semillas
+100000–100099). Rama `feature/nivel-2`. Paleta de la web: menta y coral.
+
+### Referencias
+
+| Política | Éxito en `N2-suite-v1` | Qué muestra |
+|---|---|---|
+| Aleatoria | 0 % | piso |
+| Regla | 18 % (77 choques) | la regla no esquiva: va recto hacia el cupo |
+| PPO de N1 (`N1-exp03-ppo-s42`) sin reentrenar | 33 % (59 choques) | sabe estacionar, pero no esquiva; medido con la primera definición de N2 (sin sensores de parachoques, misma disposición de conos) |
+
+### Experimentos
+
+| Experimento | Hipótesis | Cambio | Resultado (s42 / s43 / s44) | Decisión |
+|---|---|---|---|---|
+| `N2-exp01-ppo` | La receta de N1-exp03 desde cero rodea el cono | solo el nivel | 0 % | rechazada |
+| `N2-exp02-ppo-ft` | Continuar el PPO de N1 (que ya estaciona) aprende a esquivar con 500 k pasos | `parent_run_id` = N1-exp03-ppo-s42 | 11 % | rechazada |
+| `N2-exp03-ppo` | Con 5 sensores de parachoques (ver diagnóstico) la receta desde cero supera el 33 % | observación 14 → 19 (`parking-v3`) | 0 / 0 / 0 % | rechazada |
+| `N2-exp04-ppo-8env` | 8 ambientes en paralelo vuelven confiable la receta entre semillas | `n_envs` 1 → 8 | 12 / 5 / 0 % | rechazada |
+| `N2-exp05-ppo-curriculo` | Un currículo que empieza con la nariz en el cupo da señal desde el inicio: las 3 semillas superan a la regla | 4 etapas, mismos 1 M de pasos | 37 / 24 / 30 % | **aceptada** (las 3 > 18 %), pero no supera con claridad el 33 % |
+| `N2-exp06-ppo-curriculo-3m` | La validación de exp05 seguía subiendo: con 3 M de pasos las 3 semillas superan el 60 % | etapa final 450 k → 2.45 M pasos | **62 / 67 / 80 %** | **aceptada** |
+
+Commits: exp01–02 `4a18d9b`, exp03–04 `e115cbb`, exp05 `4b81a8d`, exp06 `6257669`; todos con
+`git_dirty: false`. Tiempo: 1 M de pasos ≈ 9–13 min por run; 3 M ≈ 31 min.
+
+### Diagnóstico que cambió el ambiente (`parking-v2` → `parking-v3`)
+
+Tras exp01 y exp02 se revisó por qué chocaba: se condujo el auto en línea recta hacia el cono en los 67
+episodios que lo tienen y **en 36 ningún sensor lo detectó antes del impacto**. El cono (0.5 m) cabía entre
+dos de los 8 rayos radiales. Ningún algoritmo aprende a esquivar lo que no ve. Se agregaron 5 sensores de
+parachoques (rayos paralelos a lo ancho del frente, alcance 4 m): ahora lo detecta en los 67. Como la
+observación cambia, los modelos de N2 desde exp03 son una familia nueva; exp01 y exp02 quedan en el
+registro con `parking-v2`, marcados en la web como «otra versión del nivel».
+
+### Resultados en `N2-suite-v1` (finalistas, 3 semillas cada uno)
+
+| Receta | s42 | s43 | s44 | Media ± desv. | Tiempo medio | Error final |
+|---|---|---|---|---|---|---|
+| exp06 PPO currículo 3 M | 62 % | 67 % | 80 % | **70 % ± 8** | 12–16 s | 2.2–3.9 m |
+| exp05 PPO currículo 1 M | 37 % | 24 % | 30 % | 30 % ± 5 | 24–31 s | 5.7–7.4 m |
+| Regla | | | | 18 % | 4.4 s | 7.9 m |
+
+Gráficas: `results/N2/comparison.png` y `results/N2/curves.png`.
+
+### Test final reservado (`N2-final-v1`)
+
+| Política | Éxito | Choque | Salida | Tiempo agotado |
+|---|---|---|---|---|
+| Regla | 13 % | 80 | 7 | 0 |
+| **exp06 PPO · s44** | **80 %** | 5 | 0 | 15 |
+| exp05 PPO · s42 | 38 % | 7 | 1 | 54 |
+
+El 80 % se repite en episodios nunca vistos.
+
+### Análisis y decisión
+
+- **El currículo resolvió el problema que N1 dejó abierto.** Sin él, PPO dependía de encontrar un éxito por
+  suerte (N1: 97 / 0 / 0 %; N2-exp03: 0 / 0 / 0 %). Con él, las 6 semillas de exp05 y exp06 aprenden.
+- **Más presupuesto en la etapa final** llevó de 30 % a 70 % de media y redujo el tiempo de estacionamiento
+  a la mitad.
+- **Modelo servido en N2: `N2-exp06-ppo-curriculo-3m-s44-7f36a120`** (80 % en la suite y en el test final).
+- Lo que falla todavía: 6–19 choques con el cono y 13–25 tiempos agotados por semilla.
+
+### Siguientes hipótesis razonables
+
+1. Etapa intermedia con el cono bloqueante pero arranque cerca (para practicar el esquive aislado).
+2. Usar el modelo de N2 como punto de partida de N3 y N4 (misma familia de observaciones).

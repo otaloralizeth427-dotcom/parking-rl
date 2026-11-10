@@ -21,6 +21,24 @@ class PPOAgent:
         return cls(PPO("MlpPolicy", env, seed=seed, verbose=0, device="cpu",
                        policy_kwargs=policy_kwargs, **hyperparams))
 
+    # Hiperparámetros que se pueden cambiar al continuar un checkpoint; el resto viene del padre
+    CONTINUE_OVERRIDES = ("learning_rate", "ent_coef")
+
+    @classmethod
+    def continue_from(cls, parent: "PPOAgent", env, seed: int, **overrides) -> "PPOAgent":
+        unknown = set(overrides) - set(cls.CONTINUE_OVERRIDES)
+        if unknown:
+            raise ValueError(f"Al continuar un checkpoint solo se pueden cambiar {cls.CONTINUE_OVERRIDES}: {sorted(unknown)}")
+        model = parent.model
+        model.set_env(env)
+        model.set_random_seed(seed)
+        if "ent_coef" in overrides:
+            model.ent_coef = float(overrides["ent_coef"])
+        if "learning_rate" in overrides:
+            model.learning_rate = float(overrides["learning_rate"])
+            model._setup_lr_schedule()
+        return cls(model)
+
     def act(self, obs: np.ndarray, greedy: bool = True) -> int:
         action, _ = self.model.predict(obs, deterministic=greedy)
         return int(action)

@@ -1,0 +1,63 @@
+{
+  "run_id": "N2-exp01-ppo-s42-6bdc7ae6",
+  "experiment_id": "N2-exp01-ppo",
+  "level_id": "N2",
+  "agent": "ppo",
+  "hypothesis": "La receta ganadora de N1 (PPO, 1 M de pasos, ent_coef 0.05) entrenada desde cero en N2 aprende a rodear el cono y supera al modelo de N1 usado sin reentrenar (33 %).",
+  "change_vs_baseline": "Misma configuración que N1-exp03-ppo; solo cambia el nivel (N1 → N2).",
+  "environment_version": "parking-v2",
+  "environment_kwargs": {
+    "difficulty": "hard",
+    "sensor_noise": 0.0,
+    "pedestrians": 0,
+    "cones": 3,
+    "blocking_cones": 1
+  },
+  "git_commit": "4a18d9b3321e75eb3ca81bc2535f0872835f2a54",
+  "git_branch": "feature/nivel-2",
+  "git_dirty": false,
+  "config_uri": "artifacts/N2/N2-exp01-ppo-s42-6bdc7ae6/config.json",
+  "config_sha256": "aaa20c31a6745e30522657c39f09a9498b8e875524a91e2375689d4b588f2ef2",
+  "seed": 42,
+  "parent_run_id": null,
+  "origin": "desde cero",
+  "parent_model_sha256": null,
+  "evaluation_suite_id": "N2-suite-v1",
+  "mlflow": {
+    "tracking_uri": "sqlite:///mlflow.db",
+    "experiment": "parking-N2",
+    "run_id": "6bdc7ae602c24db7be3fcd02ce86781e"
+  },
+  "created_at": "2026-11-10T19:41:25+00:00",
+  "status": "completed",
+  "model_uri": "artifacts/N2/N2-exp01-ppo-s42-6bdc7ae6/model.zip",
+  "model_sha256": "4216fccbaba37b155e74d90c1fb2927bc5fcbc59c031366cef77a17e802ec20a",
+  "normalization_uri": "envs/parking_env.py#ParkingEnv._observation (escalado fijo dentro del ambiente; sin normalización aprendida)",
+  "observation_contract": "Box(14,) float32 · ver docs/ficha_ambiente.md",
+  "action_contract": "Discrete(5): avanzar, retroceder, izquierda, derecha, frenar",
+  "runtime_ref": "python 3.12.7 · requirements.lock.txt sha256:76cff4f909c98d69",
+  "budget": {
+    "timesteps": 1000000,
+    "episodes": 6462,
+    "env_steps": 1000000,
+    "wall_time_s": 474.1
+  },
+  "optimizer_state": "no guardado: los runs no se continúan desde este checkpoint",
+  "evaluation_uri": "artifacts/N2/N2-exp01-ppo-s42-6bdc7ae6/evaluation.json",
+  "evaluation_summary": {
+    "episodes": 100,
+    "success_rate": 0.0,
+    "outcomes": {
+      "success": 0,
+      "obstacle": 12,
+      "pedestrian": 0,
+      "boundary": 0,
+      "timeout": 88
+    },
+    "mean_return": -31.768,
+    "mean_time_s": 35.88,
+    "mean_final_distance_m": 9.663,
+    "mean_final_heading_error_deg": 66.858,
+    "mean_latency_ms": 0.069
+  }
+}
