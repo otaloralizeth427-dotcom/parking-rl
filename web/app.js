@@ -933,17 +933,19 @@ function renderCar(now) {
 
   // Sensores
   const [hl, hw] = sim.carHalf;
-  const range = sim.frame?.sensor_range ?? 8;
   sensorGroup.visible = sim.showSensors;
   sim.frame?.sensors.forEach((s, i) => {
     const sensor = sensors[i];
+    const range = s.range ?? sim.frame.sensor_range ?? 8;
     const c = Math.cos(s.angle), sn = Math.sin(s.angle);
-    const body = Math.min(Math.abs(c) > 1e-6 ? hl / Math.abs(c) : Infinity, Math.abs(sn) > 1e-6 ? hw / Math.abs(sn) : Infinity);
     const dist = Math.max(pose.sensors[i] ?? s.distance, 0.02);
-    sensor.beam.position.set(c * body, 0, -sn * body);
+    // Rayos radiales: salen del borde de la carrocería. Parachoques: desde su punto (adelante, izquierda)
+    const body = Math.min(Math.abs(c) > 1e-6 ? hl / Math.abs(c) : Infinity, Math.abs(sn) > 1e-6 ? hw / Math.abs(sn) : Infinity);
+    const [ox, oy] = s.origin ?? [c * body, sn * body];
+    sensor.beam.position.set(ox, 0, -oy);
     sensor.beam.rotation.y = s.angle;
     sensor.beam.scale.x = dist;
-    sensor.hit.position.set(c * (body + dist), 0, -sn * (body + dist));
+    sensor.hit.position.set(ox + c * dist, 0, -(oy + sn * dist));
     sensor.hit.visible = dist < range - 0.05;
     const danger = THREE.MathUtils.clamp(1 - (dist - 0.5) / 2, 0, 1);
     sensor.material.color.setHex(PALETTE.sensor).lerp(dangerColor, danger);
@@ -1147,7 +1149,8 @@ async function refreshConfig() {
     const option = document.createElement("option");
     option.value = a.id;
     const rate = a.test_success_rate == null ? "" : ` · éxito ${Math.round(a.test_success_rate * 100)}%`;
-    option.textContent = a.available ? `${a.label}${rate}` : `${a.label} · ${a.status} (sin checkpoint)`;
+    option.textContent = a.available ? `${a.label}${rate}`
+      : a.status === "otra versión del nivel" ? `${a.label} · ${a.status}` : `${a.label} · ${a.status} (sin checkpoint)`;
     option.disabled = !a.available;
     return option;
   }));

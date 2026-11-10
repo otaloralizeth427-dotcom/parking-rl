@@ -1,0 +1,50 @@
+{
+  "experiment_id": "N2-exp01-ppo",
+  "level_id": "N2",
+  "agent": "ppo",
+  "hypothesis": "La receta ganadora de N1 (PPO, 1 M de pasos, ent_coef 0.05) entrenada desde cero en N2 aprende a rodear el cono y supera al modelo de N1 usado sin reentrenar (33 %).",
+  "change_vs_baseline": "Misma configuración que N1-exp03-ppo; solo cambia el nivel (N1 → N2).",
+  "derived_from": "N1-exp03-ppo",
+  "seed": 42,
+  "budget": {
+    "timesteps": 1000000
+  },
+  "hyperparameters": {
+    "learning_rate": 0.0003,
+    "n_steps": 2048,
+    "batch_size": 64,
+    "n_epochs": 10,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "ent_coef": 0.05,
+    "net_arch": [
+      64,
+      64
+    ]
+  },
+  "validation": {
+    "seed_start": 200000,
+    "episodes": 20,
+    "every": 50000
+  },
+  "environment_version": "parking-v2",
+  "level": {
+    "level_id": "N2",
+    "name": "Conos en el pasillo",
+    "environment_version": "parking-v2",
+    "difficulty": "hard",
+    "cones": 3,
+    "blocking_cones": 1,
+    "pedestrians": 0,
+    "sensor_noise": 0.0,
+    "description": "Igual que N1 (arranque en el pasillo a 4-8 m del cupo), pero con 3 conos sueltos en el pasillo y 1 más justo en la línea recta hacia el cupo. La entrada al cupo siempre queda libre.",
+    "new_decision": "Decidir por dónde rodear los conos (o frenar y corregir) antes de girar hacia el cupo."
+  },
+  "evaluation_suite": {
+    "suite_id": "N2-suite-v1",
+    "level_id": "N2",
+    "seed_start": 100000,
+    "episodes": 100,
+    "deterministic": true
+  }
+}

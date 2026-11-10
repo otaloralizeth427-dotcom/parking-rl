@@ -1,0 +1,40 @@
+{
+  "experiment_id": "N2-exp02-ppo-ft",
+  "level_id": "N2",
+  "agent": "ppo",
+  "hypothesis": "Partir del PPO de N1 (que ya sabe estacionar) evita depender de la suerte de la exploración: con 500 000 pasos en N2 aprende a rodear el cono, supera el 33 % sin reentrenar y funciona con las 3 semillas.",
+  "change_vs_baseline": "Continúa el checkpoint N1-exp03-ppo-s42-64bf7433 en N2 con la mitad de pasos y ent_coef 0.01 (menos exploración: ya parte de una política buena).",
+  "parent_run_id": "N1-exp03-ppo-s42-64bf7433",
+  "seed": 42,
+  "budget": {
+    "timesteps": 500000
+  },
+  "hyperparameters": {
+    "ent_coef": 0.01
+  },
+  "validation": {
+    "seed_start": 200000,
+    "episodes": 20,
+    "every": 25000
+  },
+  "environment_version": "parking-v2",
+  "level": {
+    "level_id": "N2",
+    "name": "Conos en el pasillo",
+    "environment_version": "parking-v2",
+    "difficulty": "hard",
+    "cones": 3,
+    "blocking_cones": 1,
+    "pedestrians": 0,
+    "sensor_noise": 0.0,
+    "description": "Igual que N1 (arranque en el pasillo a 4-8 m del cupo), pero con 3 conos sueltos en el pasillo y 1 más justo en la línea recta hacia el cupo. La entrada al cupo siempre queda libre.",
+    "new_decision": "Decidir por dónde rodear los conos (o frenar y corregir) antes de girar hacia el cupo."
+  },
+  "evaluation_suite": {
+    "suite_id": "N2-suite-v1",
+    "level_id": "N2",
+    "seed_start": 100000,
+    "episodes": 100,
+    "deterministic": true
+  }
+}

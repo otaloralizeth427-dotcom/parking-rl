@@ -15,8 +15,8 @@ from fastapi.staticfiles import StaticFiles
 
 from agents.registry import list_manifests, load_manifest, load_policy
 from agents.rule_based import RuleBasedPolicy
-from envs.levels import LEVEL_IDS, env_kwargs, load_level
-from envs.parking_env import ACTION_NAMES, ENV_VERSION, ParkingEnv
+from envs.levels import LEVEL_IDS, env_kwargs, load_level, model_matches_level
+from envs.parking_env import ACTION_NAMES, ParkingEnv
 
 ROOT = Path(__file__).resolve().parents[1]
 WEB_DIR = ROOT / "web"
@@ -58,7 +58,7 @@ class SimulationSession:
         return handlers[cmd]()
 
     def config(self) -> dict:
-        return {"type": "config", "actions": ACTION_NAMES, "environment_version": ENV_VERSION,
+        return {"type": "config", "actions": ACTION_NAMES, "environment_version": self.environment_version,
                 "levels": [{"id": lid, "name": load_level(lid)["name"]} for lid in LEVEL_IDS],
                 "level": self.level_id, "sensor_noise": self.sensor_noise,
                 "agent": self.agent_name, "agents": self.catalog(),
@@ -69,10 +69,11 @@ class SimulationSession:
         items = [{"id": key, **info, "available": True} for key, info in BASELINES.items()]
         for m in list_manifests(self.level_id):
             summary = m.get("evaluation_summary") or {}
+            matches = model_matches_level(m, self.level_id)
             items.append({
                 "id": m["run_id"], "label": f"{m['agent'].upper()} · {m['experiment_id']}",
-                "mode": "Evaluación (modelo congelado)", "available": m["status"] == "completed",
-                "status": m["status"], "agent": m["agent"], "seed": m["seed"],
+                "mode": "Evaluación (modelo congelado)", "available": m["status"] == "completed" and matches,
+                "status": m["status"] if matches else "otra versión del nivel", "agent": m["agent"], "seed": m["seed"],
                 "git_commit": m["git_commit"], "environment_version": m["environment_version"],
                 "model_sha256": m.get("model_sha256"), "created_at": m["created_at"],
                 "test_success_rate": summary.get("success_rate"), "diagnostic": m.get("diagnostic"),
@@ -176,6 +177,7 @@ class SimulationSession:
         self.env_kwargs = kwargs
         self.env = ParkingEnv(**kwargs)
         self.level_id, self.sensor_noise = level_id, kwargs["sensor_noise"]
+        self.environment_version = level["environment_version"]
         self.status = "idle"
 
     def _default_agent(self) -> str:
@@ -219,7 +221,7 @@ class SimulationSession:
             **self.env.render_state(),
             "episode": self.episode,
             "level": self.level_id,
-            "environment_version": ENV_VERSION,
+            "environment_version": self.environment_version,
             "collision_kind": self.collision_kind,
             "status": self.status,
             "reward": self.last_reward,

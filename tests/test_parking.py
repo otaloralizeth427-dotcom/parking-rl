@@ -309,11 +309,12 @@ def test_websocket_commands(client):
 # ---------------------------------------------------------------- niveles
 def test_levels_match_environment_version():
     from envs.levels import LEVEL_IDS, load_level, make_env
-    from envs.parking_env import ENV_VERSION
+    from envs.parking_env import SUPPORTED_VERSIONS
     for level_id in LEVEL_IDS:
-        assert load_level(level_id)["environment_version"] == ENV_VERSION
-        obs, _ = make_env(level_id).reset(seed=0)
-        assert obs.shape == (14,)
+        assert load_level(level_id)["environment_version"] in SUPPORTED_VERSIONS
+        env = make_env(level_id)
+        obs, _ = env.reset(seed=0)
+        assert obs.shape == env.observation_space.shape == (14 + env.bumper_sensors,)
     with pytest.raises(ValueError):
         load_level("N9")
 
@@ -481,6 +482,10 @@ def test_ppo_continues_from_registered_checkpoint(tmp_path, monkeypatch):
     config = pipeline.load_experiment("configs/experiments/N2-exp02-ppo-ft.json")
     config.update({"experiment_id": "test-ft", "budget": {"timesteps": 128},
                    "validation": {"episodes": 1, "every": 128}})
+    # N2 observa 19 valores (sensores de parachoques) y el padre de N1 observa 14: otra familia
+    with pytest.raises(ValueError, match="otra familia"):
+        pipeline.run_experiment(config)
+    config["level_id"] = "N1"
     manifest = pipeline.run_experiment(config)
     assert manifest["status"] == "completed" and manifest["origin"] == "continuación de checkpoint"
     assert manifest["parent_model_sha256"] == pipeline.load_manifest(config["parent_run_id"])["model_sha256"]

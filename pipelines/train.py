@@ -22,7 +22,6 @@ import numpy as np
 
 from agents.registry import ARTIFACTS_DIR, MANIFESTS_DIR, load_manifest, sha256_file
 from envs.levels import env_kwargs, load_level, make_env
-from envs.parking_env import ENV_VERSION
 from pipelines.evaluate import evaluate, run_case, suite_for_level
 
 os.environ.setdefault("MLFLOW_DISABLE_AGENT_HINT", "1")
@@ -55,7 +54,7 @@ def resolve(config: dict) -> dict:
         raise ValueError(f"El agente {config['agent']} necesita budget.{unit} > 0")
     return {
         **config,
-        "environment_version": ENV_VERSION,
+        "environment_version": load_level(config["level_id"])["environment_version"],
         "level": load_level(config["level_id"]),
         "evaluation_suite": suite_for_level(config["level_id"]),
         "validation": {"seed_start": VALIDATION_SEED_START,
@@ -131,8 +130,10 @@ def parent_policy(resolved: dict):
     parent = load_manifest(resolved["parent_run_id"])
     if parent["agent"] != resolved["agent"]:
         raise ValueError(f"El padre es {parent['agent']}, no {resolved['agent']}")
-    if parent["environment_version"] != ENV_VERSION:
-        raise ValueError(f"El padre usa {parent['environment_version']}; las observaciones podrían no coincidir")
+    child_obs = make_env(resolved["level_id"]).observation_space.shape
+    if parent.get("observation_shape", [14]) != list(child_obs):
+        raise ValueError(f"El padre observa {parent.get('observation_shape', [14])} y el nivel {list(child_obs)}: "
+                         "es otra familia de modelos y debe entrenarse desde cero")
     return load_policy(parent)
 
 
@@ -163,13 +164,20 @@ def train_ppo(resolved: dict, curves_factory):
 
     from agents.ppo_agent import PPOAgent
 
-    env = Monitor(make_env(resolved["level_id"]), info_keywords=("success",))
-    env.reset(seed=resolved["seed"])
-    if resolved.get("parent_run_id"):
-        agent = PPOAgent.continue_from(parent_policy(resolved), env, seed=resolved["seed"],
-                                       **resolved["hyperparameters"])
+    hyperparams = dict(resolved["hyperparameters"])
+    n_envs = int(hyperparams.pop("n_envs", 1))   # copias del ambiente que recogen experiencia en paralelo
+    make = lambda: Monitor(make_env(resolved["level_id"]), info_keywords=("success",))  # noqa: E731
+    if n_envs > 1:
+        from stable_baselines3.common.vec_env import DummyVecEnv
+        env = DummyVecEnv([make] * n_envs)
+        env.seed(resolved["seed"])
     else:
-        agent = PPOAgent.create(env, seed=resolved["seed"], **resolved["hyperparameters"])
+        env = make()
+        env.reset(seed=resolved["seed"])
+    if resolved.get("parent_run_id"):
+        agent = PPOAgent.continue_from(parent_policy(resolved), env, seed=resolved["seed"], **hyperparams)
+    else:
+        agent = PPOAgent.create(env, seed=resolved["seed"], **hyperparams)
     curves = curves_factory(lambda: agent)
     episodes = 0
 
@@ -212,7 +220,7 @@ def run_experiment(config: dict, progress=None) -> dict:
         mlflow.log_params({k: str(v)[:250] for k, v in flatten(
             {k: resolved[k] for k in ("agent", "seed", "budget", "hyperparameters", "level_id")}).items()})
         mlflow.set_tags({"run_id": run_id, "git_commit": git["commit"], "git_branch": git["branch"],
-                         "git_dirty": git["dirty"], "environment_version": ENV_VERSION,
+                         "git_dirty": git["dirty"], "environment_version": resolved["environment_version"],
                          "level_id": resolved["level_id"], "hypothesis": resolved["hypothesis"],
                          "change_vs_baseline": resolved["change_vs_baseline"], "config_sha256": cfg_sha,
                          "parent_run_id": resolved.get("parent_run_id") or "none"})
@@ -220,7 +228,8 @@ def run_experiment(config: dict, progress=None) -> dict:
             "run_id": run_id, "experiment_id": resolved["experiment_id"], "level_id": resolved["level_id"],
             "agent": resolved["agent"], "hypothesis": resolved["hypothesis"],
             "change_vs_baseline": resolved["change_vs_baseline"],
-            "environment_version": ENV_VERSION, "environment_kwargs": env_kwargs(resolved["level"]),
+            "environment_version": resolved["environment_version"], "environment_kwargs": env_kwargs(resolved["level"]),
+            "observation_shape": list(make_env(resolved["level_id"]).observation_space.shape),
             "git_commit": git["commit"], "git_branch": git["branch"], "git_dirty": git["dirty"],
             "config_uri": str((out_dir / "config.json").relative_to(ROOT)), "config_sha256": cfg_sha,
             "seed": resolved["seed"], "parent_run_id": resolved.get("parent_run_id"),
@@ -256,7 +265,7 @@ def run_experiment(config: dict, progress=None) -> dict:
                 "model_uri": str(model_path.relative_to(ROOT)), "model_sha256": sha256_file(model_path),
                 "normalization_uri": "envs/parking_env.py#ParkingEnv._observation "
                                      "(escalado fijo dentro del ambiente; sin normalización aprendida)",
-                "observation_contract": "Box(14,) float32 · ver docs/ficha_ambiente.md",
+                "observation_contract": f"Box({manifest['observation_shape'][0]},) float32 · ver docs/ficha_ambiente.md",
                 "action_contract": "Discrete(5): avanzar, retroceder, izquierda, derecha, frenar",
                 "runtime_ref": f"python {platform.python_version()} · requirements.lock.txt "
                                f"sha256:{sha256_file(ROOT / 'requirements.lock.txt')[:16]}",

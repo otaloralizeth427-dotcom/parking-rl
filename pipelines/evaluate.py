@@ -162,9 +162,10 @@ def baselines() -> dict:
 
 def registered_models(level_id: str) -> dict:
     from agents.registry import list_manifests, load_policy
+    from envs.levels import model_matches_level
     models = {}
     for manifest in list_manifests(level_id):
-        if manifest["status"] == "completed":
+        if manifest["status"] == "completed" and model_matches_level(manifest, level_id):
             label = f"{manifest['agent'].upper()} · {manifest['run_id']}"
             models[manifest["run_id"]] = (label, load_policy(manifest))
     return models
