@@ -71,7 +71,7 @@ class SimulationSession:
             summary = m.get("evaluation_summary") or {}
             matches = model_matches_level(m, self.level_id)
             items.append({
-                "id": m["run_id"], "label": f"{m['agent'].upper()} · {m['experiment_id']}",
+                "id": m["run_id"], "label": f"{m['agent'].upper()} · {m['experiment_id']} · s{m['seed']}",
                 "mode": "Evaluación (modelo congelado)", "available": m["status"] == "completed" and matches,
                 "status": m["status"] if matches else "otra versión del nivel", "agent": m["agent"], "seed": m["seed"],
                 "git_commit": m["git_commit"], "environment_version": m["environment_version"],
