@@ -1,0 +1,69 @@
+{
+  "run_id": "N3-exp03-ppo-ft-v4-s42-0ed8b226",
+  "experiment_id": "N3-exp03-ppo-ft-v4",
+  "level_id": "N3",
+  "agent": "ppo",
+  "hypothesis": "En parking-v3 el auto y el peatón podían quedarse esperándose («usted primero») hasta agotar el tiempo: 4 de 100 episodios del modelo servido. Con parking-v4 (el peatón sigue si el auto está quieto) la misma receta de exp01 elimina esos timeouts y mantiene el éxito >= 85 % en las 3 semillas.",
+  "change_vs_baseline": "Igual que N3-exp01-ppo-ft (continúa N2-exp06-ppo-curriculo-3m-s44-7f36a120, 1M pasos, ent_coef 0.01), pero entrenado y evaluado en N3 con parking-v4 (pedestrians_yield).",
+  "environment_version": "parking-v4",
+  "environment_kwargs": {
+    "difficulty": "normal",
+    "sensor_noise": 0.0,
+    "pedestrians": 2,
+    "cones": 0,
+    "blocking_cones": 0,
+    "bumper_sensors": 5,
+    "crossing_pedestrians": 1,
+    "pedestrians_yield": true
+  },
+  "observation_shape": [
+    19
+  ],
+  "git_commit": "9326ea3d6094dbf3356a71f299b3d1967fa2393f",
+  "git_branch": "fix/nivel-3-peatones",
+  "git_dirty": false,
+  "config_uri": "artifacts/N3/N3-exp03-ppo-ft-v4-s42-0ed8b226/config.json",
+  "config_sha256": "351a06942caf811b27e4ad8dd557361a399a9aa9a5e7d453c6dab7c54f69e824",
+  "seed": 42,
+  "parent_run_id": "N2-exp06-ppo-curriculo-3m-s44-7f36a120",
+  "origin": "continuación de checkpoint",
+  "parent_model_sha256": "dee5936a73a879dac19bf79324d2fd88dc459d89512632b8a89dd410327b60b3",
+  "evaluation_suite_id": "N3-suite-v1",
+  "mlflow": {
+    "tracking_uri": "sqlite:///mlflow.db",
+    "experiment": "parking-N3",
+    "run_id": "0ed8b2269cf54e0cb8969be1e4f43097"
+  },
+  "created_at": "2026-11-10T23:14:48+00:00",
+  "status": "completed",
+  "model_uri": "artifacts/N3/N3-exp03-ppo-ft-v4-s42-0ed8b226/model.zip",
+  "model_sha256": "4630f2c38166aefa56cd484dab4d2cb82f253dda9c9abcd0b2e8e3f346bcd607",
+  "normalization_uri": "envs/parking_env.py#ParkingEnv._observation (escalado fijo dentro del ambiente; sin normalización aprendida)",
+  "observation_contract": "Box(19,) float32 · ver docs/ficha_ambiente.md",
+  "action_contract": "Discrete(5): avanzar, retroceder, izquierda, derecha, frenar",
+  "runtime_ref": "python 3.12.7 · requirements.lock.txt sha256:76cff4f909c98d69",
+  "budget": {
+    "timesteps": 1000000,
+    "episodes": 26517,
+    "env_steps": 1000000,
+    "wall_time_s": 850.1
+  },
+  "optimizer_state": "no guardado: los runs no se continúan desde este checkpoint",
+  "evaluation_uri": "artifacts/N3/N3-exp03-ppo-ft-v4-s42-0ed8b226/evaluation.json",
+  "evaluation_summary": {
+    "episodes": 100,
+    "success_rate": 0.86,
+    "outcomes": {
+      "success": 86,
+      "obstacle": 0,
+      "pedestrian": 13,
+      "boundary": 0,
+      "timeout": 1
+    },
+    "mean_return": 83.891,
+    "mean_time_s": 6.986,
+    "mean_final_distance_m": 1.454,
+    "mean_final_heading_error_deg": 10.265,
+    "mean_latency_ms": 0.102
+  }
+}

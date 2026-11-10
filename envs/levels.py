@@ -39,4 +39,5 @@ def env_kwargs(level: dict) -> dict:
     return {"difficulty": level["difficulty"], "sensor_noise": level["sensor_noise"],
             "pedestrians": level.get("pedestrians", 0), "cones": level.get("cones"),
             "blocking_cones": level.get("blocking_cones", 0), "bumper_sensors": level.get("bumper_sensors", 0),
-            "crossing_pedestrians": level.get("crossing_pedestrians", 0)}
+            "crossing_pedestrians": level.get("crossing_pedestrians", 0),
+            **({"pedestrians_yield": True} if level.get("pedestrians_yield") else {})}

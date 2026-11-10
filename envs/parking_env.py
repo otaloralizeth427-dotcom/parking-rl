@@ -20,9 +20,9 @@ DIFFICULTIES = ("tutorial", "easy", "normal", "hard")   # tutorial: solo para et
 
 # Cambia cuando cambian observaciones, acciones, dinámica o recompensa:
 # un modelo solo es compatible con la versión con que fue entrenado.
-ENV_VERSION = "parking-v3"   # v3: cono bloqueante, peatón que cruza la ruta y sensores de parachoques (N2, N3)
+ENV_VERSION = "parking-v4"   # v3: cono bloqueante, peatón que cruza y sensores de parachoques; v4: peatones que no se congelan
 # Versiones que este código reproduce: con sus valores por defecto, v3 se comporta exactamente como v2
-SUPPORTED_VERSIONS = ("parking-v2", "parking-v3")
+SUPPORTED_VERSIONS = ("parking-v2", "parking-v3", "parking-v4")
 
 
 @dataclass(frozen=True)
@@ -54,7 +54,8 @@ class ParkingConfig:
     park_margin: float = 0.15        # holgura de las esquinas fuera del cupo
     pedestrian_half: float = 0.25    # peatón como caja de 0.5 × 0.5 m
     pedestrian_speed: tuple = (0.8, 1.3)   # m/s
-    pedestrian_clearance: float = 0.6      # se detienen si el auto está a menos de esto
+    pedestrian_clearance: float = 0.6      # se detienen si el auto (en movimiento) está a menos de esto
+    pedestrian_yield_speed: float = 0.1    # por debajo de esta velocidad el auto está cediendo el paso (v4)
     # Recompensas
     r_time: float = -0.05
     r_idle: float = -0.15            # detenido fuera del cupo: evita políticas que se "congelan"
@@ -144,7 +145,8 @@ class ParkingEnv(gym.Env):
 
     def __init__(self, difficulty: str = "normal", sensor_noise: float = 0.0,
                  config: ParkingConfig | None = None, pedestrians: int = 0, cones: int | None = None,
-                 blocking_cones: int = 0, bumper_sensors: int = 0, crossing_pedestrians: int = 0):
+                 blocking_cones: int = 0, bumper_sensors: int = 0, crossing_pedestrians: int = 0,
+                 pedestrians_yield: bool = False):
         if difficulty not in DIFFICULTIES:
             raise ValueError(f"difficulty debe ser uno de {DIFFICULTIES}, no {difficulty!r}")
         if sensor_noise < 0:
@@ -165,6 +167,7 @@ class ParkingEnv(gym.Env):
         self.n_cones = cones   # None = la cantidad por defecto de la dificultad
         self.blocking_cones = blocking_cones   # 1 = un cono extra justo en la línea recta hacia el cupo
         self.crossing_pedestrians = crossing_pedestrians   # 1 = uno de los peatones cruza frente a la ruta
+        self.pedestrians_yield = bool(pedestrians_yield)   # v4: si el auto está quieto, el peatón sigue (sin «usted primero»)
         self.bumper_sensors = bumper_sensors   # rayos hacia adelante repartidos a lo ancho del parachoques
         self.cfg = config or ParkingConfig()
 
@@ -445,9 +448,20 @@ class ParkingEnv(gym.Env):
             if abs(y) > p["limit"]:                      # llegó al borde del pasillo: da la vuelta
                 p["dir"] *= -1
                 y = float(np.clip(y, -p["limit"], p["limit"]))
-            # Como un peatón real, espera si el auto está pegado a su camino
-            blocked = obb_overlaps(np.array([p["x"], y]), np.full(2, cfg.pedestrian_half), 0.0,
-                                   self.pos[None], safety[None], np.array([self.heading])).any()
+            def touches(yy, half_car):
+                return obb_overlaps(np.array([p["x"], yy]), np.full(2, cfg.pedestrian_half), 0.0,
+                                    self.pos[None], half_car[None], np.array([self.heading])).any()
+            if not self.pedestrians_yield or abs(self.speed) > cfg.pedestrian_yield_speed:
+                # El auto se mueve: el peatón espera si el auto está pegado a su camino
+                blocked = touches(y, safety)
+            else:
+                # El auto está quieto (le cede el paso): el peatón sigue; si de verdad no cabe, se devuelve.
+                # Así nunca quedan los dos esperándose («usted primero») hasta agotar el tiempo.
+                blocked = False
+                if touches(y, self._car_half + 0.1):
+                    p["dir"] *= -1
+                    y = p["y"] + p["dir"] * p["speed"] * dt
+                    blocked = touches(y, self._car_half + 0.1)
             p["moving"] = not blocked
             if not blocked:
                 p["y"] = float(y)

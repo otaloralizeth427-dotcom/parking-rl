@@ -1,0 +1,19 @@
+{
+  "experiment_id": "N3-exp03-ppo-ft-v4",
+  "level_id": "N3",
+  "agent": "ppo",
+  "hypothesis": "En parking-v3 el auto y el peatón podían quedarse esperándose («usted primero») hasta agotar el tiempo: 4 de 100 episodios del modelo servido. Con parking-v4 (el peatón sigue si el auto está quieto) la misma receta de exp01 elimina esos timeouts y mantiene el éxito >= 85 % en las 3 semillas.",
+  "change_vs_baseline": "Igual que N3-exp01-ppo-ft (continúa N2-exp06-ppo-curriculo-3m-s44-7f36a120, 1M pasos, ent_coef 0.01), pero entrenado y evaluado en N3 con parking-v4 (pedestrians_yield).",
+  "parent_run_id": "N2-exp06-ppo-curriculo-3m-s44-7f36a120",
+  "seed": 42,
+  "budget": {
+    "timesteps": 1000000
+  },
+  "hyperparameters": {
+    "ent_coef": 0.01
+  },
+  "validation": {
+    "episodes": 20,
+    "every": 50000
+  }
+}

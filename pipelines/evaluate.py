@@ -57,16 +57,30 @@ def commitment(secret: dict) -> str:
     return hashlib.sha256(json.dumps(secret, sort_keys=True).encode()).hexdigest()
 
 
+def final_versions(level_id: str) -> list[int]:
+    return sorted(int(p.stem.rsplit("-v", 1)[1]) for p in SUITES_DIR.glob(f"{level_id}-final-v*.json"))
+
+
 def create_final_suite(level_id: str, episodes: int = 100) -> dict:
-    suite_id = f"{level_id}-final-v1"
+    """Crea el test reservado una sola vez por versión del ambiente del nivel. Si el nivel cambia de versión
+    se crea vN+1: el anterior queda como histórico y sus semillas nunca se reutilizan."""
+    from envs.levels import load_level
+
+    environment_version = load_level(level_id)["environment_version"]
+    versions = final_versions(level_id)
+    if versions:
+        latest = load_suite(f"{level_id}-final-v{versions[-1]}")
+        if latest.get("environment_version") == environment_version:
+            raise FileExistsError(f"{latest['suite_id']} ya existe para {environment_version}: "
+                                  "el test final no se regenera")
+    suite_id = f"{level_id}-final-v{(versions[-1] if versions else 0) + 1}"
     public_path = SUITES_DIR / f"{suite_id}.json"
-    if public_path.exists():
-        raise FileExistsError(f"{suite_id} ya existe: el test final no se regenera")
     secret = {"suite_id": suite_id, "seed_start": 10_000_000 + secrets.randbelow(10_000_000),
               "salt": secrets.token_hex(16)}
     SECRET_DIR.mkdir(parents=True, exist_ok=True)
     (SECRET_DIR / f"{suite_id}.json").write_text(json.dumps(secret, indent=2))
-    public = {"suite_id": suite_id, "level_id": level_id, "episodes": episodes, "deterministic": True,
+    public = {"suite_id": suite_id, "level_id": level_id, "environment_version": environment_version,
+              "episodes": episodes, "deterministic": True,
               "reserved": True, "seed_commitment": commitment(secret),
               "description": "Test final reservado: las semillas no están en el repo; aquí solo su huella SHA-256."}
     public_path.write_text(json.dumps(public, indent=2) + "\n")
@@ -74,7 +88,10 @@ def create_final_suite(level_id: str, episodes: int = 100) -> dict:
 
 
 def final_suite(level_id: str) -> dict:
-    public = load_suite(f"{level_id}-final-v1")
+    versions = final_versions(level_id)
+    if not versions:
+        raise FileNotFoundError(f"{level_id} no tiene test final: créelo con --new-final")
+    public = load_suite(f"{level_id}-final-v{versions[-1]}")
     secret_path = SECRET_DIR / f"{public['suite_id']}.json"
     if not secret_path.exists():
         raise FileNotFoundError(f"Las semillas reservadas no están en {secret_path}")
@@ -101,6 +118,10 @@ def run_final(level_id: str, run_ids: list[str]) -> dict:
                                    "outcomes_by_case": [c["outcome"] for c in result["cases"]]}
     out = RESULTS_DIR / level_id / "final_test.json"
     out.parent.mkdir(parents=True, exist_ok=True)
+    if out.exists():                    # el resultado de un test final anterior se conserva como histórico
+        previous = json.loads(out.read_text())
+        if previous["suite_id"] != suite["suite_id"]:
+            out.rename(out.with_name(f"final_test_{previous['suite_id']}.json"))
     out.write_text(json.dumps(report, indent=2))
     print_table(report["policies"])
     return report
