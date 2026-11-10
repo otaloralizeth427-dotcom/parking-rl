@@ -1,0 +1,9 @@
+{
+  "suite_id": "N3-final-v1",
+  "level_id": "N3",
+  "episodes": 100,
+  "deterministic": true,
+  "reserved": true,
+  "seed_commitment": "cc8464953d305d840b8e8e62077201b412f1c3f45c493809ca88084f579bdb2b",
+  "description": "Test final reservado: las semillas no est\u00e1n en el repo; aqu\u00ed solo su huella SHA-256."
+}
