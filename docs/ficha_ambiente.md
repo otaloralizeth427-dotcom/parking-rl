@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| Versión del contrato | `parking-v4` (`envs/parking_env.py: ENV_VERSION`); cada nivel declara la versión que usa (N1: `parking-v2`, N2: `parking-v3`, N3: `parking-v4`) |
+| Versión del contrato | `parking-v5` (`envs/parking_env.py: ENV_VERSION`); cada nivel declara la versión que usa (N1: `parking-v2`, N2: `parking-v3`, N3: `parking-v4`, N4: `parking-v5`) |
 | Implementación | `envs.parking_env.ParkingEnv` (Gymnasium 1.x) |
 | Misión | Llevar el vehículo al cupo objetivo y detenerlo alineado, sin chocar |
 | Unidades | metros, segundos, radianes, m/s |
@@ -91,7 +91,7 @@ tag. Los niveles anteriores siguen disponibles.
 | N1 · Misión base | ✅ `nivel-1` | arranca en el pasillo a 4–8 m del cupo, rodeado de autos estacionados; 0 conos, 0 peatones, sin ruido | girar 90° hacia el cupo sin rozar a los vecinos y detenerse alineado |
 | N2 · Conos | ✅ `nivel-2` | N1 + 3 conos sueltos + 1 cono en la ruta (`difficulty: hard`, `blocking_cones: 1`) + 5 sensores de parachoques | rodear un obstáculo fijo que tapa el camino directo |
 | N3 · Peatones | ✅ `nivel-3` | N1 + 2 peatones, uno cruza la ruta (`crossing_pedestrians: 1`, `pedestrians_yield`) + sensores de parachoques | frenar y ceder el paso a un obstáculo en movimiento, y retomar (perturbación con recuperación) |
-| N4 · Todo junto | pendiente | conos + peatones + ruido en los sensores | combinar todo con sensores imprecisos (perturbación) |
+| N4 · Todo junto | ✅ `nivel-4` | N2 + N3 (3 conos + cono en la ruta, 2 peatones, uno cruza) + ruido gaussiano σ = 0.1 m en los sensores y 0.05 m en la posición del cupo | combinar todo con sensores imprecisos (perturbación) |
 
 Todos los niveles comparten las acciones. N1 observa 14 valores y N2, N3 en adelante 19: son dos familias de
 modelos. Dentro de una familia, un modelo antiguo puede evaluarse en un nivel nuevo, pero no se espera que
@@ -110,6 +110,7 @@ episodios (frente a ~0.2 % desde el pasillo).
 
 | `parking-v3` | Agrega opciones de nivel: `blocking_cones`, `crossing_pedestrians`, `bumper_sensors` y la dificultad `tutorial`. Con sus valores por defecto reproduce v2 exactamente, por eso N1 sigue declarando `parking-v2` (`SUPPORTED_VERSIONS`). |
 | `parking-v4` | Agrega `pedestrians_yield`: si el auto está quieto (|v| ≤ 0.1 m/s) el peatón sigue caminando, o se devuelve si no cabe. En v3 el auto y el peatón podían quedarse esperándose hasta el timeout (4 de 100 episodios en N3). Sin la opción reproduce v3 exactamente; solo N3 la usa. |
+| `parking-v5` | Si hay a la vez conos en el camino (`blocking_cones`) y peatón que cruza, el peatón cruza 1.5 m más allá del cono que tenga en su línea (camina todo el pasillo y no debe atravesar conos); si no cabe antes del cupo se omite. Sin esa combinación reproduce v4 exactamente; solo N4 la usa. |
 
 ## Simplificaciones
 

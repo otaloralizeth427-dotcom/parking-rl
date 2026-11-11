@@ -8,7 +8,7 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
-import { themeFor } from "./themes.js";
+import { themeFor } from "./themes.js?v=2";
 
 // La paleta depende del nivel activo en el servidor; al cambiar de nivel la página se recarga
 const THEME = themeFor(await fetch("api/config").then((r) => r.json()).then((c) => c.level).catch(() => "N1"));

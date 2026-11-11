@@ -246,4 +246,59 @@ Los atropellos (8–13 por 100) siguen siendo la causa de fallo principal.
 
 1. Penalizar más el atropello que el choque con un objeto (hoy los dos valen −50), o una distancia de
    seguridad a los peatones en la recompensa.
-2. N4 (conos + peatones + ruido) partiendo del modelo de N3, con presupuesto corto (~250 000 pasos).
+2. N4 (conos + peatones + ruido) partiendo de un modelo anterior (hecho: ver Nivel 4).
+
+## Nivel 4 · Todo junto (`configs/levels/N4.json`)
+
+La unión de N2 y N3 con sensores imprecisos: 3 conos sueltos y 1 en la línea recta hacia el cupo, 2 peatones
+(uno cruza entre el auto y el cupo, 1.5 m después del cono) y ruido gaussiano σ = 0.1 m en las 13 distancias y
+0.05 m en la posición relativa del cupo. Misma familia de observaciones (19 valores). `parking-v5`. Suite
+`N4-suite-v1`. Rama `feature/nivel-4`. Paleta de la web: azul noche con ámbar y dorado. El peatón que cruza
+aparece en ~36 % de los episodios (en el resto no cabe entre el cono y el cupo).
+
+### Referencias
+
+| Política | Éxito en `N4-suite-v1` | Qué muestra |
+|---|---|---|
+| Aleatoria | 0 % | piso |
+| Regla | 14 % | choca con los conos (75 choques) |
+| PPO de N3 (`N3-exp03-…-s43`) sin reentrenar | 28 % | cede el paso pero se frena ante los conos (66 timeouts) |
+| PPO de N2 (`N2-exp06-…-s44`) sin reentrenar | 75 % | rodea conos; fallan los peatones (11) y el ruido |
+
+### Experimentos (commit `6c04668`, `git_dirty: false`)
+
+| Experimento | Hipótesis | Cambio | Resultado (s42 / s43 / s44) | Tiempo por run | Decisión |
+|---|---|---|---|---|---|
+| `N4-exp01-ppo-ft-n2` | Continuar el modelo de N2 (75 %) le enseña a ceder el paso con ruido: las 3 semillas > 80 % | `parent_run_id` = N2-exp06-s44; 1 M pasos; `ent_coef` 0.01 | **78 / 81 / 85 %** · media 81 % ± 3 | ~39 min | **aceptada en parte** (s42 queda en 78 %) |
+| `N4-exp02-ppo-ft-n3` | Continuar el modelo de N3 recupera el rodeo de conos y llega al menos a exp01 | `parent_run_id` = N3-exp03-s43; 1 M pasos | **73 / 72 / 73 %** · media 73 % ± 1 | ~39 min | rechazada (8 puntos menos que exp01) |
+| `N4-exp03-ppo-curriculo-3m` | La receta de currículo desde cero también funciona con todo junto: las 3 semillas > 70 % | 4 etapas sin conos ni peatones al inicio, ruido siempre; 3 M pasos | **76 / 38 / 59 %** · media 58 % ± 19 | ~78 min | rechazada (depende de la semilla; muchos timeouts) |
+
+Los tiempos son con 9 runs en paralelo en 10 núcleos. Ninguno de los timeouts de exp01 es un atasco con un
+peatón (verificado paso a paso).
+
+### Test final reservado (`N4-final-v1`, creado antes de entrenar)
+
+| Política | Éxito | Choques | Atropellos | Salidas |
+|---|---|---|---|---|
+| Regla | 16 % | 73 | 10 | 1 |
+| **exp01 · s44** | **84 %** | 6 | 6 | 0 |
+| exp02 · s42 | 85 % | 9 | 3 | 1 |
+
+### Análisis y decisión
+
+- **Desde qué modelo se parte importa más que la receta:** el modelo de N2 (que sabe de conos) aprende N4 mejor
+  que el de N3 (que sabe de peatones). Rodear conos es lo más difícil de aprender; ceder el paso se aprende rápido.
+- **El currículo desde cero dejó de ser confiable** con todo junto y ruido: una semilla llega a 76 % y otra a 38 %.
+  Con más obstáculos, 3 M de pasos no alcanzan para descubrir todo desde cero.
+- **Modelo servido en N4: `N4-exp01-ppo-ft-n2-s44-d7bcb153`** (85 % en la suite, elegido con la suite; 84 % en el
+  test final). En el test final exp02 queda a 1 punto, dentro de la variación entre semillas, pero en la suite
+  exp01 es mejor en las 3 semillas.
+- Lo que falla todavía: 5–7 choques con conos y 5–7 atropellos por cada 100 episodios.
+
+### Siguientes hipótesis razonables
+
+1. La validación de exp01 (20 episodios) ronda el 85–100 % desde los primeros 50 000 pasos y no muestra una
+   tendencia clara: más pasos con la misma receta probablemente aportan poco. Antes de gastar más presupuesto,
+   validar con más episodios (100) para distinguir mejora real de ruido.
+2. Recompensa que castigue más el atropello que el choque, para bajar los atropellos sin perder éxito.
+3. Incidente controlado sobre N4: subir el ruido (σ 0.1 → 0.3), medir la degradación y decidir si se reentrena.

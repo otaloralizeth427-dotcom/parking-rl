@@ -1,0 +1,19 @@
+{
+  "experiment_id": "N4-exp02-ppo-ft-n3",
+  "level_id": "N4",
+  "agent": "ppo",
+  "hypothesis": "El modelo de N3 cede el paso pero en N4 solo logra 28 % (66 timeouts: se frena ante los conos). Continuarlo 1 000 000 de pasos en N4 recupera el rodeo de conos y alcanza al menos lo mismo que exp01.",
+  "change_vs_baseline": "Continúa N3-exp03-ppo-ft-v4-s43-d35e07f1 (misma familia, 19 valores) en N4 con ent_coef 0.01.",
+  "parent_run_id": "N3-exp03-ppo-ft-v4-s43-d35e07f1",
+  "seed": 42,
+  "budget": {
+    "timesteps": 1000000
+  },
+  "hyperparameters": {
+    "ent_coef": 0.01
+  },
+  "validation": {
+    "episodes": 20,
+    "every": 50000
+  }
+}
