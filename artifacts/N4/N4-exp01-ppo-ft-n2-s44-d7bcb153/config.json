@@ -1,0 +1,43 @@
+{
+  "experiment_id": "N4-exp01-ppo-ft-n2",
+  "level_id": "N4",
+  "agent": "ppo",
+  "hypothesis": "El modelo de N2 ya rodea conos y logra 75 % en N4 sin reentrenar (11 atropellos, 9 timeouts). Continuarlo 1 000 000 de pasos en N4 le enseña a ceder el paso con sensores ruidosos: las 3 semillas superan el 80 %.",
+  "change_vs_baseline": "Continúa N2-exp06-ppo-curriculo-3m-s44-7f36a120 (misma familia, 19 valores) en N4 con ent_coef 0.01.",
+  "parent_run_id": "N2-exp06-ppo-curriculo-3m-s44-7f36a120",
+  "seed": 44,
+  "budget": {
+    "timesteps": 1000000
+  },
+  "hyperparameters": {
+    "ent_coef": 0.01
+  },
+  "validation": {
+    "seed_start": 200000,
+    "episodes": 20,
+    "every": 50000
+  },
+  "environment_version": "parking-v5",
+  "level": {
+    "level_id": "N4",
+    "name": "Todo junto",
+    "environment_version": "parking-v5",
+    "difficulty": "hard",
+    "cones": 3,
+    "blocking_cones": 1,
+    "pedestrians": 2,
+    "crossing_pedestrians": 1,
+    "pedestrians_yield": true,
+    "bumper_sensors": 5,
+    "sensor_noise": 0.1,
+    "description": "La unión de N2 y N3 con sensores imprecisos: 3 conos sueltos y 1 en la línea recta hacia el cupo (N2), 2 peatones que cruzan el pasillo, uno de ellos entre el auto y el cupo justo después del cono (N3), y ruido gaussiano en los sensores (σ = 0.1 m en las distancias y 0.05 m en la posición relativa del cupo). Mismos 19 valores de observación que N2 y N3.",
+    "new_decision": "Combinar todo: rodear el cono, ceder el paso al peatón y estacionar con mediciones que tiemblan."
+  },
+  "evaluation_suite": {
+    "suite_id": "N4-suite-v1",
+    "level_id": "N4",
+    "seed_start": 100000,
+    "episodes": 100,
+    "deterministic": true
+  }
+}

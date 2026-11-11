@@ -3,7 +3,7 @@
 Proyecto final de MLOps (escenario **Autonomous Parking**). Un vehículo aprende a estacionarse en un
 cupo de un parqueadero, evitando autos estacionados, columnas y bordillos. Incluye:
 
-- **Ambiente Gymnasium** versionado (`parking-v4`) con física de bicicleta, sensores tipo LiDAR y
+- **Ambiente Gymnasium** versionado (`parking-v5`) con física de bicicleta, sensores tipo LiDAR y
   colisiones exactas. Ver la [ficha del ambiente](docs/ficha_ambiente.md).
 - **Niveles versionados** en `configs/levels/`, cada uno desarrollado en su rama `feature/nivel-N`.
 - **Referencias** (aleatoria y por reglas) y agentes aprendidos: **PPO** (Stable-Baselines3), **DQN** y
@@ -136,7 +136,7 @@ de neón con *bloom*, ventanales con la ciudad al atardecer, columnas "P1" y jar
 | 📷 (`C`) | Alterna cámara orbital (arrastrar para rotar), superior y de seguimiento. |
 | Panel (`P`, botón inferior derecho) | Estado detallado, agente (aleatorio, regla, manual o un modelo registrado), velocidad 0.25×–10×, nivel, ruido en sensores, cámara y entrenamiento con progreso en vivo. |
 
-La barra superior muestra el **nivel** (cada nivel tiene su propia paleta: N1 lavanda, N2 menta y coral, N3 rosado), el estado del episodio y
+La barra superior muestra el **nivel** (cada nivel tiene su propia paleta: N1 lavanda, N2 menta y coral, N3 rosado, N4 azul noche y ámbar), el estado del episodio y
 los **movimientos** (pasos). La barra inferior muestra agente, distancia al cupo, velocidad,
 recompensa, episodio y choques.
 
@@ -354,6 +354,7 @@ test final reservado. Los finalistas se entrenaron con 3 semillas.
 | N1 · Misión base | 0 % | 49 % | PPO `N1-exp03-ppo-s42-64bf7433` | **97 %** | **97 %** | 97 / 0 / 0 % (depende de la semilla) |
 | N2 · Conos | 0 % | 18 % | PPO `N2-exp06-ppo-curriculo-3m-s44-7f36a120` | **80 %** | **80 %** | 62 / 67 / 80 % (currículo por etapas) |
 | N3 · Peatones (`parking-v4`) | 0 % | 29 % | PPO `N3-exp03-ppo-ft-v4-s43-d35e07f1` | **92 %** | **91 %** | 86 / 92 / 88 % (continúa el modelo de N2) |
+| N4 · Todo junto (`parking-v5`) | 0 % | 14 % | PPO `N4-exp01-ppo-ft-n2-s44-d7bcb153` | **85 %** | **84 %** | 78 / 81 / 85 % (continúa el modelo de N2) |
 
 ![Comparación N2](results/N2/comparison.png)
 

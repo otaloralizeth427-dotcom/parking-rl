@@ -1,0 +1,93 @@
+{
+  "experiment_id": "N4-exp03-ppo-curriculo-3m",
+  "level_id": "N4",
+  "agent": "ppo",
+  "hypothesis": "La receta de currículo desde cero que funcionó en N2 y N3 (sin checkpoint) también funciona con todo junto y ruido: las 3 semillas superan el 70 %.",
+  "change_vs_baseline": "Igual que N2-exp06-ppo-curriculo-3m (3 M de pasos, 4 etapas); las etapas fáciles quitan conos y peatones, el ruido se mantiene siempre.",
+  "derived_from": "N2-exp06-ppo-curriculo-3m",
+  "seed": 43,
+  "budget": {
+    "timesteps": 3000000
+  },
+  "curriculum": [
+    {
+      "name": "práctica: nariz en el cupo",
+      "overrides": {
+        "difficulty": "tutorial",
+        "cones": 0,
+        "blocking_cones": 0,
+        "pedestrians": 0,
+        "crossing_pedestrians": 0
+      },
+      "timesteps": 150000
+    },
+    {
+      "name": "fácil: frente al cupo",
+      "overrides": {
+        "difficulty": "easy",
+        "cones": 0,
+        "blocking_cones": 0,
+        "pedestrians": 0,
+        "crossing_pedestrians": 0
+      },
+      "timesteps": 150000
+    },
+    {
+      "name": "pasillo sin conos ni peatones",
+      "overrides": {
+        "difficulty": "normal",
+        "cones": 0,
+        "blocking_cones": 0,
+        "pedestrians": 0,
+        "crossing_pedestrians": 0
+      },
+      "timesteps": 250000
+    },
+    {
+      "name": "nivel completo",
+      "overrides": {},
+      "timesteps": 2450000
+    }
+  ],
+  "hyperparameters": {
+    "learning_rate": 0.0003,
+    "n_steps": 2048,
+    "batch_size": 64,
+    "n_epochs": 10,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "ent_coef": 0.05,
+    "net_arch": [
+      64,
+      64
+    ]
+  },
+  "validation": {
+    "seed_start": 200000,
+    "episodes": 20,
+    "every": 150000
+  },
+  "environment_version": "parking-v5",
+  "level": {
+    "level_id": "N4",
+    "name": "Todo junto",
+    "environment_version": "parking-v5",
+    "difficulty": "hard",
+    "cones": 3,
+    "blocking_cones": 1,
+    "pedestrians": 2,
+    "crossing_pedestrians": 1,
+    "pedestrians_yield": true,
+    "bumper_sensors": 5,
+    "sensor_noise": 0.1,
+    "description": "La unión de N2 y N3 con sensores imprecisos: 3 conos sueltos y 1 en la línea recta hacia el cupo (N2), 2 peatones que cruzan el pasillo, uno de ellos entre el auto y el cupo justo después del cono (N3), y ruido gaussiano en los sensores (σ = 0.1 m en las distancias y 0.05 m en la posición relativa del cupo). Mismos 19 valores de observación que N2 y N3.",
+    "new_decision": "Combinar todo: rodear el cono, ceder el paso al peatón y estacionar con mediciones que tiemblan."
+  },
+  "evaluation_suite": {
+    "suite_id": "N4-suite-v1",
+    "level_id": "N4",
+    "seed_start": 100000,
+    "episodes": 100,
+    "deterministic": true
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "run_id": "N4-exp01-ppo-ft-n2-s43-0ca615dc",
+  "experiment_id": "N4-exp01-ppo-ft-n2",
+  "level_id": "N4",
+  "agent": "ppo",
+  "hypothesis": "El modelo de N2 ya rodea conos y logra 75 % en N4 sin reentrenar (11 atropellos, 9 timeouts). Continuarlo 1 000 000 de pasos en N4 le enseña a ceder el paso con sensores ruidosos: las 3 semillas superan el 80 %.",
+  "change_vs_baseline": "Continúa N2-exp06-ppo-curriculo-3m-s44-7f36a120 (misma familia, 19 valores) en N4 con ent_coef 0.01.",
+  "environment_version": "parking-v5",
+  "environment_kwargs": {
+    "difficulty": "hard",
+    "sensor_noise": 0.1,
+    "pedestrians": 2,
+    "cones": 3,
+    "blocking_cones": 1,
+    "bumper_sensors": 5,
+    "crossing_pedestrians": 1,
+    "pedestrians_yield": true
+  },
+  "observation_shape": [
+    19
+  ],
+  "git_commit": "6c046681c329d7b0985c12de3375aac0420ac78c",
+  "git_branch": "feature/nivel-4",
+  "git_dirty": false,
+  "config_uri": "artifacts/N4/N4-exp01-ppo-ft-n2-s43-0ca615dc/config.json",
+  "config_sha256": "37ad92e6b64ea61386fd23182c34f2b78c09d8c8ac91e3ea579512473b99d08a",
+  "seed": 43,
+  "parent_run_id": "N2-exp06-ppo-curriculo-3m-s44-7f36a120",
+  "origin": "continuación de checkpoint",
+  "parent_model_sha256": "dee5936a73a879dac19bf79324d2fd88dc459d89512632b8a89dd410327b60b3",
+  "evaluation_suite_id": "N4-suite-v1",
+  "mlflow": {
+    "tracking_uri": "sqlite:///mlflow.db",
+    "experiment": "parking-N4",
+    "run_id": "0ca615dc831e4200a507fbc49ec3dab7"
+  },
+  "created_at": "2026-11-10T23:36:43+00:00",
+  "status": "completed",
+  "model_uri": "artifacts/N4/N4-exp01-ppo-ft-n2-s43-0ca615dc/model.zip",
+  "model_sha256": "87ac15d0bb08b09c5ca80f41f899adcfe9051a932e1688fd47b199ec5c4caf13",
+  "normalization_uri": "envs/parking_env.py#ParkingEnv._observation (escalado fijo dentro del ambiente; sin normalización aprendida)",
+  "observation_contract": "Box(19,) float32 · ver docs/ficha_ambiente.md",
+  "action_contract": "Discrete(5): avanzar, retroceder, izquierda, derecha, frenar",
+  "runtime_ref": "python 3.12.7 · requirements.lock.txt sha256:76cff4f909c98d69",
+  "budget": {
+    "timesteps": 1000000,
+    "episodes": 19215,
+    "env_steps": 1000000,
+    "wall_time_s": 2325.4
+  },
+  "optimizer_state": "no guardado: los runs no se continúan desde este checkpoint",
+  "evaluation_uri": "artifacts/N4/N4-exp01-ppo-ft-n2-s43-0ca615dc/evaluation.json",
+  "evaluation_summary": {
+    "episodes": 100,
+    "success_rate": 0.81,
+    "outcomes": {
+      "success": 81,
+      "obstacle": 7,
+      "pedestrian": 5,
+      "boundary": 0,
+      "timeout": 7
+    },
+    "mean_return": 77.93,
+    "mean_time_s": 10.254,
+    "mean_final_distance_m": 1.911,
+    "mean_final_heading_error_deg": 14.183,
+    "mean_latency_ms": 0.386
+  }
+}
