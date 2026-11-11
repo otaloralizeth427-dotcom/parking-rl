@@ -302,3 +302,36 @@ peatón (verificado paso a paso).
    validar con más episodios (100) para distinguir mejora real de ruido.
 2. Recompensa que castigue más el atropello que el choque, para bajar los atropellos sin perder éxito.
 3. Incidente controlado sobre N4: subir el ruido (σ 0.1 → 0.3), medir la degradación y decidir si se reentrena.
+
+## Cambio de ambiente en N3 y N4: los peatones nunca se quedan quietos (`parking-v6`)
+
+**Motivo (pedido desde la web):** en v4/v5 el peatón se detenía si el auto en movimiento estaba pegado a su camino;
+en pantalla se veía a una persona parada junto al auto. Se pidió que en ningún nivel un peatón se quede quieto y
+que siempre se quite. **Cambio:** `pedestrians_evade` (ver la ficha): si el auto se acerca, el peatón da la vuelta y
+se aleja; si le queda encima o lo arrincona contra el borde del pasillo, se aparta. **Verificación:** 0 pasos con un
+peatón quieto en más de 130 000 pasos (modelos servidos y conductor aleatorio) y la prueba
+`test_pedestrians_never_stand_still_in_any_level`. Como cambia la dinámica, los modelos anteriores quedan como
+históricos, se reentrena y se usa un test final nuevo (`N3-final-v3`, `N4-final-v2`, creados antes de entrenar).
+
+| | Modelo anterior en v6, sin reentrenar | Regla en v6 |
+|---|---|---|
+| N3 | 94 % (`N3-exp03-…-s43`) | 37 % (antes 29 %: los peatones se le quitan) |
+| N4 | 84 % (`N4-exp01-…-s44`) | 16 % |
+
+| Experimento (commit `b51b505`) | Hipótesis | Cambio | Resultado (s42 / s43 / s44) | Tiempo por run | Decisión |
+|---|---|---|---|---|---|
+| `N3-exp04-ppo-ft-v6` | Continuar el modelo servido 500 000 pasos en v6 mantiene ≥ 90 % en las 3 semillas | `parent_run_id` = N3-exp03-s43 | **92 / 93 / 92 %** | ~11 min | aceptada (no mejora al padre: 94 % sin reentrenar) |
+| `N4-exp04-ppo-ft-v6` | Ídem en N4: ≥ 80 % en las 3 semillas | `parent_run_id` = N4-exp01-s44 | **83 / 85 / 80 %** | ~11 min | aceptada (justo en el límite con s44) |
+
+| Test final | Política | Éxito | Choques | Atropellos | Salidas |
+|---|---|---|---|---|---|
+| `N3-final-v3` | Regla | 36 % | 22 | 26 | 16 |
+| `N3-final-v3` | **`N3-exp04-ppo-ft-v6-s43-bd380c76`** | **94 %** | 0 | 6 | 0 |
+| `N4-final-v2` | Regla | 16 % | 79 | 1 | 4 |
+| `N4-final-v2` | **`N4-exp04-ppo-ft-v6-s43-e098d962`** | **79 %** | 4 | 3 | 1 |
+
+**Modelos servidos (elegidos con la suite):** N3 `N3-exp04-ppo-ft-v6-s43-bd380c76` (93 %) y N4
+`N4-exp04-ppo-ft-v6-s43-e098d962` (85 %). En N4 el test final (79 %) queda 6 puntos por debajo de la suite: la
+variación entre conjuntos de 100 episodios es grande con todo junto, y la mayor parte de los fallos son timeouts
+(10 en la suite) que no son atascos con peatones (0 pasos quietos), sino maniobras que no terminan a tiempo entre
+conos y ruido. Siguiente hipótesis: validar con más episodios y entrenar con más pasos en N4.

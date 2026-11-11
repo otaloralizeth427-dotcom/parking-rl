@@ -1,0 +1,10 @@
+{
+  "suite_id": "N3-final-v3",
+  "level_id": "N3",
+  "environment_version": "parking-v6",
+  "episodes": 100,
+  "deterministic": true,
+  "reserved": true,
+  "seed_commitment": "5c41ff61657a533d3b298a87d300daab352ed08ad00e6b12d8024b7989e57bd3",
+  "description": "Test final reservado: las semillas no est\u00e1n en el repo; aqu\u00ed solo su huella SHA-256."
+}
