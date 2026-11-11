@@ -20,10 +20,11 @@ DIFFICULTIES = ("tutorial", "easy", "normal", "hard")   # tutorial: solo para et
 
 # Cambia cuando cambian observaciones, acciones, dinámica o recompensa:
 # un modelo solo es compatible con la versión con que fue entrenado.
-ENV_VERSION = "parking-v5"   # v3: cono bloqueante, peatón que cruza y parachoques; v4: peatones que no se congelan;
-                              # v5: con cono bloqueante y peatón que cruza a la vez, el peatón no atraviesa el cono
+ENV_VERSION = "parking-v6"   # v3: cono bloqueante, peatón que cruza y parachoques; v4: peatones que no se congelan;
+                              # v5: con cono bloqueante y peatón que cruza a la vez, el peatón no atraviesa el cono;
+                              # v6: los peatones nunca se quedan quietos: si el auto se acerca, se alejan o se apartan
 # Versiones que este código reproduce: con sus valores por defecto, v3 se comporta exactamente como v2
-SUPPORTED_VERSIONS = ("parking-v2", "parking-v3", "parking-v4", "parking-v5")
+SUPPORTED_VERSIONS = ("parking-v2", "parking-v3", "parking-v4", "parking-v5", "parking-v6")
 
 
 @dataclass(frozen=True)
@@ -147,7 +148,7 @@ class ParkingEnv(gym.Env):
     def __init__(self, difficulty: str = "normal", sensor_noise: float = 0.0,
                  config: ParkingConfig | None = None, pedestrians: int = 0, cones: int | None = None,
                  blocking_cones: int = 0, bumper_sensors: int = 0, crossing_pedestrians: int = 0,
-                 pedestrians_yield: bool = False):
+                 pedestrians_yield: bool = False, pedestrians_evade: bool = False):
         if difficulty not in DIFFICULTIES:
             raise ValueError(f"difficulty debe ser uno de {DIFFICULTIES}, no {difficulty!r}")
         if sensor_noise < 0:
@@ -169,6 +170,7 @@ class ParkingEnv(gym.Env):
         self.blocking_cones = blocking_cones   # 1 = un cono extra justo en la línea recta hacia el cupo
         self.crossing_pedestrians = crossing_pedestrians   # 1 = uno de los peatones cruza frente a la ruta
         self.pedestrians_yield = bool(pedestrians_yield)   # v4: si el auto está quieto, el peatón sigue (sin «usted primero»)
+        self.pedestrians_evade = bool(pedestrians_evade)   # v6: el peatón siempre camina y se aparta del auto
         self.bumper_sensors = bumper_sensors   # rayos hacia adelante repartidos a lo ancho del parachoques
         self.cfg = config or ParkingConfig()
 
@@ -450,6 +452,8 @@ class ParkingEnv(gym.Env):
         return centers, np.full((n, 2), self.cfg.pedestrian_half), np.zeros(n)
 
     def _move_pedestrians(self, dt: float):
+        if self.pedestrians_evade:
+            return self._move_pedestrians_evading(dt)
         cfg = self.cfg
         safety = self._car_half + cfg.pedestrian_clearance
         for p in self.pedestrians if self.n_pedestrians else []:
@@ -474,6 +478,46 @@ class ParkingEnv(gym.Env):
             p["moving"] = not blocked
             if not blocked:
                 p["y"] = float(y)
+
+    def _move_pedestrians_evading(self, dt: float):
+        """v6: el peatón nunca se detiene. Cruza de lado a lado; si el auto (en movimiento) está pegado a su
+        camino y avanzar lo acerca, da la vuelta y se aleja; si el auto le queda encima de todos modos, se aparta
+        en la dirección opuesta al auto. Si el auto está quieto cediendo el paso, sigue cruzando."""
+        cfg = self.cfg
+        safety = self._car_half + cfg.pedestrian_clearance
+        body = self._car_half + 0.1
+        x_limit = cfg.lot_width / 2 - 1.0
+        car_stopped = abs(self.speed) <= cfg.pedestrian_yield_speed
+
+        def touches(xy, half_car):
+            return obb_overlaps(np.asarray(xy, dtype=float), np.full(2, cfg.pedestrian_half), 0.0,
+                                self.pos[None], half_car[None], np.array([self.heading])).any()
+
+        for p in self.pedestrians:
+            step = p["speed"] * dt
+            here = np.array([p["x"], p["y"]])
+            if abs(here[1] + p["dir"] * step) > p["limit"]:      # borde del pasillo: da la vuelta
+                p["dir"] *= -1
+            target = here + (0.0, p["dir"] * step)
+            zone = body if car_stopped else safety
+            if touches(target, zone) and abs(target[1] - self.pos[1]) < abs(here[1] - self.pos[1]) + 1e-9:
+                p["dir"] *= -1                                    # el auto viene hacia su camino: se devuelve
+                target = here + (0.0, p["dir"] * step)
+            if touches(target, body) or abs(target[1]) > p["limit"]:
+                away = here - self.pos                            # le queda encima: se aparta del auto
+                away = away / (np.linalg.norm(away) + 1e-9)
+                target = here + away * step
+            target = np.array([np.clip(target[0], -x_limit, x_limit), np.clip(target[1], -p["limit"], p["limit"])])
+            if np.linalg.norm(target - here) < 0.5 * step:
+                # Arrinconado contra el borde del pasillo: se hace a un lado a lo largo de la fila, lejos del auto
+                side = np.sign(here[0] - self.pos[0]) or 1.0
+                if abs(here[0] + side * step) > x_limit:
+                    side = -side
+                target = here + (side * step, 0.0)
+            p["x"], p["y"] = float(target[0]), float(target[1])
+            delta = target - here
+            p["heading"] = float(np.arctan2(delta[1], delta[0])) if np.linalg.norm(delta) > 1e-9 else p.get("heading", 0.0)
+            p["moving"] = True
 
     def _corners_in_slot(self, margin: float = 0.0) -> bool:
         slot = self.target
@@ -567,7 +611,8 @@ class ParkingEnv(gym.Env):
             "heading_error": self.heading_error(),
             "in_slot": self._corners_in_slot(),
             "steps": self.steps,
-            "pedestrians": [{"x": p["x"], "y": p["y"], "dir": p["dir"], "moving": p["moving"]}
+            "pedestrians": [{"x": p["x"], "y": p["y"], "dir": p["dir"], "moving": p["moving"],
+                             **({"heading": p["heading"]} if "heading" in p else {})}
                             for p in (self.pedestrians if self.n_pedestrians else [])],
         }
 

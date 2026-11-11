@@ -565,3 +565,30 @@ def test_n4_combines_everything_and_pedestrians_never_cross_a_cone():
             crossing += bool(p.get("crossing"))
             assert all(abs(c[0] - p["x"]) >= 0.6 for c in cones)
     assert crossing > 20
+
+
+def test_pedestrians_never_stand_still_in_any_level():
+    """v6: en N3 y N4 los peatones siempre caminan; si el auto se acerca, se alejan o se apartan."""
+    from envs.levels import LEVEL_IDS, make_env
+    for level in LEVEL_IDS:
+        env = make_env(level)
+        if not env.n_pedestrians:
+            continue
+        assert env.pedestrians_evade, f"{level} tiene peatones que pueden quedarse quietos"
+        for seed in range(40):
+            env.reset(seed=seed)
+            for _ in range(120):
+                before = [(p["x"], p["y"]) for p in env.pedestrians]
+                _, _, terminated, truncated, _ = env.step(int(env.action_space.sample()))
+                for (x, y), p in zip(before, env.pedestrians):
+                    assert np.hypot(p["x"] - x, p["y"] - y) > 0.05 and p["moving"]
+                if terminated or truncated:
+                    break
+    # Arrinconado contra el borde del pasillo por un auto que llega: se hace a un lado
+    env = make_env("N3")
+    env.reset(seed=1)
+    p = env.pedestrians[0]
+    p.update(x=6.7, y=p["limit"], dir=1.0)
+    env.pos, env.heading, env.speed = np.array([7.0, p["limit"] - 2.0]), 0.45, 2.6
+    env._move_pedestrians(env.cfg.dt)
+    assert abs(p["x"] - 6.7) > 0.1
