@@ -314,7 +314,7 @@ def test_levels_match_environment_version():
         assert load_level(level_id)["environment_version"] in SUPPORTED_VERSIONS
         env = make_env(level_id)
         obs, _ = env.reset(seed=0)
-        assert obs.shape == env.observation_space.shape == (14 + env.bumper_sensors,)
+        assert obs.shape == env.observation_space.shape == (14 + env.bumper_sensors + (6 if env.garage else 0),)
     with pytest.raises(ValueError):
         load_level("N9")
 
@@ -592,3 +592,72 @@ def test_pedestrians_never_stand_still_in_any_level():
     env.pos, env.heading, env.speed = np.array([7.0, p["limit"] - 2.0]), 0.45, 2.6
     env._move_pedestrians(env.cfg.dt)
     assert abs(p["x"] - 6.7) > 0.1
+
+
+# ---------------------------------------------------------------- garaje grande (N5)
+def _route_oracle(env):
+    """Conductor de prueba que sigue la ruta interna del ambiente y luego usa la regla para estacionar."""
+    from agents.rule_based import RuleBasedPolicy
+    from envs.parking_env import BRAKE, FORWARD, LEFT, RIGHT
+    rule, cfg = RuleBasedPolicy(), env.cfg
+
+    def act(obs):
+        if env.route_distance() <= 8.0:
+            return rule.act(obs)
+        wp = env.route.waypoint(env.pos) - env.pos
+        c, s = np.cos(env.heading), np.sin(env.heading)
+        aim = np.array([c * wp[0] + s * wp[1], -s * wp[0] + c * wp[1]])
+        dist = max(np.linalg.norm(aim), 1e-3)
+        want = np.clip(np.arctan(2 * cfg.wheelbase * aim[1] / dist ** 2), -cfg.max_steer, cfg.max_steer)
+        speed = 1.2 if abs(want) > 0.3 or aim[0] < 1.0 else 2.2
+        if env.speed < 0.3:
+            return FORWARD
+        if abs(want - env.steer) > cfg.steer_step / 2:
+            return LEFT if want > env.steer else RIGHT
+        return BRAKE if env.speed > speed + 0.4 else FORWARD
+    return act
+
+
+def test_garage_layout_starts_and_observations():
+    from envs.levels import make_env
+    env = make_env("N5")
+    assert env.garage and env.observation_space.shape == (25,) and env.cfg.max_steps == 400
+    for difficulty in ("tutorial", "easy", "normal", "roam", "hard"):
+        e = ParkingEnv(difficulty, layout="garage", bumper_sensors=5, sensor_noise=0.1)
+        for seed in range(150):
+            obs, _ = e.reset(seed=seed)
+            assert e._collision_kind() is None and e.observation_space.contains(obs)
+    with pytest.raises(ValueError):
+        ParkingEnv("roam")                                   # roam solo existe en el garaje
+    with pytest.raises(ValueError):
+        ParkingEnv(layout="garage", pedestrians=1)
+
+
+def test_garage_route_goes_around_the_rows():
+    from envs import garage
+    slots = {s["name"]: s for s in garage.build_slots()}
+    top, bottom = garage.RouteField.for_slot(slots["A4"]), garage.RouteField.for_slot(slots["C4"])
+    straight = np.linalg.norm(slots["A4"]["center"] - garage.ENTRANCE)
+    assert top.distance(garage.ENTRANCE) > straight + 5          # rodea las filas, no las atraviesa
+    assert bottom.distance(garage.ENTRANCE) < top.distance(garage.ENTRANCE)
+    # Bajando por la ruta desde la entrada se llega al cupo sin cruzar el centro de las filas B y C
+    p = garage.ENTRANCE.copy()
+    for _ in range(200):
+        p = top.waypoint(p, 1.0)
+        if -8.5 < p[1] < 9.5:
+            assert abs(p[0]) > 12.3, p
+    assert np.linalg.norm(p - slots["A4"]["center"]) < 0.5
+
+
+def test_garage_is_solvable_by_following_the_route():
+    env = ParkingEnv("hard", layout="garage", bumper_sensors=5, sensor_noise=0.1)
+    act = _route_oracle(env)
+    successes = 0
+    for seed in range(30):
+        obs, _ = env.reset(seed=seed)
+        while True:
+            obs, _, terminated, truncated, info = env.step(act(obs))
+            if terminated or truncated:
+                break
+        successes += info["success"]
+    assert successes >= 24                                   # el recorrido completo es posible en 400 pasos
