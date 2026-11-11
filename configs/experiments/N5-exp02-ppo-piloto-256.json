@@ -1,0 +1,64 @@
+{
+  "experiment_id": "N5-exp02-ppo-piloto-256",
+  "level_id": "N5",
+  "agent": "ppo",
+  "hypothesis": "Piloto corto (1 M de pasos): con una red más grande (256×256) la política aprende mejor el mapa (posición → ruta) que con 64×64.",
+  "change_vs_baseline": "Receta de currículo de N2-exp06 adaptada a N5 (5 etapas), red 256×256, 1 M de pasos.",
+  "derived_from": "N2-exp06-ppo-curriculo-3m",
+  "seed": 42,
+  "budget": {
+    "timesteps": 1000000
+  },
+  "curriculum": [
+    {
+      "name": "práctica: nariz en el cupo",
+      "overrides": {
+        "difficulty": "tutorial"
+      },
+      "timesteps": 100000
+    },
+    {
+      "name": "fácil: frente al cupo",
+      "overrides": {
+        "difficulty": "easy"
+      },
+      "timesteps": 150000
+    },
+    {
+      "name": "en el pasillo del cupo",
+      "overrides": {
+        "difficulty": "normal"
+      },
+      "timesteps": 250000
+    },
+    {
+      "name": "desde cualquier pasillo",
+      "overrides": {
+        "difficulty": "roam"
+      },
+      "timesteps": 300000
+    },
+    {
+      "name": "nivel completo: desde la entrada",
+      "overrides": {},
+      "timesteps": 200000
+    }
+  ],
+  "hyperparameters": {
+    "learning_rate": 0.0003,
+    "n_steps": 2048,
+    "batch_size": 64,
+    "n_epochs": 10,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "ent_coef": 0.05,
+    "net_arch": [
+      256,
+      256
+    ]
+  },
+  "validation": {
+    "episodes": 20,
+    "every": 50000
+  }
+}

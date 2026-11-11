@@ -12,19 +12,23 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
+from envs import garage
+
 # Acciones discretas
 FORWARD, REVERSE, LEFT, RIGHT, BRAKE = range(5)
 ACTION_NAMES = ["Avanzar", "Retroceder", "Izquierda", "Derecha", "Frenar"]
 
-DIFFICULTIES = ("tutorial", "easy", "normal", "hard")   # tutorial: solo para etapas de currículo
+DIFFICULTIES = ("tutorial", "easy", "normal", "roam", "hard")   # tutorial y roam: solo para etapas de currículo
+LAYOUTS = ("aisle", "garage")   # aisle: pasillo con 2 filas (N1-N4); garage: azotea con 3 filas (N5)
 
 # Cambia cuando cambian observaciones, acciones, dinámica o recompensa:
 # un modelo solo es compatible con la versión con que fue entrenado.
-ENV_VERSION = "parking-v6"   # v3: cono bloqueante, peatón que cruza y parachoques; v4: peatones que no se congelan;
+ENV_VERSION = "parking-v7"   # v3: cono bloqueante, peatón que cruza y parachoques; v4: peatones que no se congelan;
                               # v5: con cono bloqueante y peatón que cruza a la vez, el peatón no atraviesa el cono;
-                              # v6: los peatones nunca se quedan quietos: si el auto se acerca, se alejan o se apartan
+                              # v6: los peatones nunca se quedan quietos: si el auto se acerca, se alejan o se apartan;
+                              # v7: mapa «garage» (N5): 3 filas, entrada abajo; el auto conoce el mapa pero no la ruta
 # Versiones que este código reproduce: con sus valores por defecto, v3 se comporta exactamente como v2
-SUPPORTED_VERSIONS = ("parking-v2", "parking-v3", "parking-v4", "parking-v5", "parking-v6")
+SUPPORTED_VERSIONS = ("parking-v2", "parking-v3", "parking-v4", "parking-v5", "parking-v6", "parking-v7")
 
 
 @dataclass(frozen=True)
@@ -67,6 +71,11 @@ class ParkingConfig:
     w_distance: float = 1.0
     w_heading: float = 1.5
     w_slot_speed: float = 0.3
+
+
+# Mapa garage (N5): lote de 40 × 44 m, recorridos largos (hasta ~60 m por la ruta) y casi todo ocupado
+GARAGE_CONFIG = ParkingConfig(lot_width=garage.LOT_WIDTH, lot_height=garage.LOT_HEIGHT, max_steps=400,
+                              occupancy=0.85)
 
 
 def wrap_angle(a):
@@ -148,9 +157,15 @@ class ParkingEnv(gym.Env):
     def __init__(self, difficulty: str = "normal", sensor_noise: float = 0.0,
                  config: ParkingConfig | None = None, pedestrians: int = 0, cones: int | None = None,
                  blocking_cones: int = 0, bumper_sensors: int = 0, crossing_pedestrians: int = 0,
-                 pedestrians_yield: bool = False, pedestrians_evade: bool = False):
+                 pedestrians_yield: bool = False, pedestrians_evade: bool = False, layout: str = "aisle"):
         if difficulty not in DIFFICULTIES:
             raise ValueError(f"difficulty debe ser uno de {DIFFICULTIES}, no {difficulty!r}")
+        if layout not in LAYOUTS:
+            raise ValueError(f"layout debe ser uno de {LAYOUTS}, no {layout!r}")
+        if layout == "aisle" and difficulty == "roam":
+            raise ValueError("difficulty 'roam' solo existe en el mapa 'garage'")
+        if layout == "garage" and (pedestrians or cones or blocking_cones):
+            raise ValueError("el mapa 'garage' no tiene peatones ni conos")
         if sensor_noise < 0:
             raise ValueError("sensor_noise debe ser >= 0")
         if not isinstance(pedestrians, int) or pedestrians < 0:
@@ -172,13 +187,19 @@ class ParkingEnv(gym.Env):
         self.pedestrians_yield = bool(pedestrians_yield)   # v4: si el auto está quieto, el peatón sigue (sin «usted primero»)
         self.pedestrians_evade = bool(pedestrians_evade)   # v6: el peatón siempre camina y se aparta del auto
         self.bumper_sensors = bumper_sensors   # rayos hacia adelante repartidos a lo ancho del parachoques
-        self.cfg = config or ParkingConfig()
+        self.layout_name = layout
+        self.garage = layout == "garage"
+        self.cfg = config or (GARAGE_CONFIG if self.garage else ParkingConfig())
 
-        n_obs = 6 + self.cfg.n_sensors + bumper_sensors
+        # El mapa garage agrega la posición en el mapa: auto (x, y, cos θ, sin θ) y cupo libre (x, y).
+        # No recibe la ruta: tiene que aprender a rodear las filas.
+        n_obs = 6 + self.cfg.n_sensors + bumper_sensors + (6 if self.garage else 0)
         low = np.full(n_obs, -1.0, dtype=np.float32)
         high = np.full(n_obs, 1.0, dtype=np.float32)
         low[:2], high[:2] = -5.0, 5.0
         low[5:] = 0.0
+        if self.garage:
+            low[-6:] = -1.0
         self.observation_space = spaces.Box(low, high, dtype=np.float32)
         self.action_space = spaces.Discrete(5)
 
@@ -194,6 +215,8 @@ class ParkingEnv(gym.Env):
 
     # ------------------------------------------------------------------ layout
     def _build_slots(self) -> list[dict]:
+        if self.garage:
+            return garage.build_slots()
         cfg = self.cfg
         slots = []
         x0 = -(cfg.slots_per_row - 1) * cfg.slot_width / 2
@@ -219,6 +242,8 @@ class ParkingEnv(gym.Env):
         ]
 
     def _sample_layout(self):
+        if self.garage:
+            return self._sample_garage()
         rng, cfg = self.np_random, self.cfg
         self.target = self.slots[int(rng.integers(len(self.slots)))]
         tc = self.target["center"]
@@ -296,6 +321,48 @@ class ParkingEnv(gym.Env):
             placed += 1
 
         self._spawn_pedestrians(obstacles, start=np.array([x, y]))
+        self.obstacles = obstacles
+        self._obs_centers = np.array([o["center"] for o in obstacles], dtype=float)
+        self._obs_halves = np.array([o["half"] for o in obstacles], dtype=float)
+        self._obs_angles = np.array([o["angle"] for o in obstacles], dtype=float)
+        return np.array([x, y], dtype=float), float(wrap_angle(heading))
+
+    def _sample_garage(self):
+        """Mapa garage: cupo objetivo al azar, el resto ocupado con probabilidad `occupancy`."""
+        rng, cfg = self.np_random, self.cfg
+        self.target = self.slots[int(rng.integers(len(self.slots)))]
+        self.route = garage.RouteField.for_slot(self.target)
+        tc = self.target["center"]
+        obstacles = [dict(o, angle=0.0) for o in self._walls] + garage.build_curbs()
+        for slot in self.slots:
+            if slot is not self.target and rng.random() < cfg.occupancy:
+                jitter = rng.uniform(-0.15, 0.15, size=2)
+                obstacles.append({"center": tuple(slot["center"] + jitter),
+                                  "half": (cfg.car_width / 2, cfg.car_length / 2),
+                                  "angle": float(rng.uniform(-0.05, 0.05)), "kind": "car",
+                                  "color": int(rng.integers(6)), "facing": slot["opening"]})
+        aisle = garage.aisle_y(self.target)
+        if self.difficulty == "tutorial":          # la nariz ya entra al cupo
+            x, y = tc[0] + rng.uniform(-0.4, 0.4), tc[1] - garage.SLOT_DEPTH / 2 - rng.uniform(0.2, 1.2)
+            heading = np.pi / 2 + rng.uniform(-0.2, 0.2)
+        elif self.difficulty == "easy":            # frente al cupo, en su pasillo
+            x, y = tc[0] + rng.uniform(-1.0, 1.0), aisle + rng.uniform(-0.3, 1.5)
+            heading = np.pi / 2 + rng.uniform(-0.3, 0.3)
+        elif self.difficulty == "normal":          # en el pasillo del cupo, a 4-8 m (como N1)
+            side = rng.choice([-1, 1])
+            x = float(tc[0] + side * rng.uniform(4.0, 8.0))
+            if abs(x) > 16.0:
+                x = float(tc[0] - side * rng.uniform(4.0, 8.0))
+            y = aisle + rng.uniform(-1.2, 1.2)
+            heading = (np.pi if x > tc[0] else 0.0) + rng.uniform(-0.2, 0.2)
+        elif self.difficulty == "roam":            # cualquier punto de los pasillos, mirando hacia la ruta
+            x, y = garage.aisle_points(rng)[0]
+            wp = self.route.waypoint(np.array([x, y]))
+            heading = float(np.arctan2(wp[1] - y, wp[0] - x)) + rng.uniform(-0.3, 0.3)
+        else:                                      # hard: desde la entrada, hacia adentro
+            x, y = garage.ENTRANCE[0] + rng.uniform(-0.6, 0.6), garage.ENTRANCE[1] + rng.uniform(-0.3, 0.3)
+            heading = np.pi / 2 + rng.uniform(-0.1, 0.1)
+        self.pedestrians = []
         self.obstacles = obstacles
         self._obs_centers = np.array([o["center"] for o in obstacles], dtype=float)
         self._obs_halves = np.array([o["half"] for o in obstacles], dtype=float)
@@ -381,9 +448,14 @@ class ParkingEnv(gym.Env):
     def distance(self) -> float:
         return float(np.linalg.norm(self.target["center"] - self.pos))
 
+    def route_distance(self) -> float:
+        """Distancia por la ruta en el mapa garage (solo recompensa); en el pasillo, la distancia en línea recta."""
+        return self.route.distance(self.pos) if self.garage else self.distance()
+
     def _potential(self) -> float:
-        # La alineación pesa más cuanto más cerca está el vehículo del cupo
-        dist = self.distance()
+        # La alineación pesa más cuanto más cerca está el vehículo del cupo.
+        # En el mapa garage la distancia es por la ruta: rodear las filas también acerca.
+        dist = self.route_distance()
         closeness = np.clip(1.0 - dist / 6.0, 0.0, 1.0)
         return -self.cfg.w_distance * dist - self.cfg.w_heading * closeness * abs(self.heading_error())
 
@@ -574,6 +646,10 @@ class ParkingEnv(gym.Env):
              float(self._corners_in_slot())],
             self._sensors / self._sensor_ranges(),
         ])
+        if self.garage:
+            scale = np.array([cfg.lot_width / 2, cfg.lot_height / 2])
+            obs = np.concatenate([obs, np.clip(self.pos / scale, -1, 1), [np.cos(self.heading), np.sin(self.heading)],
+                                  self.target["center"] / scale])
         return obs.astype(np.float32)
 
     def _info(self, collision: bool, success: bool, collision_kind: str | None = None) -> dict:
@@ -588,6 +664,7 @@ class ParkingEnv(gym.Env):
             "in_slot": self._corners_in_slot(),
             "steps": self.steps,
             "target_id": self.target["id"],
+            **({"route_distance": self.route_distance()} if self.garage else {}),
         }
 
     def render_state(self) -> dict:
@@ -620,12 +697,17 @@ class ParkingEnv(gym.Env):
         """Geometría estática del episodio (cupos, obstáculos, dimensiones)."""
         cfg = self.cfg
         return {
+            "kind": self.layout_name,
             "lot": {"width": cfg.lot_width, "height": cfg.lot_height},
             "slots": [{"id": s["id"], "x": float(s["center"][0]), "y": float(s["center"][1]),
-                       "width": cfg.slot_width, "depth": cfg.slot_depth, "row": s["row"]}
+                       "width": cfg.slot_width, "depth": cfg.slot_depth, "row": s["row"],
+                       # hacia dónde abre el cupo (signo en y): el auto entra desde ese lado
+                       "opening": s.get("opening", -1 if s["center"][1] > 0 else 1),
+                       **({"name": s["name"]} if "name" in s else {})}
                       for s in self.slots],
             "obstacles": [{"kind": o["kind"], "x": float(o["center"][0]), "y": float(o["center"][1]),
                            "hx": float(o["half"][0]), "hy": float(o["half"][1]),
-                           "angle": float(o["angle"]), "color": o.get("color", 0)}
+                           "angle": float(o["angle"]), "color": o.get("color", 0),
+                           **({"facing": o["facing"]} if "facing" in o else {})}
                           for o in self.obstacles],
         }
