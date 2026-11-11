@@ -1,7 +1,7 @@
 {
   "level_id": "N3",
   "name": "Peatones cruzando",
-  "environment_version": "parking-v4",
+  "environment_version": "parking-v6",
   "difficulty": "normal",
   "cones": 0,
   "blocking_cones": 0,
@@ -10,6 +10,7 @@
   "bumper_sensors": 5,
   "sensor_noise": 0.0,
   "pedestrians_yield": true,
-  "description": "Como N1 (arranque en el pasillo a 4-8 m del cupo) con 2 peatones que cruzan el pasillo de ida y vuelta. Uno de ellos cruza justo entre el auto y el cupo, en el momento en que el auto pasa por ahí. Los peatones esperan si el auto en movimiento está pegado a su camino; si el auto está quieto cediendo el paso, siguen caminando (o se devuelven si no caben), así nunca se quedan esperándose los dos. Mismos sensores de parachoques que N2.",
+  "pedestrians_evade": true,
+  "description": "Como N1 (arranque en el pasillo a 4-8 m del cupo) con 2 peatones que cruzan el pasillo de ida y vuelta. Uno de ellos cruza justo entre el auto y el cupo, en el momento en que el auto pasa por ahí. Los peatones nunca se quedan quietos: si el auto en movimiento se acerca a su camino se dan la vuelta y se alejan (o se apartan si el auto les queda encima); si el auto está quieto cediendo el paso, siguen cruzando. Mismos sensores de parachoques que N2.",
   "new_decision": "Perturbación con recuperación: frenar y ceder el paso cuando un peatón se atraviesa, y retomar el estacionamiento cuando pasa."
 }

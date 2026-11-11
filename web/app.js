@@ -774,7 +774,9 @@ function renderPedestrians() {
     const pose = sim.pose.peds?.[i];
     if (!mesh || !pose) return;
     mesh.group.position.copy(toWorld(pose.x, pose.y));
-    mesh.group.rotation.y = info.dir > 0 ? Math.PI / 2 : -Math.PI / 2;
+    // Mira hacia donde camina (v6 trae su rumbo; antes solo subía o bajaba por el pasillo)
+    mesh.group.rotation.y = info.heading !== undefined ? info.heading
+      : (info.dir > 0 ? Math.PI / 2 : -Math.PI / 2);
     if (mesh.last) mesh.phase += Math.hypot(pose.x - mesh.last.x, pose.y - mesh.last.y) / 0.32;
     mesh.last = { x: pose.x, y: pose.y };
     // Balanceo de la marcha; al esperar, las extremidades vuelven al reposo

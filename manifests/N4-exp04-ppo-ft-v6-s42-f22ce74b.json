@@ -1,0 +1,70 @@
+{
+  "run_id": "N4-exp04-ppo-ft-v6-s42-f22ce74b",
+  "experiment_id": "N4-exp04-ppo-ft-v6",
+  "level_id": "N4",
+  "agent": "ppo",
+  "hypothesis": "En parking-v6 los peatones nunca se quedan quietos. El modelo servido de v5 logra 84 % en v6 sin reentrenar; continuarlo 500 000 pasos en v6 mantiene >= 80 % en las 3 semillas.",
+  "change_vs_baseline": "Continúa N4-exp01-ppo-ft-n2-s44-d7bcb153 en N4 con parking-v6 (pedestrians_evade); 500 000 pasos, ent_coef 0.01.",
+  "environment_version": "parking-v6",
+  "environment_kwargs": {
+    "difficulty": "hard",
+    "sensor_noise": 0.1,
+    "pedestrians": 2,
+    "cones": 3,
+    "blocking_cones": 1,
+    "bumper_sensors": 5,
+    "crossing_pedestrians": 1,
+    "pedestrians_yield": true,
+    "pedestrians_evade": true
+  },
+  "observation_shape": [
+    19
+  ],
+  "git_commit": "b51b50592c72fe56972adc8544c2b263f9a7d445",
+  "git_branch": "fix/peatones-siempre-caminan",
+  "git_dirty": true,
+  "config_uri": "artifacts/N4/N4-exp04-ppo-ft-v6-s42-f22ce74b/config.json",
+  "config_sha256": "d686fa92e8e4ea3f951ef202fa809ac60b83c9f9d5883b4a5cb2a4d429f44746",
+  "seed": 42,
+  "parent_run_id": "N4-exp01-ppo-ft-n2-s44-d7bcb153",
+  "origin": "continuación de checkpoint",
+  "parent_model_sha256": "17a1192d697fcfa2f1054b50c1cb93f8bc14b983e660109dd36a748d2e3aea7c",
+  "evaluation_suite_id": "N4-suite-v1",
+  "mlflow": {
+    "tracking_uri": "sqlite:///mlflow.db",
+    "experiment": "parking-N4",
+    "run_id": "f22ce74bc6a544ecacced61f0458a795"
+  },
+  "created_at": "2026-11-11T13:55:37+00:00",
+  "status": "completed",
+  "model_uri": "artifacts/N4/N4-exp04-ppo-ft-v6-s42-f22ce74b/model.zip",
+  "model_sha256": "f57ccbc5f3f39b92aaab0d6677c7692bb360b86e81868cef95cbc7eb9369962b",
+  "normalization_uri": "envs/parking_env.py#ParkingEnv._observation (escalado fijo dentro del ambiente; sin normalización aprendida)",
+  "observation_contract": "Box(19,) float32 · ver docs/ficha_ambiente.md",
+  "action_contract": "Discrete(5): avanzar, retroceder, izquierda, derecha, frenar",
+  "runtime_ref": "python 3.12.7 · requirements.lock.txt sha256:76cff4f909c98d69",
+  "budget": {
+    "timesteps": 500000,
+    "episodes": 9489,
+    "env_steps": 500000,
+    "wall_time_s": 671.5
+  },
+  "optimizer_state": "no guardado: los runs no se continúan desde este checkpoint",
+  "evaluation_uri": "artifacts/N4/N4-exp04-ppo-ft-v6-s42-f22ce74b/evaluation.json",
+  "evaluation_summary": {
+    "episodes": 100,
+    "success_rate": 0.83,
+    "outcomes": {
+      "success": 83,
+      "obstacle": 5,
+      "pedestrian": 4,
+      "boundary": 1,
+      "timeout": 7
+    },
+    "mean_return": 80.771,
+    "mean_time_s": 10.052,
+    "mean_final_distance_m": 1.721,
+    "mean_final_heading_error_deg": 13.081,
+    "mean_latency_ms": 0.067
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "experiment_id": "N3-exp04-ppo-ft-v6",
+  "level_id": "N3",
+  "agent": "ppo",
+  "hypothesis": "En parking-v6 los peatones nunca se quedan quietos (se alejan o se apartan del auto). El modelo servido de v4 ya logra 94 % en v6 sin reentrenar; continuarlo 500 000 pasos en v6 mantiene >= 90 % en las 3 semillas.",
+  "change_vs_baseline": "Continúa N3-exp03-ppo-ft-v4-s43-d35e07f1 en N3 con parking-v6 (pedestrians_evade); 500 000 pasos, ent_coef 0.01.",
+  "parent_run_id": "N3-exp03-ppo-ft-v4-s43-d35e07f1",
+  "seed": 44,
+  "budget": {
+    "timesteps": 500000
+  },
+  "hyperparameters": {
+    "ent_coef": 0.01
+  },
+  "validation": {
+    "seed_start": 200000,
+    "episodes": 20,
+    "every": 25000
+  },
+  "environment_version": "parking-v6",
+  "level": {
+    "level_id": "N3",
+    "name": "Peatones cruzando",
+    "environment_version": "parking-v6",
+    "difficulty": "normal",
+    "cones": 0,
+    "blocking_cones": 0,
+    "pedestrians": 2,
+    "crossing_pedestrians": 1,
+    "bumper_sensors": 5,
+    "sensor_noise": 0.0,
+    "pedestrians_yield": true,
+    "pedestrians_evade": true,
+    "description": "Como N1 (arranque en el pasillo a 4-8 m del cupo) con 2 peatones que cruzan el pasillo de ida y vuelta. Uno de ellos cruza justo entre el auto y el cupo, en el momento en que el auto pasa por ahí. Los peatones nunca se quedan quietos: si el auto en movimiento se acerca a su camino se dan la vuelta y se alejan (o se apartan si el auto les queda encima); si el auto está quieto cediendo el paso, siguen cruzando. Mismos sensores de parachoques que N2.",
+    "new_decision": "Perturbación con recuperación: frenar y ceder el paso cuando un peatón se atraviesa, y retomar el estacionamiento cuando pasa."
+  },
+  "evaluation_suite": {
+    "suite_id": "N3-suite-v1",
+    "level_id": "N3",
+    "seed_start": 100000,
+    "episodes": 100,
+    "deterministic": true
+  }
+}

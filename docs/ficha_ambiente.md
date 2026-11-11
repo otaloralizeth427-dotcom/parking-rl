@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| Versión del contrato | `parking-v5` (`envs/parking_env.py: ENV_VERSION`); cada nivel declara la versión que usa (N1: `parking-v2`, N2: `parking-v3`, N3: `parking-v4`, N4: `parking-v5`) |
+| Versión del contrato | `parking-v6` (`envs/parking_env.py: ENV_VERSION`); cada nivel declara la versión que usa (N1: `parking-v2`, N2: `parking-v3`, N3 y N4: `parking-v6`) |
 | Implementación | `envs.parking_env.ParkingEnv` (Gymnasium 1.x) |
 | Misión | Llevar el vehículo al cupo objetivo y detenerlo alineado, sin chocar |
 | Unidades | metros, segundos, radianes, m/s |
@@ -111,11 +111,12 @@ episodios (frente a ~0.2 % desde el pasillo).
 | `parking-v3` | Agrega opciones de nivel: `blocking_cones`, `crossing_pedestrians`, `bumper_sensors` y la dificultad `tutorial`. Con sus valores por defecto reproduce v2 exactamente, por eso N1 sigue declarando `parking-v2` (`SUPPORTED_VERSIONS`). |
 | `parking-v4` | Agrega `pedestrians_yield`: si el auto está quieto (|v| ≤ 0.1 m/s) el peatón sigue caminando, o se devuelve si no cabe. En v3 el auto y el peatón podían quedarse esperándose hasta el timeout (4 de 100 episodios en N3). Sin la opción reproduce v3 exactamente; solo N3 la usa. |
 | `parking-v5` | Si hay a la vez conos en el camino (`blocking_cones`) y peatón que cruza, el peatón cruza 1.5 m más allá del cono que tenga en su línea (camina todo el pasillo y no debe atravesar conos); si no cabe antes del cupo se omite. Sin esa combinación reproduce v4 exactamente; solo N4 la usa. |
+| `parking-v6` | Agrega `pedestrians_evade`: los peatones **nunca se quedan quietos**. Si el auto en movimiento está a menos de 0.6 m de su camino y avanzar lo acerca, el peatón da la vuelta y se aleja; si el auto le queda encima, se aparta en la dirección opuesta; si queda arrinconado contra el borde del pasillo, se hace a un lado a lo largo de la fila. Con el auto quieto sigue cruzando. El estado incluye el rumbo del peatón (`heading`) para dibujarlo mirando hacia donde camina. N3 y N4 la usan. |
 
 ## Simplificaciones
 
 - Movimiento en el plano; sin derrape, inercia lateral ni retardo de actuadores.
 - Acciones discretas: el agente no elige aceleraciones continuas.
-- Los peatones caminan en línea recta por el pasillo; esperan si el auto en movimiento está a menos de 0.6 m de su camino y siguen si el auto está detenido; los autos estacionados no se mueven.
+- Los peatones cruzan el pasillo en línea recta y nunca se detienen: si el auto se acerca se alejan o se apartan (v6); los autos estacionados no se mueven.
 - Sensores ideales salvo el ruido gaussiano opcional; sin oclusiones parciales ni fallas.
 - La visualización 3D (Three.js) solo representa el estado que entrega Python; no tiene física propia.

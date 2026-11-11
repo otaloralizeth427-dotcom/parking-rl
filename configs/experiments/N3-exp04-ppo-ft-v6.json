@@ -1,0 +1,19 @@
+{
+  "experiment_id": "N3-exp04-ppo-ft-v6",
+  "level_id": "N3",
+  "agent": "ppo",
+  "hypothesis": "En parking-v6 los peatones nunca se quedan quietos (se alejan o se apartan del auto). El modelo servido de v4 ya logra 94 % en v6 sin reentrenar; continuarlo 500 000 pasos en v6 mantiene >= 90 % en las 3 semillas.",
+  "change_vs_baseline": "Continúa N3-exp03-ppo-ft-v4-s43-d35e07f1 en N3 con parking-v6 (pedestrians_evade); 500 000 pasos, ent_coef 0.01.",
+  "parent_run_id": "N3-exp03-ppo-ft-v4-s43-d35e07f1",
+  "seed": 42,
+  "budget": {
+    "timesteps": 500000
+  },
+  "hyperparameters": {
+    "ent_coef": 0.01
+  },
+  "validation": {
+    "episodes": 20,
+    "every": 25000
+  }
+}
