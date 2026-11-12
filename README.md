@@ -3,7 +3,7 @@
 Proyecto final de MLOps (escenario **Autonomous Parking**). Un vehículo aprende a estacionarse en un
 cupo de un parqueadero, evitando autos estacionados, columnas y bordillos. Incluye:
 
-- **Ambiente Gymnasium** versionado (`parking-v6`) con física de bicicleta, sensores tipo LiDAR y
+- **Ambiente Gymnasium** versionado (`parking-v8`) con física de bicicleta, sensores tipo LiDAR y
   colisiones exactas. Ver la [ficha del ambiente](docs/ficha_ambiente.md).
 - **Niveles versionados** en `configs/levels/`, cada uno desarrollado en su rama `feature/nivel-N`.
 - **Referencias** (aleatoria y por reglas) y agentes aprendidos: **PPO** (Stable-Baselines3), **DQN** y
@@ -61,7 +61,9 @@ referencia, el agente, la semilla, el presupuesto y los hiperparámetros. El pip
 Para repetir un experimento con otra semilla (réplicas): `run.py train <config> --seed 43`.
 Opciones de PPO en el experimento: `parent_run_id` (continuar un checkpoint verificado de la misma familia
 de observaciones), `hyperparameters.n_envs` (ambientes en paralelo) y `curriculum` (etapas más fáciles del
-mismo nivel antes del nivel completo; ver `configs/experiments/N2-exp06-ppo-curriculo-3m.json`).
+mismo nivel antes del nivel completo; ver `configs/experiments/N2-exp06-ppo-curriculo-3m.json`). En N5 el
+currículo es inverso: `route_start` hace arrancar al auto sobre la ruta, cada vez más lejos del cupo
+(`configs/experiments/N5-exp05-ppo-inverso-3m.json`).
 
 Si el entrenamiento falla, el run queda en MLflow y en `manifests/` con `status: "failed"`, su
 diagnóstico y «sin checkpoint disponible». Al cargar un modelo (API, web o `demo`) se verifica que el
@@ -136,7 +138,7 @@ de neón con *bloom*, ventanales con la ciudad al atardecer, columnas "P1" y jar
 | 📷 (`C`) | Alterna cámara orbital (arrastrar para rotar), superior y de seguimiento. |
 | Panel (`P`, botón inferior derecho) | Estado detallado, agente (aleatorio, regla, manual o un modelo registrado), velocidad 0.25×–10×, nivel, ruido en sensores, cámara y entrenamiento con progreso en vivo. |
 
-La barra superior muestra el **nivel** (cada nivel tiene su propia paleta: N1 lavanda, N2 menta y coral, N3 rosado, N4 azul noche y ámbar), el estado del episodio y
+La barra superior muestra el **nivel** (cada nivel tiene su propia paleta: N1 lavanda, N2 menta y coral, N3 rosado, N4 azul noche y ámbar, N5 morado de noche en una azotea abierta), el estado del episodio y
 los **movimientos** (pasos). La barra inferior muestra agente, distancia al cupo, velocidad,
 recompensa, episodio y choques.
 
@@ -355,6 +357,7 @@ test final reservado. Los finalistas se entrenaron con 3 semillas.
 | N2 · Conos | 0 % | 18 % | PPO `N2-exp06-ppo-curriculo-3m-s44-7f36a120` | **80 %** | **80 %** | 62 / 67 / 80 % (currículo por etapas) |
 | N3 · Peatones (`parking-v6`) | 0 % | 37 % | PPO `N3-exp04-ppo-ft-v6-s43-bd380c76` | **93 %** | **94 %** | 92 / 93 / 92 % (continúa el modelo de N3 v4) |
 | N4 · Todo junto (`parking-v6`) | 0 % | 16 % | PPO `N4-exp04-ppo-ft-v6-s43-e098d962` | **85 %** | **79 %** | 83 / 85 / 80 % (continúa el modelo de N4 v5) |
+| N5 · Garaje grande (`parking-v8`) | 0 % | 30 % | PPO `N5-exp05-ppo-inverso-3m-s44-78c82696` | **100 %** | **100 %** | 98 / 100 / 100 % (currículo inverso, desde cero) |
 
 ![Comparación N2](results/N2/comparison.png)
 

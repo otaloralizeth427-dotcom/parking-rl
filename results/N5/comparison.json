@@ -1,0 +1,142 @@
+{
+  "level_id": "N5",
+  "suite_id": "N5-suite-v1",
+  "policies": {
+    "random": {
+      "label": "Aleatoria (referencia)",
+      "episodes": 100,
+      "success_rate": 0.0,
+      "outcomes": {
+        "success": 0,
+        "obstacle": 1,
+        "pedestrian": 0,
+        "boundary": 76,
+        "timeout": 23
+      },
+      "mean_return": -56.6,
+      "mean_time_s": 30.632,
+      "mean_final_distance_m": 29.492,
+      "mean_final_heading_error_deg": 17.03,
+      "mean_latency_ms": 0.001
+    },
+    "rule": {
+      "label": "Regla (referencia)",
+      "episodes": 100,
+      "success_rate": 0.3,
+      "outcomes": {
+        "success": 30,
+        "obstacle": 70,
+        "pedestrian": 0,
+        "boundary": 0,
+        "timeout": 0
+      },
+      "mean_return": 1.411,
+      "mean_time_s": 12.65,
+      "mean_final_distance_m": 16.273,
+      "mean_final_heading_error_deg": 18.035,
+      "mean_latency_ms": 0.01
+    },
+    "N5-exp06-ppo-inverso-3m-g995-s43-bb22f4d9": {
+      "label": "PPO \u00b7 N5-exp06-ppo-inverso-3m-g995-s43-bb22f4d9",
+      "episodes": 100,
+      "success_rate": 1.0,
+      "outcomes": {
+        "success": 100,
+        "obstacle": 0,
+        "pedestrian": 0,
+        "boundary": 0,
+        "timeout": 0
+      },
+      "mean_return": 140.512,
+      "mean_time_s": 14.992,
+      "mean_final_distance_m": 0.413,
+      "mean_final_heading_error_deg": 2.749,
+      "mean_latency_ms": 0.071
+    },
+    "N5-exp05-ppo-inverso-3m-s44-78c82696": {
+      "label": "PPO \u00b7 N5-exp05-ppo-inverso-3m-s44-78c82696",
+      "episodes": 100,
+      "success_rate": 1.0,
+      "outcomes": {
+        "success": 100,
+        "obstacle": 0,
+        "pedestrian": 0,
+        "boundary": 0,
+        "timeout": 0
+      },
+      "mean_return": 140.687,
+      "mean_time_s": 14.446,
+      "mean_final_distance_m": 0.457,
+      "mean_final_heading_error_deg": 3.012,
+      "mean_latency_ms": 0.071
+    },
+    "N5-exp05-ppo-inverso-3m-s42-f42474ab": {
+      "label": "PPO \u00b7 N5-exp05-ppo-inverso-3m-s42-f42474ab",
+      "episodes": 100,
+      "success_rate": 0.98,
+      "outcomes": {
+        "success": 98,
+        "obstacle": 1,
+        "pedestrian": 0,
+        "boundary": 0,
+        "timeout": 1
+      },
+      "mean_return": 137.193,
+      "mean_time_s": 15.766,
+      "mean_final_distance_m": 0.562,
+      "mean_final_heading_error_deg": 3.798,
+      "mean_latency_ms": 0.071
+    },
+    "N5-exp06-ppo-inverso-3m-g995-s44-9f98ff2a": {
+      "label": "PPO \u00b7 N5-exp06-ppo-inverso-3m-g995-s44-9f98ff2a",
+      "episodes": 100,
+      "success_rate": 0.99,
+      "outcomes": {
+        "success": 99,
+        "obstacle": 0,
+        "pedestrian": 0,
+        "boundary": 0,
+        "timeout": 1
+      },
+      "mean_return": 138.439,
+      "mean_time_s": 16.812,
+      "mean_final_distance_m": 0.488,
+      "mean_final_heading_error_deg": 2.61,
+      "mean_latency_ms": 0.071
+    },
+    "N5-exp06-ppo-inverso-3m-g995-s42-c8fe1d42": {
+      "label": "PPO \u00b7 N5-exp06-ppo-inverso-3m-g995-s42-c8fe1d42",
+      "episodes": 100,
+      "success_rate": 1.0,
+      "outcomes": {
+        "success": 100,
+        "obstacle": 0,
+        "pedestrian": 0,
+        "boundary": 0,
+        "timeout": 0
+      },
+      "mean_return": 140.633,
+      "mean_time_s": 14.91,
+      "mean_final_distance_m": 0.53,
+      "mean_final_heading_error_deg": 1.797,
+      "mean_latency_ms": 0.071
+    },
+    "N5-exp05-ppo-inverso-3m-s43-ad193e80": {
+      "label": "PPO \u00b7 N5-exp05-ppo-inverso-3m-s43-ad193e80",
+      "episodes": 100,
+      "success_rate": 1.0,
+      "outcomes": {
+        "success": 100,
+        "obstacle": 0,
+        "pedestrian": 0,
+        "boundary": 0,
+        "timeout": 0
+      },
+      "mean_return": 140.692,
+      "mean_time_s": 14.58,
+      "mean_final_distance_m": 0.509,
+      "mean_final_heading_error_deg": 2.721,
+      "mean_latency_ms": 0.07
+    }
+  }
+}

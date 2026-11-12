@@ -335,3 +335,73 @@ históricos, se reentrena y se usa un test final nuevo (`N3-final-v3`, `N4-final
 variación entre conjuntos de 100 episodios es grande con todo junto, y la mayor parte de los fallos son timeouts
 (10 en la suite) que no son atascos con peatones (0 pasos quietos), sino maniobras que no terminan a tiempo entre
 conos y ruido. Siguiente hipótesis: validar con más episodios y entrenar con más pasos en N4.
+
+## Nivel 5 · Garaje grande (`configs/levels/N5.json`)
+
+Mapa nuevo (`layout: garage`): azotea de 40 × 50 m con 3 filas de 8 cupos (85 % ocupados), pasillos laterales y
+entrada abajo. El auto arranca en la entrada y el cupo libre puede estar en cualquier fila: para las filas A y B
+tiene que darle la vuelta al parqueadero (~45–60 m). Ve su posición y la del cupo en el mapa, **no la ruta**.
+Sensores de parachoques y ruido σ = 0.1 m como en N4; 400 pasos. Familia de observaciones nueva (25 valores):
+se entrena desde cero. Rama `feature/nivel-5`. Paleta: morado de noche, azotea abierta con la ciudad alrededor.
+
+### Verificación del ambiente antes de entrenar
+
+- 0 arranques chocando en 1 000 reinicios por cada dificultad y cada rango de `route_start`.
+- La ruta (Dijkstra) rodea las filas por el centro de los pasillos (`test_garage_route_goes_around_the_rows`).
+- **El recorrido es posible:** un conductor de prueba que sigue la ruta interna estaciona en ≥ 24 de 30 episodios
+  (`test_garage_is_solvable_by_following_the_route`; 90 % en 200 episodios).
+- Con la ruta en la observación, la regla llegaba al 90 %: el nivel habría sido seguir indicaciones. Por eso el
+  agente no la recibe.
+
+### Referencias (`N5-suite-v1`)
+
+| Política | Éxito | Qué muestra |
+|---|---|---|
+| Aleatoria | 0 % | piso |
+| Regla (sin ruta) | 30 % | va en línea recta al cupo: choca con las filas (70 choques); solo resuelve la fila C |
+
+### Experimentos
+
+| Experimento | Ambiente | Hipótesis | Cambio | Resultado (s42 / s43 / s44) | Decisión |
+|---|---|---|---|---|---|
+| `N5-exp01-ppo-piloto-64` | v7 | El currículo de N2 con 5 etapas (cupo → pasillo → cualquier pasillo → entrada) supera a la regla en 1 M de pasos | 64×64 | 10 % (1 semilla) | rechazada: da vueltas cerca de la entrada |
+| `N5-exp02-ppo-piloto-256` | v7 | Una red de 256×256 aprende mejor el mapa | 256×256 | 0 % (1 semilla) | rechazada: se queda quieto (100 timeouts) |
+| `N5-exp03-ppo-inverso-64` | v7 | **Currículo inverso** (arrancar sobre la ruta, primero cerca del cupo y cada vez más lejos) + lotes de 256 | 1.5 M | 7 % (1 semilla) | rechazada |
+| `N5-exp04-ppo-inverso-128` | v7 | Ídem con 128×128 | 1.5 M | 12 % (1 semilla) | rechazada, pero diagnóstico clave (abajo) |
+| `N5-exp05-ppo-inverso-3m` | v8 | Con pasillos de 8.5 m y 3 M de pasos, 128×128 supera claramente a la regla en las 3 semillas | 3 M, γ 0.99 | **98 / 100 / 100 %** | **aceptada** |
+| `N5-exp06-ppo-inverso-3m-g995` | v8 | Con γ 0.995 (horizonte más largo) supera a exp05 | 3 M, γ 0.995 | **100 / 100 / 99 %** | rechazada: empata con exp05 |
+
+Commits: exp01–02 `c11449f`, exp03–04 `53fffdf` (`git_dirty: false`); exp05–06 `cb59dd4` con `git_dirty: true`
+porque el archivo público del test final (`configs/suites/N5-final-v1.json`, solo la huella de las semillas) se
+creó después del commit y antes de lanzar los runs; el código de entrenamiento es el del commit. Los pilotos v7 se
+conservan en MLflow y en `manifests/`; en la web aparecen como «otra versión del nivel». Un primer intento de
+exp01 se interrumpió a mano al encontrar una prueba automática fallida: queda en MLflow como `KILLED` con su
+diagnóstico y en `artifacts/N5/N5-exp01-ppo-piloto-64-s42-10bf11cc/` (solo la configuración, sin checkpoint).
+
+**Diagnóstico que cambió el ambiente (v7 → v8).** Por etapas del currículo, exp04 solo llegaba al 65 % arrancando
+a 0–10 m del cupo y al 30 % a 5–25 m: no dominaba ni el tramo final. Con pasillos de 6.7 m, el giro de 90° para
+entrar al cupo (radio de giro 3.8 m) casi no cabía. En v8 los pasillos miden 8.5 m (como el pasillo de 9 m de
+N1). El nivel sigue siendo difícil: la regla pasa de 17 % a 30 %.
+
+### Test final reservado (`N5-final-v1`, creado antes de los experimentos largos)
+
+| Política | Éxito | Choques | Tiempo medio |
+|---|---|---|---|
+| Regla | 21 % | 78 | 12.9 s |
+| **exp05 · s44** | **100 %** | 0 | 16.6 s |
+| exp06 · s42 | 99 % | 0 | 17.0 s |
+
+### Verificación independiente del modelo servido
+
+300 episodios nuevos (semillas 500000+): 99 % en la fila A, 100 % en B y C; recorrido medio 42 m; **ninguna**
+trayectoria atraviesa la zona de las filas (siempre rodea por un pasillo lateral) y no hay superposiciones con
+obstáculos sin choque registrado.
+
+### Análisis y decisión
+
+- **Lo que hizo la diferencia fue el currículo inverso más un ambiente justo**, no el tamaño de la red ni γ: con
+  los mismos hiperparámetros, v7 dio 12 % y v8 100 %.
+- **Modelo servido en N5: `N5-exp05-ppo-inverso-3m-s44-78c82696`** (100 % en la suite; a igual éxito la web
+  elige el más rápido, 14.4 s; 100 % en el test final).
+- N5 quedó resuelto: el siguiente reto razonable es hacerlo más difícil sin perder justicia (cupo libre que
+  cambia durante el recorrido, otros autos circulando o varios cupos libres con distinta preferencia).

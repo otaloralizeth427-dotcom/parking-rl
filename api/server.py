@@ -76,7 +76,8 @@ class SimulationSession:
                 "status": m["status"] if matches else "otra versión del nivel", "agent": m["agent"], "seed": m["seed"],
                 "git_commit": m["git_commit"], "environment_version": m["environment_version"],
                 "model_sha256": m.get("model_sha256"), "created_at": m["created_at"],
-                "test_success_rate": summary.get("success_rate"), "diagnostic": m.get("diagnostic"),
+                "test_success_rate": summary.get("success_rate"), "test_mean_time_s": summary.get("mean_time_s"),
+                "diagnostic": m.get("diagnostic"),
             })
         return items
 
@@ -181,9 +182,10 @@ class SimulationSession:
         self.status = "idle"
 
     def _default_agent(self) -> str:
-        """El modelo con mayor éxito en la suite del nivel; si no hay modelos, la regla."""
+        """El modelo con mayor éxito en la suite del nivel (a igual éxito, el más rápido); si no hay, la regla."""
         models = [a for a in self.catalog() if a["available"] and a["id"] not in BASELINES]
-        return max(models, key=lambda a: a["test_success_rate"] or 0)["id"] if models else "rule"
+        best = lambda a: (a["test_success_rate"] or 0, -(a["test_mean_time_s"] or float("inf")))  # noqa: E731
+        return max(models, key=best)["id"] if models else "rule"
 
     def _policy(self, name: str):
         if name in ("random", "manual"):

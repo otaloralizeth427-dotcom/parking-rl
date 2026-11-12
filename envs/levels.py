@@ -22,11 +22,21 @@ def load_level(level_id: str) -> dict:
     return level
 
 
+def _with_defaults(kwargs: dict) -> dict:
+    """Completa con los valores por defecto de ParkingEnv: una opción agregada después (p. ej.
+    crossing_pedestrians) que falta en un manifiesto viejo vale su valor por defecto, que reproduce el
+    comportamiento con que se entrenó ese modelo."""
+    import inspect
+    defaults = {k: v.default for k, v in inspect.signature(ParkingEnv.__init__).parameters.items()
+                if v.default is not inspect.Parameter.empty and k != "config"}
+    return {**defaults, **(kwargs or {})}
+
+
 def model_matches_level(manifest: dict, level_id: str) -> bool:
     """Un modelo solo se sirve en la definición del nivel con la que se entrenó (mismas observaciones)."""
     level = load_level(level_id)
     return (manifest.get("environment_version") == level["environment_version"]
-            and manifest.get("environment_kwargs") == env_kwargs(level))
+            and _with_defaults(manifest.get("environment_kwargs")) == _with_defaults(env_kwargs(level)))
 
 
 def make_env(level_id: str) -> ParkingEnv:

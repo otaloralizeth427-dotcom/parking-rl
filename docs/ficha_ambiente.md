@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| Versión del contrato | `parking-v6` (`envs/parking_env.py: ENV_VERSION`); cada nivel declara la versión que usa (N1: `parking-v2`, N2: `parking-v3`, N3 y N4: `parking-v6`) |
+| Versión del contrato | `parking-v8` (`envs/parking_env.py: ENV_VERSION`); cada nivel declara la versión que usa (N1: `parking-v2`, N2: `parking-v3`, N3 y N4: `parking-v6`, N5: `parking-v8`) |
 | Implementación | `envs.parking_env.ParkingEnv` (Gymnasium 1.x) |
 | Misión | Llevar el vehículo al cupo objetivo y detenerlo alineado, sin chocar |
 | Unidades | metros, segundos, radianes, m/s |
@@ -16,6 +16,7 @@
 | Vehículo | 4.2 × 1.8 m, distancia entre ejes 2.6 m |
 | Obstáculos | autos estacionados (cada cupo ocupado con p = 0.6; p = 0.85 los vecinos del objetivo), 4 columnas de 0.8 × 0.8 m, conos de 0.5 × 0.5 m. Con `blocking_cones = 1` (N2) se agrega un cono extra en la línea recta entre el arranque y el cupo, a ≥ 3.2 m del auto y ≥ 1.7 m de la entrada (se omite si no cabe: 67 de 100 episodios de la suite lo tienen) |
 | Peatones (opcional, N3) | cajas de 0.5 × 0.5 m que cruzan el pasillo en una x fija, ida y vuelta entre y = ±3.9 m, a 0.8–1.3 m/s; se detienen si el auto está a menos de 0.6 m de su camino; los sensores los detectan. Con `crossing_pedestrians = 1` el primero cruza entre el arranque y el cupo (a ≥ 3.8 m del auto), empezando a 1.5–3.5 m del carril y caminando hacia él |
+| Mapa garage (N5, `layout: garage`) | azotea de 40 × 50 m (x ∈ [−20, 20], y ∈ [−25, 25]) con 3 filas (A, B, C) de 8 cupos de 3.0 × 5.5 m en \|x\| ≤ 12, todas abiertas hacia abajo, cada una frente a un pasillo de 8.5 m; bordillos de 0.3 m detrás de las filas B y C (no se puede cruzar por un cupo vacío); pasillos laterales de 7.7 m (\|x\| > 12.3) que conectan todo; entrada abajo en x = 0. Cada cupo no objetivo ocupado con p = 0.85. Sin columnas, conos ni peatones. El auto arranca en la entrada (0, −22) mirando hacia adentro |
 | Aleatoriedad por episodio | cupo objetivo (16 posibles), ocupación de cupos, desplazamiento ±0.15 m de los autos, pose inicial y conos; reproducible con `reset(seed=...)` |
 
 ## Dinámica
@@ -37,7 +38,7 @@
 | 3 | Derecha | δ −= 0.15 rad |
 | 4 | Frenar | \|v\| −= 1.0 m/s, hasta 0 |
 
-## Observación · `Box(14,)` float32 (N1) · `Box(19,)` float32 (N2)
+## Observación · `Box(14,)` float32 (N1) · `Box(19,)` (N2–N4) · `Box(25,)` (N5)
 
 | Índice | Variable | Unidad / escala | Rango (con clipping) |
 |---|---|---|---|
@@ -49,6 +50,13 @@
 | 5 | las 4 esquinas están dentro del cupo | 0 o 1 | {0, 1} |
 | 6–13 | 8 sensores de distancia cada 45° (0 = frente, sentido antihorario), medidos desde la carrocería | m / 8 | [0, 1] |
 | 14–18 | **solo con `bumper_sensors = 5` (N2):** rayos paralelos hacia adelante desde 5 puntos repartidos a lo ancho del parachoques delantero (y = −0.9 … 0.9 m) | m / 4 | [0, 1] |
+| 19–20 | **solo en el mapa garage (N5):** posición del auto en el mapa (x / 20, y / 25) | — | [−1, 1] |
+| 21–22 | **solo N5:** rumbo del auto (cos θ, sin θ) | — | [−1, 1] |
+| 23–24 | **solo N5:** posición del cupo libre en el mapa (x / 20, y / 25) | — | [−1, 1] |
+
+**Qué sabe el auto en N5 y qué no.** Ve dónde está él y dónde está el cupo libre (como un tablero que muestra el
+espacio disponible), pero **no recibe la ruta**: tiene que aprender a rodear las filas. La ruta (Dijkstra sobre
+una cuadrícula de 0.5 m, `envs/garage.py: RouteField`) solo se usa en la recompensa.
 
 **Por qué N2 agrega sensores de parachoques.** Con los 8 rayos radiales, un cono de 0.5 m puede quedar
 entre dos rayos: en 36 de los 67 episodios con cono en el camino, el auto chocaba sin que ningún sensor lo
@@ -71,13 +79,18 @@ r = −0.05                                    tiempo
 Φ(s) = −d − 1.5 · max(0, 1 − d/6) · |error de orientación|        d = distancia al centro del cupo (m)
 ```
 
+**N5 (garage).** `d` es la distancia **por la ruta** (no en línea recta): rodear las filas también acerca. El costo
+de cada tramo es mayor junto a las filas y los bordes (×1 a ×4), así la ruta va por el centro de los pasillos; a
+menos de 4 m del cupo pasa suavemente a la distancia en línea recta. Además, detenerse dentro del cupo sin quedar
+estacionado (torcido o a medias) también cuesta −0.15 por paso.
+
 ## Terminación
 
 | Señal | Condición |
 |---|---|
 | `terminated` · éxito | las 4 esquinas dentro del cupo (holgura de 0.15 m), \|error de orientación\| ≤ 0.25 rad (14°) y \|v\| ≤ 0.4 m/s |
 | `terminated` · fallo | choque con un obstáculo (`collision_kind = "obstacle"`), atropello de un peatón (`"pedestrian"`) o salida del parqueadero (`"boundary"`) |
-| `truncated` | 200 decisiones (40 s simulados) sin terminar |
+| `truncated` | 200 decisiones (40 s simulados) sin terminar; en N5, 400 (80 s) |
 
 `info` contiene: `collision_kind`, `distance`, `heading_error`, `speed`, `steer`, `collision`, `success`, `in_slot`, `steps`, `target_id`.
 
@@ -92,8 +105,9 @@ tag. Los niveles anteriores siguen disponibles.
 | N2 · Conos | ✅ `nivel-2` | N1 + 3 conos sueltos + 1 cono en la ruta (`difficulty: hard`, `blocking_cones: 1`) + 5 sensores de parachoques | rodear un obstáculo fijo que tapa el camino directo |
 | N3 · Peatones | ✅ `nivel-3` | N1 + 2 peatones, uno cruza la ruta (`crossing_pedestrians: 1`, `pedestrians_yield`) + sensores de parachoques | frenar y ceder el paso a un obstáculo en movimiento, y retomar (perturbación con recuperación) |
 | N4 · Todo junto | ✅ `nivel-4` | N2 + N3 (3 conos + cono en la ruta, 2 peatones, uno cruza) + ruido gaussiano σ = 0.1 m en los sensores y 0.05 m en la posición del cupo | combinar todo con sensores imprecisos (perturbación) |
+| N5 · Garaje grande | ✅ `nivel-5` | mapa garage (3 filas, entrada abajo) + sensores de parachoques + ruido σ = 0.1 m; 400 pasos | planear el recorrido: rodear las filas por el pasillo lateral correcto y estacionar al final |
 
-Todos los niveles comparten las acciones. N1 observa 14 valores y N2, N3 en adelante 19: son dos familias de
+Todos los niveles comparten las acciones. N1 observa 14 valores, N2–N4 19 y N5 25: son tres familias de
 modelos. Dentro de una familia, un modelo antiguo puede evaluarse en un nivel nuevo, pero no se espera que
 lo resuelva.
 
@@ -112,6 +126,8 @@ episodios (frente a ~0.2 % desde el pasillo).
 | `parking-v4` | Agrega `pedestrians_yield`: si el auto está quieto (|v| ≤ 0.1 m/s) el peatón sigue caminando, o se devuelve si no cabe. En v3 el auto y el peatón podían quedarse esperándose hasta el timeout (4 de 100 episodios en N3). Sin la opción reproduce v3 exactamente; solo N3 la usa. |
 | `parking-v5` | Si hay a la vez conos en el camino (`blocking_cones`) y peatón que cruza, el peatón cruza 1.5 m más allá del cono que tenga en su línea (camina todo el pasillo y no debe atravesar conos); si no cabe antes del cupo se omite. Sin esa combinación reproduce v4 exactamente; solo N4 la usa. |
 | `parking-v6` | Agrega `pedestrians_evade`: los peatones **nunca se quedan quietos**. Si el auto en movimiento está a menos de 0.6 m de su camino y avanzar lo acerca, el peatón da la vuelta y se aleja; si el auto le queda encima, se aparta en la dirección opuesta; si queda arrinconado contra el borde del pasillo, se hace a un lado a lo largo de la fila. Con el auto quieto sigue cruzando. El estado incluye el rumbo del peatón (`heading`) para dibujarlo mirando hacia donde camina. N3 y N4 la usan. |
+| `parking-v7` | Mapa `garage` con pasillos de 6.7 m. Solo lo usaron 4 pilotos de N5; **ya no se reproduce** (v8 cambió la geometría), por eso esos modelos aparecen como «otra versión del nivel». |
+| `parking-v8` | Mapa `garage` (`layout`) con pasillos de 8.5 m, dificultad `roam` y `route_start` (arranques sobre la ruta desde la entrada, a [desde, hasta] m del cupo) para el currículo inverso, potencial por la ruta y castigo por detenerse a medias dentro del cupo. Sin `layout: garage` reproduce v6 exactamente. Solo N5 lo usa. |
 
 ## Simplificaciones
 

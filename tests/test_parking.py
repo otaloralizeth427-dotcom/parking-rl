@@ -671,3 +671,13 @@ def test_garage_reverse_curriculum_starts_on_the_route():
         assert 8 < env.route_distance() < 60                 # sobre la ruta, lejos del cupo pero no en la entrada
     with pytest.raises(ValueError):
         ParkingEnv(route_start=[0, 5])                       # solo existe en el garaje
+
+
+def test_old_manifests_still_match_their_level():
+    """Opciones agregadas después (con su valor por defecto) no vuelven incompatibles los modelos viejos."""
+    from envs.levels import model_matches_level
+    old = {"environment_version": "parking-v2",
+           "environment_kwargs": {"difficulty": "normal", "sensor_noise": 0.0, "pedestrians": 0, "cones": 0}}
+    assert model_matches_level(old, "N1")
+    assert not model_matches_level({**old, "environment_kwargs": {**old["environment_kwargs"], "cones": 3}}, "N1")
+    assert not model_matches_level({**old, "environment_version": "parking-v7"}, "N1")
