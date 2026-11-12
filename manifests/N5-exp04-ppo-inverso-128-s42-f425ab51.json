@@ -1,0 +1,70 @@
+{
+  "run_id": "N5-exp04-ppo-inverso-128-s42-f425ab51",
+  "experiment_id": "N5-exp04-ppo-inverso-128",
+  "level_id": "N5",
+  "agent": "ppo",
+  "hypothesis": "Igual que exp03 con una red de 128×128: más capacidad para aprender las 24 rutas mejora el resultado.",
+  "change_vs_baseline": "Piloto: currículo inverso por la ruta (6 etapas), red 128×128, n_steps 4096 y batch 256, 1.5 M de pasos; además, detenerse dentro del cupo sin estacionar castiga (parking-v7).",
+  "environment_version": "parking-v7",
+  "environment_kwargs": {
+    "difficulty": "hard",
+    "sensor_noise": 0.1,
+    "pedestrians": 0,
+    "cones": 0,
+    "blocking_cones": 0,
+    "bumper_sensors": 5,
+    "crossing_pedestrians": 0,
+    "layout": "garage",
+    "route_start": null
+  },
+  "observation_shape": [
+    25
+  ],
+  "git_commit": "53fffdf404ea31a00ef19d463d87f5ac3ed39131",
+  "git_branch": "feature/nivel-5",
+  "git_dirty": false,
+  "config_uri": "artifacts/N5/N5-exp04-ppo-inverso-128-s42-f425ab51/config.json",
+  "config_sha256": "28cfff47350200c494201f018df49a425b6994a55e5b1f7ba7c5551caf429b14",
+  "seed": 42,
+  "parent_run_id": null,
+  "origin": "desde cero",
+  "parent_model_sha256": null,
+  "evaluation_suite_id": "N5-suite-v1",
+  "mlflow": {
+    "tracking_uri": "sqlite:///mlflow.db",
+    "experiment": "parking-N5",
+    "run_id": "f425ab51fefd43409f79c55467617d8e"
+  },
+  "created_at": "2026-11-12T02:13:26+00:00",
+  "status": "completed",
+  "model_uri": "artifacts/N5/N5-exp04-ppo-inverso-128-s42-f425ab51/model.zip",
+  "model_sha256": "d077f142f6ad22e8e5d5d8f2c8a9f4ab4ce98be53f069f7617348871217fc0b3",
+  "normalization_uri": "envs/parking_env.py#ParkingEnv._observation (escalado fijo dentro del ambiente; sin normalización aprendida)",
+  "observation_contract": "Box(25,) float32 · ver docs/ficha_ambiente.md",
+  "action_contract": "Discrete(5): avanzar, retroceder, izquierda, derecha, frenar",
+  "runtime_ref": "python 3.12.7 · requirements.lock.txt sha256:76cff4f909c98d69",
+  "budget": {
+    "timesteps": 1500000,
+    "episodes": 8121,
+    "env_steps": 1500000,
+    "wall_time_s": 2546.6
+  },
+  "optimizer_state": "no guardado: los runs no se continúan desde este checkpoint",
+  "evaluation_uri": "artifacts/N5/N5-exp04-ppo-inverso-128-s42-f425ab51/evaluation.json",
+  "evaluation_summary": {
+    "episodes": 100,
+    "success_rate": 0.12,
+    "outcomes": {
+      "success": 12,
+      "obstacle": 11,
+      "pedestrian": 0,
+      "boundary": 5,
+      "timeout": 72
+    },
+    "mean_return": -20.186,
+    "mean_time_s": 61.13,
+    "mean_final_distance_m": 15.796,
+    "mean_final_heading_error_deg": 29.745,
+    "mean_latency_ms": 0.072
+  }
+}

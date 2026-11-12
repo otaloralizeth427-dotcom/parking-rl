@@ -23,12 +23,14 @@ LAYOUTS = ("aisle", "garage")   # aisle: pasillo con 2 filas (N1-N4); garage: az
 
 # Cambia cuando cambian observaciones, acciones, dinámica o recompensa:
 # un modelo solo es compatible con la versión con que fue entrenado.
-ENV_VERSION = "parking-v7"   # v3: cono bloqueante, peatón que cruza y parachoques; v4: peatones que no se congelan;
+ENV_VERSION = "parking-v8"   # v3: cono bloqueante, peatón que cruza y parachoques; v4: peatones que no se congelan;
                               # v5: con cono bloqueante y peatón que cruza a la vez, el peatón no atraviesa el cono;
                               # v6: los peatones nunca se quedan quietos: si el auto se acerca, se alejan o se apartan;
-                              # v7: mapa «garage» (N5): 3 filas, entrada abajo; el auto conoce el mapa pero no la ruta
+                              # v7: mapa «garage» (N5) con pasillos de 6.7 m (solo pilotos; ya no se reproduce);
+                              # v8: garage con pasillos de 8.5 m, arranques sobre la ruta (route_start) y castigo
+                              #     por detenerse a medias dentro del cupo
 # Versiones que este código reproduce: con sus valores por defecto, v3 se comporta exactamente como v2
-SUPPORTED_VERSIONS = ("parking-v2", "parking-v3", "parking-v4", "parking-v5", "parking-v6", "parking-v7")
+SUPPORTED_VERSIONS = ("parking-v2", "parking-v3", "parking-v4", "parking-v5", "parking-v6", "parking-v8")
 
 
 @dataclass(frozen=True)
@@ -73,7 +75,7 @@ class ParkingConfig:
     w_slot_speed: float = 0.3
 
 
-# Mapa garage (N5): lote de 40 × 44 m, recorridos largos (hasta ~60 m por la ruta) y casi todo ocupado
+# Mapa garage (N5): lote de 40 × 50 m con pasillos de 8.5 m, recorridos largos (hasta ~60 m por la ruta) y casi todo ocupado
 GARAGE_CONFIG = ParkingConfig(lot_width=garage.LOT_WIDTH, lot_height=garage.LOT_HEIGHT, max_steps=400,
                               occupancy=0.85)
 

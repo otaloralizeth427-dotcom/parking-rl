@@ -630,7 +630,7 @@ function buildRooftop(layout) {
   addGate(group, -doorHalf, -gy, -1);
   addGate(group, doorHalf, -gy, 1);
   // Luz general de la azotea
-  for (const [x, y] of [[-10, 12], [10, 12], [-10, -4], [10, -4], [0, -16]]) {
+  for (const [x, y] of [[-10, 15], [10, 15], [-10, 1], [10, 1], [-8, -14], [8, -14], [0, -21]]) {
     const light = new THREE.PointLight(THEME.pointLight, 30, 26, 1.3);
     light.position.copy(toWorld(x, y, 7));
     group.add(light);
@@ -689,17 +689,23 @@ function buildRooftop(layout) {
     a.position.copy(toWorld(x, y, 0.013));
     group.add(a);
   };
-  for (const y of [-12, 0, 12]) { arrow(16, y, Math.PI / 2); arrow(-16, y, -Math.PI / 2); }
-  for (const y of [13.0, 0.5, -12.0]) for (const x of [-7, 7]) arrow(x, y, Math.PI);
-  arrow(0, -16.5, Math.PI / 2);
+  // Centro de cada pasillo: entre el frente de su fila y lo que haya debajo (bordillo o fila siguiente)
+  const aisleYs = rowIds.map((r) => {
+    const slot = layout.slots.find((s) => s.row === r);
+    return slot.y + slot.opening * slot.depth / 2 + slot.opening * 4.25;
+  });
+  for (const y of [-14, 0, 14]) { arrow(16, y, Math.PI / 2); arrow(-16, y, -Math.PI / 2); }
+  for (const y of aisleYs) for (const x of [-7, 7]) arrow(x, y, Math.PI);
+  const lastAisle = Math.min(...aisleYs);
+  arrow(0, (lastAisle - 4.25 - H / 2) / 2, Math.PI / 2);
   // Línea punteada de la entrada
-  for (let y = -H / 2 + 0.5; y < -15.5; y += 1.6) group.add(flatPlane(0.16, 0.9, paint, 0, y, 0.012));
+  for (let y = -H / 2 + 0.5; y < lastAisle - 4.25; y += 1.6) group.add(flatPlane(0.16, 0.9, paint, 0, y, 0.012));
 
   scene.add(group);
   garageBuilt = true;
   // Cámara, sombras y niebla a la escala del mapa grande
-  CAMERA_PRESETS.orbit = { pos: [0, 40, 44], target: [0, 0, -1] };
-  CAMERA_PRESETS.top = { pos: [0, 78, 0.01], target: [0, 0, 0] };
+  CAMERA_PRESETS.orbit = { pos: [0, 46, 50], target: [0, 0, -3] };
+  CAMERA_PRESETS.top = { pos: [0, 86, 0.01], target: [0, 0, 0] };
   controls.maxDistance = 120;
   scene.fog = new THREE.Fog(THEME.fog, 90, 190);
   camera.far = 400;

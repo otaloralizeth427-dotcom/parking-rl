@@ -2,7 +2,7 @@
 
 Coordenadas en metros, como en ParkingEnv: x horizontal, y vertical (la entrada está en y negativa).
 
-    y = 22  ──────────── pared ────────────
+    y = 25  ──────────── pared ────────────
             | fila A (8 cupos, abren abajo) |
             |          pasillo 1            |
             ═══ bordillo ═══════════════════   ← la fila B no se puede cruzar por detrás
@@ -11,7 +11,7 @@ Coordenadas en metros, como en ParkingEnv: x horizontal, y vertical (la entrada 
             ═══ bordillo ═══════════════════
             | fila C (8 cupos, abren abajo) |
             |          pasillo 3            |
-    y = -22 ────────── entrada (x = 0) ─────
+    y = -25 ────────── entrada (x = 0) ─────
 
 Los pasillos laterales (|x| > 12.3) conectan todos los pasillos: para llegar a la fila A o B hay que
 darle la vuelta a las filas. `RouteField` es la distancia por el camino libre hasta el cupo, calculada con
@@ -25,16 +25,18 @@ import heapq
 
 import numpy as np
 
-LOT_WIDTH, LOT_HEIGHT = 40.0, 44.0
+LOT_WIDTH, LOT_HEIGHT = 40.0, 50.0
 SLOTS_PER_ROW = 8
 SLOT_WIDTH, SLOT_DEPTH = 3.0, 5.5
+AISLE = 8.5          # ancho de los pasillos frente a las filas (con 6.7 m no cabía el giro de 90°)
 ROW_HALF_WIDTH = SLOTS_PER_ROW * SLOT_WIDTH / 2          # 12 m: las filas ocupan |x| <= 12
 CURB_HALF = (ROW_HALF_WIDTH + 0.3, 0.15)
 # (límite superior en y de la fila, nombre). Todas las filas abren hacia abajo (hacia y negativa).
-ROWS = ((LOT_HEIGHT / 2, "A"), (9.5, "B"), (-3.0, "C"))
+# Cada fila abre a un pasillo de 8.5 m; detrás de B y C hay un bordillo de 0.3 m.
+ROWS = ((LOT_HEIGHT / 2, "A"), (10.7, "B"), (-3.6, "C"))
 # Bordillos detrás de las filas B y C: impiden cruzar de un pasillo a otro por un cupo vacío
-CURBS_Y = (9.5 + CURB_HALF[1], -3.0 + CURB_HALF[1])
-ENTRANCE = np.array([0.0, -19.0])
+CURBS_Y = (10.7 + CURB_HALF[1], -3.6 + CURB_HALF[1])
+ENTRANCE = np.array([0.0, -22.0])
 GRID = 0.5           # resolución de la cuadrícula de la ruta (m)
 INFLATE = 0.9        # margen alrededor de los obstáculos (medio ancho del auto)
 
@@ -56,7 +58,7 @@ def build_curbs() -> list[dict]:
 
 def aisle_y(slot: dict) -> float:
     """Centro del pasillo al que abre el cupo."""
-    return float(slot["center"][1] - SLOT_DEPTH / 2 - 3.5)
+    return float(slot["center"][1] - SLOT_DEPTH / 2 - AISLE / 2)
 
 
 def aisle_points(rng, n: int = 1) -> np.ndarray:
@@ -65,9 +67,9 @@ def aisle_points(rng, n: int = 1) -> np.ndarray:
     for _ in range(n):
         if rng.random() < 0.6:
             top = ROWS[int(rng.integers(len(ROWS)))][0]
-            pts.append([rng.uniform(-14.0, 14.0), top - SLOT_DEPTH - 3.5 + rng.uniform(-0.8, 0.8)])
+            pts.append([rng.uniform(-14.0, 14.0), top - SLOT_DEPTH - AISLE / 2 + rng.uniform(-1.2, 1.2)])
         else:
-            pts.append([rng.choice([-1.0, 1.0]) * rng.uniform(15.3, 16.7), rng.uniform(-16.0, 13.0)])
+            pts.append([rng.choice([-1.0, 1.0]) * rng.uniform(15.3, 16.7), rng.uniform(-19.0, 15.0)])
     return np.array(pts)
 
 

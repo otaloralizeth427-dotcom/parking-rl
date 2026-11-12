@@ -1,0 +1,70 @@
+{
+  "run_id": "N5-exp03-ppo-inverso-64-s42-0b8eecfa",
+  "experiment_id": "N5-exp03-ppo-inverso-64",
+  "level_id": "N5",
+  "agent": "ppo",
+  "hypothesis": "Los pilotos fallan porque el auto nunca encuentra el camino desde la entrada (10 % y 0 %, peor que la regla). Con un currículo inverso (arrancar sobre la ruta, primero cerca del cupo y cada vez más lejos) y lotes más grandes, 1.5 M de pasos superan a la regla (17 %).",
+  "change_vs_baseline": "Piloto: currículo inverso por la ruta (6 etapas), red 64×64, n_steps 4096 y batch 256, 1.5 M de pasos; además, detenerse dentro del cupo sin estacionar castiga (parking-v7).",
+  "environment_version": "parking-v7",
+  "environment_kwargs": {
+    "difficulty": "hard",
+    "sensor_noise": 0.1,
+    "pedestrians": 0,
+    "cones": 0,
+    "blocking_cones": 0,
+    "bumper_sensors": 5,
+    "crossing_pedestrians": 0,
+    "layout": "garage",
+    "route_start": null
+  },
+  "observation_shape": [
+    25
+  ],
+  "git_commit": "53fffdf404ea31a00ef19d463d87f5ac3ed39131",
+  "git_branch": "feature/nivel-5",
+  "git_dirty": false,
+  "config_uri": "artifacts/N5/N5-exp03-ppo-inverso-64-s42-0b8eecfa/config.json",
+  "config_sha256": "738203aecfa438f0a7010b0a5dd8aa6bbdf19064bb2fdef86fb3d24927d7f7ed",
+  "seed": 42,
+  "parent_run_id": null,
+  "origin": "desde cero",
+  "parent_model_sha256": null,
+  "evaluation_suite_id": "N5-suite-v1",
+  "mlflow": {
+    "tracking_uri": "sqlite:///mlflow.db",
+    "experiment": "parking-N5",
+    "run_id": "0b8eecfa1613477e978f22f9f4f0cabb"
+  },
+  "created_at": "2026-11-12T02:13:26+00:00",
+  "status": "completed",
+  "model_uri": "artifacts/N5/N5-exp03-ppo-inverso-64-s42-0b8eecfa/model.zip",
+  "model_sha256": "a51c57b76530eec5100757e3bac4f5a5acb949ff3d7d0e591eee3d7a4fa84b20",
+  "normalization_uri": "envs/parking_env.py#ParkingEnv._observation (escalado fijo dentro del ambiente; sin normalización aprendida)",
+  "observation_contract": "Box(25,) float32 · ver docs/ficha_ambiente.md",
+  "action_contract": "Discrete(5): avanzar, retroceder, izquierda, derecha, frenar",
+  "runtime_ref": "python 3.12.7 · requirements.lock.txt sha256:76cff4f909c98d69",
+  "budget": {
+    "timesteps": 1500000,
+    "episodes": 6945,
+    "env_steps": 1500000,
+    "wall_time_s": 2539.7
+  },
+  "optimizer_state": "no guardado: los runs no se continúan desde este checkpoint",
+  "evaluation_uri": "artifacts/N5/N5-exp03-ppo-inverso-64-s42-0b8eecfa/evaluation.json",
+  "evaluation_summary": {
+    "episodes": 100,
+    "success_rate": 0.07,
+    "outcomes": {
+      "success": 7,
+      "obstacle": 17,
+      "pedestrian": 0,
+      "boundary": 0,
+      "timeout": 76
+    },
+    "mean_return": -7.88,
+    "mean_time_s": 65.108,
+    "mean_final_distance_m": 13.411,
+    "mean_final_heading_error_deg": 28.713,
+    "mean_latency_ms": 0.069
+  }
+}

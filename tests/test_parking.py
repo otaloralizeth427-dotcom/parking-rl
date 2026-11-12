@@ -644,7 +644,7 @@ def test_garage_route_goes_around_the_rows():
     p = garage.ENTRANCE.copy()
     for _ in range(200):
         p = top.waypoint(p, 1.0)
-        if -8.5 < p[1] < 9.5:
+        if garage.ROWS[2][0] - garage.SLOT_DEPTH < p[1] < garage.ROWS[1][0]:
             assert abs(p[0]) > 12.3, p
     assert np.linalg.norm(p - slots["A4"]["center"]) < 0.5
 

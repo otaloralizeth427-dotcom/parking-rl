@@ -1,0 +1,69 @@
+{
+  "run_id": "N5-exp01-ppo-piloto-64-s42-1078fcbb",
+  "experiment_id": "N5-exp01-ppo-piloto-64",
+  "level_id": "N5",
+  "agent": "ppo",
+  "hypothesis": "Piloto corto (1 M de pasos): la receta de currículo de N2 con 5 etapas (cupo → pasillo → cualquier pasillo → entrada) aprende a rodear las filas: supera a la regla (17 %) en el nivel completo.",
+  "change_vs_baseline": "Receta de currículo de N2-exp06 adaptada a N5 (5 etapas), red 64×64, 1 M de pasos.",
+  "environment_version": "parking-v7",
+  "environment_kwargs": {
+    "difficulty": "hard",
+    "sensor_noise": 0.1,
+    "pedestrians": 0,
+    "cones": 0,
+    "blocking_cones": 0,
+    "bumper_sensors": 5,
+    "crossing_pedestrians": 0,
+    "layout": "garage"
+  },
+  "observation_shape": [
+    25
+  ],
+  "git_commit": "c11449fb54c3a4d20735a6ab3844e15141477dd9",
+  "git_branch": "feature/nivel-5",
+  "git_dirty": false,
+  "config_uri": "artifacts/N5/N5-exp01-ppo-piloto-64-s42-1078fcbb/config.json",
+  "config_sha256": "a49f4167aa543e4620662ce76c9dc7f8d66aca4e16a495c8d13c4baa708376c6",
+  "seed": 42,
+  "parent_run_id": null,
+  "origin": "desde cero",
+  "parent_model_sha256": null,
+  "evaluation_suite_id": "N5-suite-v1",
+  "mlflow": {
+    "tracking_uri": "sqlite:///mlflow.db",
+    "experiment": "parking-N5",
+    "run_id": "1078fcbbcaef4f39b633b31a29358d9e"
+  },
+  "created_at": "2026-11-11T23:53:37+00:00",
+  "status": "completed",
+  "model_uri": "artifacts/N5/N5-exp01-ppo-piloto-64-s42-1078fcbb/model.zip",
+  "model_sha256": "4ea5c1488661208d5d2d0a87cb85b8ada9bca9e50d588957fae808ec56d7ec86",
+  "normalization_uri": "envs/parking_env.py#ParkingEnv._observation (escalado fijo dentro del ambiente; sin normalización aprendida)",
+  "observation_contract": "Box(25,) float32 · ver docs/ficha_ambiente.md",
+  "action_contract": "Discrete(5): avanzar, retroceder, izquierda, derecha, frenar",
+  "runtime_ref": "python 3.12.7 · requirements.lock.txt sha256:76cff4f909c98d69",
+  "budget": {
+    "timesteps": 1000000,
+    "episodes": 8423,
+    "env_steps": 1000000,
+    "wall_time_s": 1798.0
+  },
+  "optimizer_state": "no guardado: los runs no se continúan desde este checkpoint",
+  "evaluation_uri": "artifacts/N5/N5-exp01-ppo-piloto-64-s42-1078fcbb/evaluation.json",
+  "evaluation_summary": {
+    "episodes": 100,
+    "success_rate": 0.1,
+    "outcomes": {
+      "success": 10,
+      "obstacle": 26,
+      "pedestrian": 0,
+      "boundary": 0,
+      "timeout": 64
+    },
+    "mean_return": -20.695,
+    "mean_time_s": 55.142,
+    "mean_final_distance_m": 17.89,
+    "mean_final_heading_error_deg": 29.494,
+    "mean_latency_ms": 0.125
+  }
+}

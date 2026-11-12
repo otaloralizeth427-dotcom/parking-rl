@@ -1,0 +1,88 @@
+{
+  "experiment_id": "N5-exp02-ppo-piloto-256",
+  "level_id": "N5",
+  "agent": "ppo",
+  "hypothesis": "Piloto corto (1 M de pasos): con una red más grande (256×256) la política aprende mejor el mapa (posición → ruta) que con 64×64.",
+  "change_vs_baseline": "Receta de currículo de N2-exp06 adaptada a N5 (5 etapas), red 256×256, 1 M de pasos.",
+  "derived_from": "N2-exp06-ppo-curriculo-3m",
+  "seed": 42,
+  "budget": {
+    "timesteps": 1000000
+  },
+  "curriculum": [
+    {
+      "name": "práctica: nariz en el cupo",
+      "overrides": {
+        "difficulty": "tutorial"
+      },
+      "timesteps": 100000
+    },
+    {
+      "name": "fácil: frente al cupo",
+      "overrides": {
+        "difficulty": "easy"
+      },
+      "timesteps": 150000
+    },
+    {
+      "name": "en el pasillo del cupo",
+      "overrides": {
+        "difficulty": "normal"
+      },
+      "timesteps": 250000
+    },
+    {
+      "name": "desde cualquier pasillo",
+      "overrides": {
+        "difficulty": "roam"
+      },
+      "timesteps": 300000
+    },
+    {
+      "name": "nivel completo: desde la entrada",
+      "overrides": {},
+      "timesteps": 200000
+    }
+  ],
+  "hyperparameters": {
+    "learning_rate": 0.0003,
+    "n_steps": 2048,
+    "batch_size": 64,
+    "n_epochs": 10,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "ent_coef": 0.05,
+    "net_arch": [
+      256,
+      256
+    ]
+  },
+  "validation": {
+    "seed_start": 200000,
+    "episodes": 20,
+    "every": 50000
+  },
+  "environment_version": "parking-v7",
+  "level": {
+    "level_id": "N5",
+    "name": "Garaje grande",
+    "environment_version": "parking-v7",
+    "layout": "garage",
+    "difficulty": "hard",
+    "cones": 0,
+    "blocking_cones": 0,
+    "pedestrians": 0,
+    "crossing_pedestrians": 0,
+    "bumper_sensors": 5,
+    "sensor_noise": 0.1,
+    "description": "Mapa nuevo: azotea de 40 × 44 m con 3 filas de 8 cupos (casi todos ocupados) y pasillos laterales. El auto entra por abajo y el cupo libre puede estar en cualquier fila: para llegar a las filas de arriba tiene que darle la vuelta al parqueadero. Ve su posición y la del cupo en el mapa, pero no la ruta: tiene que aprender a rodear las filas. Sin conos ni peatones; sensores con ruido (σ = 0.1 m) como en N4. Hasta 400 pasos (80 s).",
+    "new_decision": "Planear el recorrido: elegir por qué pasillo lateral subir y en qué pasillo girar, sin chocar con las filas, y estacionar al final."
+  },
+  "evaluation_suite": {
+    "suite_id": "N5-suite-v1",
+    "level_id": "N5",
+    "seed_start": 100000,
+    "episodes": 100,
+    "deterministic": true
+  }
+}

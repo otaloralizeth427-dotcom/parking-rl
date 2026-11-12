@@ -1,0 +1,83 @@
+{
+  "experiment_id": "N5-exp05-ppo-inverso-3m",
+  "level_id": "N5",
+  "agent": "ppo",
+  "hypothesis": "Con pasillos de 8.5 m (parking-v8) y el doble de presupuesto (3 M de pasos, más tiempo en cada etapa del currículo inverso), PPO 128×128 supera claramente a la regla (29 %) en las 3 semillas.",
+  "change_vs_baseline": "Igual que el piloto N5-exp04-ppo-inverso-128 en parking-v8, con 3 M de pasos repartidos [150000, 350000, 500000, 600000, 600000, 800000] y gamma 0.99.",
+  "derived_from": "N5-exp04-ppo-inverso-128",
+  "seed": 42,
+  "budget": {
+    "timesteps": 3000000
+  },
+  "curriculum": [
+    {
+      "name": "práctica: nariz en el cupo",
+      "overrides": {
+        "difficulty": "tutorial"
+      },
+      "timesteps": 150000
+    },
+    {
+      "name": "ruta: últimos 0-10 m",
+      "overrides": {
+        "route_start": [
+          0,
+          10
+        ]
+      },
+      "timesteps": 350000
+    },
+    {
+      "name": "ruta: 5-25 m",
+      "overrides": {
+        "route_start": [
+          5,
+          25
+        ]
+      },
+      "timesteps": 500000
+    },
+    {
+      "name": "ruta: 15-45 m",
+      "overrides": {
+        "route_start": [
+          15,
+          45
+        ]
+      },
+      "timesteps": 600000
+    },
+    {
+      "name": "ruta: 30-90 m (casi desde la entrada)",
+      "overrides": {
+        "route_start": [
+          30,
+          90
+        ]
+      },
+      "timesteps": 600000
+    },
+    {
+      "name": "nivel completo: desde la entrada",
+      "overrides": {},
+      "timesteps": 800000
+    }
+  ],
+  "hyperparameters": {
+    "learning_rate": 0.0003,
+    "n_steps": 4096,
+    "batch_size": 256,
+    "n_epochs": 10,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "ent_coef": 0.05,
+    "net_arch": [
+      128,
+      128
+    ]
+  },
+  "validation": {
+    "episodes": 20,
+    "every": 150000
+  }
+}
