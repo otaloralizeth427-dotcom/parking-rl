@@ -1,0 +1,7 @@
+{
+  "suite_id": "N5-suite-v1",
+  "level_id": "N5",
+  "seed_start": 100000,
+  "episodes": 100,
+  "deterministic": true
+}

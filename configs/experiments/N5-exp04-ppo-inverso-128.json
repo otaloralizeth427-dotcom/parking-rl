@@ -1,0 +1,83 @@
+{
+  "experiment_id": "N5-exp04-ppo-inverso-128",
+  "level_id": "N5",
+  "agent": "ppo",
+  "hypothesis": "Igual que exp03 con una red de 128×128: más capacidad para aprender las 24 rutas mejora el resultado.",
+  "change_vs_baseline": "Piloto: currículo inverso por la ruta (6 etapas), red 128×128, n_steps 4096 y batch 256, 1.5 M de pasos; además, detenerse dentro del cupo sin estacionar castiga (parking-v7).",
+  "derived_from": "N5-exp01-ppo-piloto-64",
+  "seed": 42,
+  "budget": {
+    "timesteps": 1500000
+  },
+  "curriculum": [
+    {
+      "name": "práctica: nariz en el cupo",
+      "overrides": {
+        "difficulty": "tutorial"
+      },
+      "timesteps": 100000
+    },
+    {
+      "name": "ruta: últimos 0-10 m",
+      "overrides": {
+        "route_start": [
+          0,
+          10
+        ]
+      },
+      "timesteps": 200000
+    },
+    {
+      "name": "ruta: 5-25 m",
+      "overrides": {
+        "route_start": [
+          5,
+          25
+        ]
+      },
+      "timesteps": 300000
+    },
+    {
+      "name": "ruta: 15-45 m",
+      "overrides": {
+        "route_start": [
+          15,
+          45
+        ]
+      },
+      "timesteps": 300000
+    },
+    {
+      "name": "ruta: 30-90 m (casi desde la entrada)",
+      "overrides": {
+        "route_start": [
+          30,
+          90
+        ]
+      },
+      "timesteps": 300000
+    },
+    {
+      "name": "nivel completo: desde la entrada",
+      "overrides": {},
+      "timesteps": 300000
+    }
+  ],
+  "hyperparameters": {
+    "learning_rate": 0.0003,
+    "n_steps": 4096,
+    "batch_size": 256,
+    "n_epochs": 10,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "ent_coef": 0.05,
+    "net_arch": [
+      128,
+      128
+    ]
+  },
+  "validation": {
+    "episodes": 20,
+    "every": 75000
+  }
+}

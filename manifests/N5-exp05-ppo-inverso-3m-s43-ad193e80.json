@@ -1,0 +1,70 @@
+{
+  "run_id": "N5-exp05-ppo-inverso-3m-s43-ad193e80",
+  "experiment_id": "N5-exp05-ppo-inverso-3m",
+  "level_id": "N5",
+  "agent": "ppo",
+  "hypothesis": "Con pasillos de 8.5 m (parking-v8) y el doble de presupuesto (3 M de pasos, más tiempo en cada etapa del currículo inverso), PPO 128×128 supera claramente a la regla (29 %) en las 3 semillas.",
+  "change_vs_baseline": "Igual que el piloto N5-exp04-ppo-inverso-128 en parking-v8, con 3 M de pasos repartidos [150000, 350000, 500000, 600000, 600000, 800000] y gamma 0.99.",
+  "environment_version": "parking-v8",
+  "environment_kwargs": {
+    "difficulty": "hard",
+    "sensor_noise": 0.1,
+    "pedestrians": 0,
+    "cones": 0,
+    "blocking_cones": 0,
+    "bumper_sensors": 5,
+    "crossing_pedestrians": 0,
+    "layout": "garage",
+    "route_start": null
+  },
+  "observation_shape": [
+    25
+  ],
+  "git_commit": "cb59dd4273d705ed99b05bbc23bcc087a2aec601",
+  "git_branch": "feature/nivel-5",
+  "git_dirty": true,
+  "config_uri": "artifacts/N5/N5-exp05-ppo-inverso-3m-s43-ad193e80/config.json",
+  "config_sha256": "29e96e15a5211d1693cb05c87c2702b8c0761da63a52d9efe4862858890163ad",
+  "seed": 43,
+  "parent_run_id": null,
+  "origin": "desde cero",
+  "parent_model_sha256": null,
+  "evaluation_suite_id": "N5-suite-v1",
+  "mlflow": {
+    "tracking_uri": "sqlite:///mlflow.db",
+    "experiment": "parking-N5",
+    "run_id": "ad193e80b258445991f46be6ef6438ec"
+  },
+  "created_at": "2026-11-12T03:00:07+00:00",
+  "status": "completed",
+  "model_uri": "artifacts/N5/N5-exp05-ppo-inverso-3m-s43-ad193e80/model.zip",
+  "model_sha256": "7fbdc99ce46763e60a87fa20819912eca8183b91e6201945deab6707c4fe932d",
+  "normalization_uri": "envs/parking_env.py#ParkingEnv._observation (escalado fijo dentro del ambiente; sin normalización aprendida)",
+  "observation_contract": "Box(25,) float32 · ver docs/ficha_ambiente.md",
+  "action_contract": "Discrete(5): avanzar, retroceder, izquierda, derecha, frenar",
+  "runtime_ref": "python 3.12.7 · requirements.lock.txt sha256:76cff4f909c98d69",
+  "budget": {
+    "timesteps": 3000000,
+    "episodes": 35231,
+    "env_steps": 3000000,
+    "wall_time_s": 2563.2
+  },
+  "optimizer_state": "no guardado: los runs no se continúan desde este checkpoint",
+  "evaluation_uri": "artifacts/N5/N5-exp05-ppo-inverso-3m-s43-ad193e80/evaluation.json",
+  "evaluation_summary": {
+    "episodes": 100,
+    "success_rate": 1.0,
+    "outcomes": {
+      "success": 100,
+      "obstacle": 0,
+      "pedestrian": 0,
+      "boundary": 0,
+      "timeout": 0
+    },
+    "mean_return": 140.692,
+    "mean_time_s": 14.58,
+    "mean_final_distance_m": 0.509,
+    "mean_final_heading_error_deg": 2.721,
+    "mean_latency_ms": 0.139
+  }
+}

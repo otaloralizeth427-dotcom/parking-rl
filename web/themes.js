@@ -57,6 +57,20 @@ export const THEMES = {
     spark: ["#ffb347", "#86efac"], sparkAxis: "rgba(255,236,200,0.3)",
     parked: [0xf5f5f7, 0xd81e2c, 0x1f4fd8, 0x18161f, 0xc8ccd6, 0x2dd4bf],
   },
+  N5: {   // morado de noche: azotea abierta con la ciudad alrededor
+    background: 0x140c2e, fog: 0x1d1240, hemiSky: 0xd8c8ff, hemiGround: 0x3a2d63, keyLight: 0xe8dcff,
+    floor: "#565070", floorJoint: "rgba(20,10,45,0.28)", mirror: 0x3b3456,
+    wall: 0xb9a6e8, wallBase: 0x6d4fc2, ceiling: 0x8475b3, beam: 0x6c5d9c, pipes: [0xd0587e, 0xd8d2e8],
+    lamp: 0xf3e8ff, lampHousing: 0xe9e4f5, pointLight: 0xe4d4ff, paintEmissive: 0x3a3450,
+    pillarBands: ["#b57bff", "#86b6f2"], pillarCap: 0xb57bff,
+    sky: ["#0e0a2e", "#24185f", "#4b2f9c", "#8a5bd6"], buildings: ["#2a2068", "#120c38"],
+    windows: ["#ffd98a", "#e9d5ff"], windowFrame: "#efe7ff",
+    neon: { stroke: "#b57bff", fill: "#efe1ff", shadow: "#9b4dff" },
+    ego: 0x7c3aed, egoGlow: 0xa855f7, egoArrow: 0xf5d0fe, headlights: 0xf4f0ff,
+    trail: [0x5b2a8c, 0xc4b5fd], label: "#efe7ff",
+    spark: ["#c4b5fd", "#86efac"], sparkAxis: "rgba(221,208,255,0.3)",
+    parked: [0x1f4fd8, 0xf5f5f7, 0xd81e2c, 0x3fa34d, 0xf5c518, 0x2dd4bf],
+  },
 };
 
 export const themeFor = (level) => ({ id: THEMES[level] ? level : "N1", ...(THEMES[level] ?? THEMES.N1) });

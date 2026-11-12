@@ -1,0 +1,108 @@
+{
+  "experiment_id": "N5-exp05-ppo-inverso-3m",
+  "level_id": "N5",
+  "agent": "ppo",
+  "hypothesis": "Con pasillos de 8.5 m (parking-v8) y el doble de presupuesto (3 M de pasos, más tiempo en cada etapa del currículo inverso), PPO 128×128 supera claramente a la regla (29 %) en las 3 semillas.",
+  "change_vs_baseline": "Igual que el piloto N5-exp04-ppo-inverso-128 en parking-v8, con 3 M de pasos repartidos [150000, 350000, 500000, 600000, 600000, 800000] y gamma 0.99.",
+  "derived_from": "N5-exp04-ppo-inverso-128",
+  "seed": 44,
+  "budget": {
+    "timesteps": 3000000
+  },
+  "curriculum": [
+    {
+      "name": "práctica: nariz en el cupo",
+      "overrides": {
+        "difficulty": "tutorial"
+      },
+      "timesteps": 150000
+    },
+    {
+      "name": "ruta: últimos 0-10 m",
+      "overrides": {
+        "route_start": [
+          0,
+          10
+        ]
+      },
+      "timesteps": 350000
+    },
+    {
+      "name": "ruta: 5-25 m",
+      "overrides": {
+        "route_start": [
+          5,
+          25
+        ]
+      },
+      "timesteps": 500000
+    },
+    {
+      "name": "ruta: 15-45 m",
+      "overrides": {
+        "route_start": [
+          15,
+          45
+        ]
+      },
+      "timesteps": 600000
+    },
+    {
+      "name": "ruta: 30-90 m (casi desde la entrada)",
+      "overrides": {
+        "route_start": [
+          30,
+          90
+        ]
+      },
+      "timesteps": 600000
+    },
+    {
+      "name": "nivel completo: desde la entrada",
+      "overrides": {},
+      "timesteps": 800000
+    }
+  ],
+  "hyperparameters": {
+    "learning_rate": 0.0003,
+    "n_steps": 4096,
+    "batch_size": 256,
+    "n_epochs": 10,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "ent_coef": 0.05,
+    "net_arch": [
+      128,
+      128
+    ]
+  },
+  "validation": {
+    "seed_start": 200000,
+    "episodes": 20,
+    "every": 150000
+  },
+  "environment_version": "parking-v8",
+  "level": {
+    "level_id": "N5",
+    "name": "Garaje grande",
+    "environment_version": "parking-v8",
+    "layout": "garage",
+    "difficulty": "hard",
+    "cones": 0,
+    "blocking_cones": 0,
+    "pedestrians": 0,
+    "crossing_pedestrians": 0,
+    "bumper_sensors": 5,
+    "sensor_noise": 0.1,
+    "route_start": null,
+    "description": "Mapa nuevo: azotea de 40 × 50 m con 3 filas de 8 cupos (casi todos ocupados), pasillos de 8.5 m y pasillos laterales. El auto entra por abajo y el cupo libre puede estar en cualquier fila: para llegar a las filas de arriba tiene que darle la vuelta al parqueadero. Ve su posición y la del cupo en el mapa, pero no la ruta: tiene que aprender a rodear las filas. Sin conos ni peatones; sensores con ruido (σ = 0.1 m) como en N4. Hasta 400 pasos (80 s).",
+    "new_decision": "Planear el recorrido: elegir por qué pasillo lateral subir y en qué pasillo girar, sin chocar con las filas, y estacionar al final."
+  },
+  "evaluation_suite": {
+    "suite_id": "N5-suite-v1",
+    "level_id": "N5",
+    "seed_start": 100000,
+    "episodes": 100,
+    "deterministic": true
+  }
+}
