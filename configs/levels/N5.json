@@ -10,6 +10,7 @@
   "crossing_pedestrians": 0,
   "bumper_sensors": 5,
   "sensor_noise": 0.1,
+  "route_start": null,
   "description": "Mapa nuevo: azotea de 40 × 44 m con 3 filas de 8 cupos (casi todos ocupados) y pasillos laterales. El auto entra por abajo y el cupo libre puede estar en cualquier fila: para llegar a las filas de arriba tiene que darle la vuelta al parqueadero. Ve su posición y la del cupo en el mapa, pero no la ruta: tiene que aprender a rodear las filas. Sin conos ni peatones; sensores con ruido (σ = 0.1 m) como en N4. Hasta 400 pasos (80 s).",
   "new_decision": "Planear el recorrido: elegir por qué pasillo lateral subir y en qué pasillo girar, sin chocar con las filas, y estacionar al final."
 }

@@ -661,3 +661,13 @@ def test_garage_is_solvable_by_following_the_route():
                 break
         successes += info["success"]
     assert successes >= 24                                   # el recorrido completo es posible en 400 pasos
+
+
+def test_garage_reverse_curriculum_starts_on_the_route():
+    env = ParkingEnv("hard", layout="garage", bumper_sensors=5, route_start=[15, 25])
+    for seed in range(60):
+        env.reset(seed=seed)
+        assert env._collision_kind() is None
+        assert 8 < env.route_distance() < 60                 # sobre la ruta, lejos del cupo pero no en la entrada
+    with pytest.raises(ValueError):
+        ParkingEnv(route_start=[0, 5])                       # solo existe en el garaje

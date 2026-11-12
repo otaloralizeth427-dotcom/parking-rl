@@ -195,3 +195,30 @@ class RouteField:
         if self.distance(p) <= lookahead:
             return self.target.copy()
         return point
+
+    def entrance_path(self) -> tuple[np.ndarray, np.ndarray]:
+        """Ruta desde la entrada hasta el cupo (puntos cada 0.5 m) y lo que falta recorrer desde cada punto."""
+        if not hasattr(self, "_path"):
+            p, points = ENTRANCE.copy(), [ENTRANCE.copy()]
+            for _ in range(400):
+                if np.linalg.norm(self.target - p) <= GRID:
+                    break
+                p = self.waypoint(p, GRID)
+                points.append(p.copy())
+            points.append(self.target.copy())
+            pts = np.array(points)
+            seg = np.linalg.norm(np.diff(pts, axis=0), axis=1)
+            remaining = np.concatenate([np.cumsum(seg[::-1])[::-1], [0.0]])
+            self._path = (pts, remaining)
+        return self._path
+
+    def start_on_path(self, rng, lo: float, hi: float) -> tuple[np.ndarray, float]:
+        """Arranque sobre la ruta de la entrada, a entre `lo` y `hi` metros del cupo (currículo inverso)."""
+        pts, remaining = self.entrance_path()
+        r = rng.uniform(min(lo, remaining[0]), min(hi, remaining[0]))
+        i = int(np.clip(np.searchsorted(-remaining, -r), 1, len(pts) - 1))
+        point = pts[i]
+        if remaining[i] < SLOT_DEPTH + 1.0:                         # tramo final: derecho hacia el cupo
+            return point.astype(float), float(np.pi / 2)
+        ahead = pts[min(i + 4, len(pts) - 1)] - pts[i - 1]          # hacia dónde sigue la ruta
+        return point.astype(float), float(np.arctan2(ahead[1], ahead[0]))

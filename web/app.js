@@ -8,7 +8,7 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
-import { themeFor } from "./themes.js?v=2";
+import { themeFor } from "./themes.js?v=3";
 
 // La paleta depende del nivel activo en el servidor; al cambiar de nivel la página se recarga
 const THEME = themeFor(await fetch("api/config").then((r) => r.json()).then((c) => c.level).catch(() => "N1"));
@@ -497,6 +497,219 @@ function buildGarage(layout) {
   garageBuilt = true;
 }
 
+
+// ============================================================ garaje grande (N5): azotea de noche
+// Mapa abierto con 3 filas, pasillos laterales y entrada abajo. Sin techo: la ciudad rodea la azotea.
+function skylineBillboard(width, height) {
+  // Fachada de edificios de noche sin marco de ventana (fondo de la azotea)
+  return canvasTexture(2048, 512, (ctx, w, h) => {
+    const sky = ctx.createLinearGradient(0, 0, 0, h);
+    [0, 0.45, 0.75, 1].forEach((stop, i) => sky.addColorStop(stop, THEME.sky[i]));
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, w, h);
+    for (let layer = 0; layer < 2; layer++) {
+      let x = -20;
+      while (x < w) {
+        const bw = 60 + rand() * 110, bh = (layer ? 200 : 120) + rand() * (layer ? 260 : 160);
+        ctx.fillStyle = THEME.buildings[layer];
+        ctx.fillRect(x, h - bh, bw, bh);
+        for (let wy = h - bh + 12; wy < h - 10; wy += 16) {
+          for (let wx = x + 8; wx < x + bw - 10; wx += 13) {
+            if (rand() < (layer ? 0.5 : 0.25)) {
+              ctx.fillStyle = THEME.windows[rand() < 0.75 ? 0 : 1];
+              ctx.globalAlpha = layer ? 1 : 0.6;
+              ctx.fillRect(wx, wy, 6, 8);
+              ctx.globalAlpha = 1;
+            }
+          }
+        }
+        x += bw + (layer ? 8 : -14);
+      }
+    }
+  });
+}
+
+function addLampPost(group, x, y, light = true) {
+  const pole = std({ color: 0x2a2440, roughness: 0.5, metalness: 0.6 });
+  group.add(boxPart(pole, [0.14, 4.2, 0.14], [x, 2.1, -y]));
+  group.add(boxPart(pole, [0.5, 0.12, 0.5], [x, 0.06, -y]));
+  const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.26, 16, 12), glow(THEME.lamp, 3));
+  bulb.position.set(x, 4.35, -y);
+  group.add(bulb);
+  if (light) {
+    const l = new THREE.PointLight(THEME.pointLight, 22, 18, 1.4);
+    l.position.set(x, 4.1, -y);
+    group.add(l);
+  }
+}
+
+function addTree(group, x, y, scale = 1) {
+  const trunk = std({ color: 0x5b4636, roughness: 0.9 });
+  const leaves = [std({ color: 0x2f8f57, roughness: 0.7 }), std({ color: 0x23704a, roughness: 0.7 })];
+  const tree = new THREE.Group();
+  tree.add(boxPart(std({ color: 0xe9e4f5, roughness: 0.4 }), [1.2, 0.6, 1.2], [0, 0.3, 0]));
+  tree.add(boxPart(trunk, [0.16, 1.4, 0.16], [0, 1.2, 0]));
+  const geo = new THREE.IcosahedronGeometry(1, 1);
+  for (let i = 0; i < 5; i++) {
+    const blob = shadowed(new THREE.Mesh(geo, leaves[i % 2]), true, false);
+    const r = 0.45 + rand() * 0.25;
+    blob.scale.setScalar(r);
+    blob.position.set((rand() - 0.5) * 0.8, 1.9 + rand() * 0.7, (rand() - 0.5) * 0.8);
+    tree.add(blob);
+  }
+  tree.scale.setScalar(scale);
+  tree.position.copy(toWorld(x, y));
+  group.add(tree);
+}
+
+function addGate(group, x, y, side) {
+  // Caseta con talanquera levantada a cada lado de la entrada
+  const booth = std({ color: 0x2c2547, roughness: 0.5, metalness: 0.3 });
+  group.add(boxPart(booth, [0.7, 1.5, 0.7], [x, 0.75, -y]));
+  const cap = new THREE.Mesh(unitBox, glow(THEME.lamp, 2));
+  cap.scale.set(0.5, 0.12, 0.5);
+  cap.position.set(x, 1.56, -y);
+  group.add(cap);
+  const arm = shadowed(new THREE.Mesh(unitBox, std({ map: hazardTexture(6), roughness: 0.5 })));
+  arm.scale.set(4.1, 0.12, 0.12);
+  arm.geometry = unitBox;
+  const pivot = new THREE.Group();
+  pivot.position.set(x, 1.25, -y);
+  pivot.rotation.z = 0;                                // bajada: la entrada se cerró detrás del auto
+  arm.position.set(-side * 2.05, 0, 0);
+  pivot.add(arm);
+  group.add(pivot);
+}
+
+function buildRooftop(layout) {
+  const { width: W, height: H } = layout.lot;
+  const M = 4;                                         // franja alrededor del área de maniobra
+  const group = new THREE.Group();
+
+  const mirror = new Reflector(new THREE.PlaneGeometry(W + 2 * M, H + 2 * M), {
+    textureWidth: 1024, textureHeight: 1024, color: THEME.mirror, clipBias: 0.003,
+  });
+  mirror.rotation.x = -Math.PI / 2;
+  group.add(mirror);
+  const floorTex = floorTexture();
+  floorTex.repeat.set(6, 6);
+  const floor = flatPlane(W + 2 * M, H + 2 * M,
+    std({ map: floorTex, roughness: 0.55, transparent: true, opacity: 0.86 }), 0, 0, 0.003);
+  floor.renderOrder = -1;
+  group.add(floor);
+
+  // Baranda baja con remate luminoso justo en el borde del área (el choque con el borde es contra ella).
+  // En la entrada (abajo, |x| < 4.2) las talanqueras quedan cerradas detrás del auto.
+  const wallMat = std({ color: THEME.wall, roughness: 0.6 });
+  const capMat = glow(THEME.neon.stroke, 1.6);
+  const gx = W / 2 + 0.25, gy = H / 2 + 0.25;
+  const parapet = (x, y, lx, ly) => {
+    group.add(boxPart(wallMat, [lx, 1.0, ly], [x, 0.5, -y]));
+    group.add(boxPart(capMat, [lx + 0.04, 0.06, ly + 0.04], [x, 1.03, -y]));
+  };
+  parapet(0, gy, 2 * gx, 0.5);
+  parapet(gx, 0, 0.5, 2 * gy);
+  parapet(-gx, 0, 0.5, 2 * gy);
+  const doorHalf = 4.2;
+  parapet(-(gx + doorHalf) / 2, -gy, gx - doorHalf, 0.5);
+  parapet((gx + doorHalf) / 2, -gy, gx - doorHalf, 0.5);
+  // Faroles, árboles y jardineras por fuera de la baranda (no estorban la maniobra)
+  for (let x = -gx + 2; x <= gx - 2; x += 6) {
+    addLampPost(group, x, gy + 0.7, Math.abs(x) < 10);
+    if (Math.abs(x) > doorHalf + 1.5) addLampPost(group, x, -gy - 0.7, false);
+  }
+  for (let y = -gy + 4; y <= gy - 4; y += 8) {
+    addLampPost(group, gx + 0.7, y, Math.abs(y) < 6);
+    addLampPost(group, -gx - 0.7, y, Math.abs(y) < 6);
+  }
+  for (const [x, y] of [[-gx - 2, gy + 2], [gx + 2, gy + 2], [-gx - 2, -gy - 2], [gx + 2, -gy - 2],
+                        [-doorHalf - 3, -gy - 1.8], [doorHalf + 3, -gy - 1.8]]) addTree(group, x, y, 1.1);
+  for (let x = -gx + 4; x < gx - 3; x += 3.2) {
+    if (Math.abs(x) > 8) addPlanter(group, x, gy + 1.6);
+  }
+  addGate(group, -doorHalf, -gy, -1);
+  addGate(group, doorHalf, -gy, 1);
+  // Luz general de la azotea
+  for (const [x, y] of [[-10, 12], [10, 12], [-10, -4], [10, -4], [0, -16]]) {
+    const light = new THREE.PointLight(THEME.pointLight, 30, 26, 1.3);
+    light.position.copy(toWorld(x, y, 7));
+    group.add(light);
+  }
+
+  // La ciudad alrededor: cuatro fachadas lejanas
+  const skyMat = glow(0xffffff, 1, { map: skylineBillboard() });
+  const R = Math.max(W, H) / 2 + 26;
+  for (const [x, y, rot] of [[0, R, 0], [0, -R, Math.PI], [R, 0, -Math.PI / 2], [-R, 0, Math.PI / 2]]) {
+    const plane = new THREE.Mesh(new THREE.PlaneGeometry(2 * R + 10, 34), skyMat);
+    plane.position.copy(toWorld(x, y, 10));
+    plane.rotation.y = rot;
+    group.add(plane);
+  }
+
+  // Bordillos detrás de las filas B y C: franja con luz
+  const curbMat = std({ color: THEME.wallBase, roughness: 0.6 });
+  for (const o of layout.obstacles.filter((o) => o.kind === "curb" && Math.abs(o.y) < H / 2 - 0.5 && Math.abs(o.x) < W / 2 - 0.5)) {
+    group.add(boxPart(curbMat, [o.hx * 2, 0.3, o.hy * 2], [o.x, 0.15, -o.y]));
+    group.add(boxPart(capMat, [o.hx * 2, 0.04, 0.08], [o.x, 0.32, -o.y]));
+  }
+
+  // Líneas de los cupos, topes y nombres (A1…C8)
+  const stopMat = std({ map: hazardTexture(2), roughness: 0.6 });
+  const rowIds = [...new Set(layout.slots.map((s) => s.row))];
+  for (const r of rowIds) {
+    const slots = layout.slots.filter((s) => s.row === r);
+    const { width: sw, depth: sd, opening } = slots[0];
+    const yc = slots[0].y, front = yc + opening * sd / 2, back = yc - opening * sd / 2;
+    const xs = slots.map((s) => s.x);
+    for (let i = 0; i <= slots.length; i++) group.add(flatPlane(0.14, sd, paint, Math.min(...xs) - sw / 2 + i * sw, yc, 0.012));
+    group.add(flatPlane(slots.length * sw, 0.14, paint, (Math.min(...xs) + Math.max(...xs)) / 2, back, 0.012));
+    group.add(flatPlane(slots.length * sw, 0.14, paint, (Math.min(...xs) + Math.max(...xs)) / 2, front, 0.012));
+    slots.forEach((slot) => {
+      const stop = shadowed(new THREE.Mesh(unitBox, stopMat));
+      stop.scale.set(1.5, 0.12, 0.2);
+      stop.position.copy(toWorld(slot.x, back + opening * 0.55, 0.06));
+      group.add(stop);
+      const label = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.6),
+        new THREE.MeshBasicMaterial({ map: labelTexture(slot.name ?? `${slot.id + 1}`), transparent: true, opacity: 0.9, depthWrite: false }));
+      label.rotation.set(-Math.PI / 2, 0, opening < 0 ? 0 : Math.PI);
+      label.position.copy(toWorld(slot.x, front - opening * 0.7, 0.014));
+      group.add(label);
+    });
+  }
+
+  // Flechas de circulación: se sube por la derecha, se cruza por los pasillos y se baja por la izquierda
+  const arrowShape = new THREE.Shape();
+  arrowShape.moveTo(-1.0, -0.2); arrowShape.lineTo(0.2, -0.2); arrowShape.lineTo(0.2, -0.55);
+  arrowShape.lineTo(1.1, 0); arrowShape.lineTo(0.2, 0.55); arrowShape.lineTo(0.2, 0.2);
+  arrowShape.lineTo(-1.0, 0.2); arrowShape.closePath();
+  const arrowGeo = new THREE.ShapeGeometry(arrowShape);
+  const arrow = (x, y, dir) => {
+    const a = new THREE.Mesh(arrowGeo, paint);
+    a.rotation.set(-Math.PI / 2, 0, dir);
+    a.position.copy(toWorld(x, y, 0.013));
+    group.add(a);
+  };
+  for (const y of [-12, 0, 12]) { arrow(16, y, Math.PI / 2); arrow(-16, y, -Math.PI / 2); }
+  for (const y of [13.0, 0.5, -12.0]) for (const x of [-7, 7]) arrow(x, y, Math.PI);
+  arrow(0, -16.5, Math.PI / 2);
+  // Línea punteada de la entrada
+  for (let y = -H / 2 + 0.5; y < -15.5; y += 1.6) group.add(flatPlane(0.16, 0.9, paint, 0, y, 0.012));
+
+  scene.add(group);
+  garageBuilt = true;
+  // Cámara, sombras y niebla a la escala del mapa grande
+  CAMERA_PRESETS.orbit = { pos: [0, 40, 44], target: [0, 0, -1] };
+  CAMERA_PRESETS.top = { pos: [0, 78, 0.01], target: [0, 0, 0] };
+  controls.maxDistance = 120;
+  scene.fog = new THREE.Fog(THEME.fog, 90, 190);
+  camera.far = 400;
+  camera.updateProjectionMatrix();
+  Object.assign(keyLight.shadow.camera, { left: -26, right: 26, top: 26, bottom: -26, far: 90 });
+  keyLight.position.set(10, 34, 14);
+  keyLight.shadow.camera.updateProjectionMatrix();
+  setCamera(sim.camera ?? "orbit");
+}
+
 // ============================================================ superdeportivos (modelo glTF)
 // Modelo de los ejemplos de three.js (ver README para el crédito). Mira hacia −z y mide 4.52 m;
 // se escala al largo del simulador y se gira para que su frente quede en +x.
@@ -673,7 +886,7 @@ scene.add(target);
 function placeTarget(info, slot) {
   const w = slot.width - 0.35, d = slot.depth - 0.35;
   target.position.copy(toWorld(info.x, info.y));
-  target.rotation.y = info.y > 0 ? 0 : Math.PI;   // la "P" se lee desde el pasillo
+  target.rotation.y = (slot.opening ?? (info.y > 0 ? -1 : 1)) < 0 ? 0 : Math.PI;   // la "P" se lee desde el pasillo
   targetGlow.scale.set(w, d, 1);
   targetMark.scale.set(w, d, 1);
   if (!targetMarkMat.map) targetMarkMat.map = targetTexture(d / w);
@@ -694,7 +907,8 @@ function buildObstacles(layout) {
       // Los autos estacionados miran hacia el pasillo
       const car = makeCar({ color: PALETTE.parked[o.color % PALETTE.parked.length] });
       car.group.position.copy(toWorld(o.x, o.y));
-      car.group.rotation.y = o.angle + (o.y > 0 ? -Math.PI / 2 : Math.PI / 2);
+      const facing = o.facing ?? (o.y > 0 ? -1 : 1);   // hacia dónde abre su cupo
+      car.group.rotation.y = o.angle + (facing > 0 ? Math.PI / 2 : -Math.PI / 2);
       obstacleGroup.add(car.group);
     } else if (o.kind === "cone") {
       const cone = new THREE.Group();
@@ -854,7 +1068,8 @@ function poseFromFrame(frame) {
 }
 
 function applyReset(frame) {
-  if (!garageBuilt) buildGarage(frame.layout);
+  sim.garage = frame.layout.kind === "garage";
+  if (!garageBuilt) (sim.garage ? buildRooftop : buildGarage)(frame.layout);
   sim.carHalf = [frame.car.length / 2, frame.car.width / 2];
   buildObstacles(frame.layout);
   placeTarget(frame.target, frame.layout.slots.find((s) => s.id === frame.target.id));
@@ -1069,7 +1284,7 @@ function updateHud(frame) {
   let status = frame.status;
   if (status === "running" && !sim.running) status = frame.steps === 0 ? "idle" : "paused";
   $("hud-title").dataset.state = status;
-  setText("hud-title-text", TITLE_LABELS[status]);
+  setText("hud-title-text", sim.garage && ["idle", "running"].includes(status) ? "Encuentra el espacio libre" : TITLE_LABELS[status]);
   setText("hud-moves", `Movimientos: ${frame.steps}`);
   setText("hud-level", `Nivel: ${sim.level.replace("N", "")}`);
 

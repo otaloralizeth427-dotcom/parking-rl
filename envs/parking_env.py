@@ -157,7 +157,8 @@ class ParkingEnv(gym.Env):
     def __init__(self, difficulty: str = "normal", sensor_noise: float = 0.0,
                  config: ParkingConfig | None = None, pedestrians: int = 0, cones: int | None = None,
                  blocking_cones: int = 0, bumper_sensors: int = 0, crossing_pedestrians: int = 0,
-                 pedestrians_yield: bool = False, pedestrians_evade: bool = False, layout: str = "aisle"):
+                 pedestrians_yield: bool = False, pedestrians_evade: bool = False, layout: str = "aisle",
+                 route_start: tuple | list | None = None):
         if difficulty not in DIFFICULTIES:
             raise ValueError(f"difficulty debe ser uno de {DIFFICULTIES}, no {difficulty!r}")
         if layout not in LAYOUTS:
@@ -166,6 +167,10 @@ class ParkingEnv(gym.Env):
             raise ValueError("difficulty 'roam' solo existe en el mapa 'garage'")
         if layout == "garage" and (pedestrians or cones or blocking_cones):
             raise ValueError("el mapa 'garage' no tiene peatones ni conos")
+        if route_start is not None and (layout != "garage" or len(route_start) != 2 or not 0 <= route_start[0] <= route_start[1]):
+            raise ValueError("route_start = [desde, hasta] (m por la ruta) y solo existe en el mapa 'garage'")
+        # Currículo inverso (solo para entrenar): arranca sobre la ruta de la entrada a [desde, hasta] m del cupo
+        self.route_start = tuple(route_start) if route_start is not None else None
         if sensor_noise < 0:
             raise ValueError("sensor_noise debe ser >= 0")
         if not isinstance(pedestrians, int) or pedestrians < 0:
@@ -342,7 +347,22 @@ class ParkingEnv(gym.Env):
                                   "angle": float(rng.uniform(-0.05, 0.05)), "kind": "car",
                                   "color": int(rng.integers(6)), "facing": slot["opening"]})
         aisle = garage.aisle_y(self.target)
-        if self.difficulty == "tutorial":          # la nariz ya entra al cupo
+        if self.route_start is not None:           # currículo inverso: sobre la ruta de la entrada
+            centers = np.array([o["center"] for o in obstacles], dtype=float)
+            halves = np.array([o["half"] for o in obstacles], dtype=float)
+            angles = np.array([o["angle"] for o in obstacles], dtype=float)
+            point, heading0 = self.route.start_on_path(rng, *self.route_start)
+            for attempt in range(20):
+                jitter = 0.0 if attempt == 19 else 1.0
+                normal = np.array([-np.sin(heading0), np.cos(heading0)])
+                x, y = point + normal * rng.uniform(-0.6, 0.6) * jitter
+                heading = heading0 + rng.uniform(-0.3, 0.3) * jitter * (0.5 if self.route.distance(point) < 7 else 1.0)
+                pos = np.array([x, y])
+                corners = box_corners(pos, self._car_half, heading)
+                inside = np.all(np.abs(corners) <= [cfg.lot_width / 2, cfg.lot_height / 2])
+                if inside and not obb_overlaps(pos, self._car_half, heading, centers, halves, angles).any():
+                    break
+        elif self.difficulty == "tutorial":        # la nariz ya entra al cupo
             x, y = tc[0] + rng.uniform(-0.4, 0.4), tc[1] - garage.SLOT_DEPTH / 2 - rng.uniform(0.2, 1.2)
             heading = np.pi / 2 + rng.uniform(-0.2, 0.2)
         elif self.difficulty == "easy":            # frente al cupo, en su pasillo
@@ -424,6 +444,9 @@ class ParkingEnv(gym.Env):
         self._prev_potential = potential
         if self._corners_in_slot():
             reward -= cfg.w_slot_speed * abs(self.speed)
+            # Garaje: detenerse dentro del cupo sin quedar estacionado (torcido o a medias) también castiga
+            if self.garage and not success and abs(self.speed) < cfg.idle_speed:
+                reward += cfg.r_idle
         elif abs(self.speed) < cfg.idle_speed:
             reward += cfg.r_idle
         if collision:
