@@ -499,36 +499,7 @@ function buildGarage(layout) {
 
 
 // ============================================================ garaje grande (N5): azotea de noche
-// Mapa abierto con 3 filas, pasillos laterales y entrada abajo. Sin techo: la ciudad rodea la azotea.
-function skylineBillboard(width, height) {
-  // Fachada de edificios de noche sin marco de ventana (fondo de la azotea)
-  return canvasTexture(2048, 512, (ctx, w, h) => {
-    const sky = ctx.createLinearGradient(0, 0, 0, h);
-    [0, 0.45, 0.75, 1].forEach((stop, i) => sky.addColorStop(stop, THEME.sky[i]));
-    ctx.fillStyle = sky;
-    ctx.fillRect(0, 0, w, h);
-    for (let layer = 0; layer < 2; layer++) {
-      let x = -20;
-      while (x < w) {
-        const bw = 60 + rand() * 110, bh = (layer ? 200 : 120) + rand() * (layer ? 260 : 160);
-        ctx.fillStyle = THEME.buildings[layer];
-        ctx.fillRect(x, h - bh, bw, bh);
-        for (let wy = h - bh + 12; wy < h - 10; wy += 16) {
-          for (let wx = x + 8; wx < x + bw - 10; wx += 13) {
-            if (rand() < (layer ? 0.5 : 0.25)) {
-              ctx.fillStyle = THEME.windows[rand() < 0.75 ? 0 : 1];
-              ctx.globalAlpha = layer ? 1 : 0.6;
-              ctx.fillRect(wx, wy, 6, 8);
-              ctx.globalAlpha = 1;
-            }
-          }
-        }
-        x += bw + (layer ? 8 : -14);
-      }
-    }
-  });
-}
-
+// Mapa abierto con 3 filas, pasillos laterales y entrada abajo. Sin techo, sobre un fondo morado de noche.
 function addLampPost(group, x, y, light = true) {
   const pole = std({ color: 0x2a2440, roughness: 0.5, metalness: 0.6 });
   group.add(boxPart(pole, [0.14, 4.2, 0.14], [x, 2.1, -y]));
@@ -636,16 +607,6 @@ function buildRooftop(layout) {
     group.add(light);
   }
 
-  // La ciudad alrededor: cuatro fachadas lejanas
-  const skyMat = glow(0xffffff, 1, { map: skylineBillboard() });
-  const R = Math.max(W, H) / 2 + 26;
-  for (const [x, y, rot] of [[0, R, 0], [0, -R, Math.PI], [R, 0, -Math.PI / 2], [-R, 0, Math.PI / 2]]) {
-    const plane = new THREE.Mesh(new THREE.PlaneGeometry(2 * R + 10, 34), skyMat);
-    plane.position.copy(toWorld(x, y, 10));
-    plane.rotation.y = rot;
-    group.add(plane);
-  }
-
   // Bordillos detrás de las filas B y C: franja con luz
   const curbMat = std({ color: THEME.wallBase, roughness: 0.6 });
   for (const o of layout.obstacles.filter((o) => o.kind === "curb" && Math.abs(o.y) < H / 2 - 0.5 && Math.abs(o.x) < W / 2 - 0.5)) {
@@ -704,13 +665,14 @@ function buildRooftop(layout) {
   scene.add(group);
   garageBuilt = true;
   // Cámara, sombras y niebla a la escala del mapa grande
-  CAMERA_PRESETS.orbit = { pos: [0, 46, 50], target: [0, 0, -3] };
-  CAMERA_PRESETS.top = { pos: [0, 86, 0.01], target: [0, 0, 0] };
+  CAMERA_PRESETS.orbit = { pos: [0, 40, 37], target: [0, 0, 3.5] };
+  CAMERA_PRESETS.top = { pos: [0, 62, 0.01], target: [0, 0, 0] };
   controls.maxDistance = 120;
   scene.fog = new THREE.Fog(THEME.fog, 90, 190);
+  camera.near = 0.5;
   camera.far = 400;
   camera.updateProjectionMatrix();
-  Object.assign(keyLight.shadow.camera, { left: -26, right: 26, top: 26, bottom: -26, far: 90 });
+  Object.assign(keyLight.shadow.camera, { left: -34, right: 34, top: 34, bottom: -34, far: 120 });
   keyLight.position.set(10, 34, 14);
   keyLight.shadow.camera.updateProjectionMatrix();
   setCamera(sim.camera ?? "orbit");
@@ -1553,6 +1515,7 @@ window.addEventListener("keydown", (e) => {
     await refreshConfig();
     await doReset();
     $("loading").hidden = true;
+    if (sim.agent !== "manual") setRunning(true);   // arranca solo: el auto empieza a andar al abrir
   } catch (err) {
     showError(err);
   }
