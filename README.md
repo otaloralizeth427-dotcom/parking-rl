@@ -117,6 +117,41 @@ semilla y el hash del modelo activo. Con el agente **«Manual (teclado)»** se m
 mientras se mantiene presionada una acción. «Entrenar DQN» lanza el pipeline real, así que ese entrenamiento
 también queda registrado en MLflow y con manifiesto.
 
+### Versión publicada (Vercel + Hugging Face)
+
+La versión publicada tiene dos partes. Cada visitante juega **su propia partida**: cada conexión
+WebSocket crea su sesión, y los modelos se cargan una sola vez y se comparten.
+
+| Parte | Dónde | Qué hace |
+|---|---|---|
+| Web 3D (`web/`) | **Vercel** · Root Directory `web`, `npm ci`, `npm run build`, salida `dist` | Solo dibuja; se conecta a la API definida en `VITE_API_BASE_URL` (ver `web/.env.example`). |
+| Servidor (`deploy/space/`) | **Hugging Face Spaces** (Docker, HTTPS) | Corre el ambiente y los modelos congelados. Con `PARKING_PUBLIC=1` no se entrena desde la interfaz. |
+
+- **El nivel va en el link:** `…/?level=N3`.
+- **Para que internet no frene la animación,** el agente pide los pasos en bloques (comando `steps`), que la web
+  reproduce uno a uno a la velocidad elegida. La física es la misma: se comprueba en `test_steps_batch_matches_single_steps`.
+- **`GET /api/health`** devuelve el commit servido y la cantidad de partidas activas.
+- **CORS** solo admite los dominios en `PARKING_ALLOWED_ORIGINS`.
+
+**Publicación automática:**
+- Al hacer push a `main`, Vercel reconstruye la web.
+- El workflow `.github/workflows/deploy-space.yml` actualiza el servidor:
+  1. corre las pruebas del servidor;
+  2. arma el Space con `deploy/build_space.py`, que copia solo el código y los modelos y verifica el hash de cada uno;
+  3. lo sube.
+- El workflow necesita el secreto `HF_TOKEN` y la variable `HF_SPACE` en GitHub.
+
+**Probar lo mismo en local:**
+
+```bash
+python deploy/build_space.py build/space && docker build -t parking-space build/space
+docker run -p 7860:7860 -e PARKING_ALLOWED_ORIGINS=http://127.0.0.1:4173 parking-space
+cd web && npm ci && VITE_API_BASE_URL=http://127.0.0.1:7860 npm run build && npx vite preview --port 4173
+```
+
+Para seguir creando niveles no cambia nada. Se entrena en local; al unir a `main`, las dos partes se
+actualizan solas y los niveles anteriores siguen disponibles.
+
 ### Pruebas
 
 ```bash

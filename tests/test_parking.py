@@ -306,6 +306,71 @@ def test_websocket_commands(client):
         assert json.loads(ws.receive_text())["type"] == "error"
 
 
+def _ws(ws, cmd, payload=None):
+    import json
+    ws.send_text(json.dumps({"cmd": cmd, "payload": payload or {}}))
+    return json.loads(ws.receive_text())
+
+
+def test_each_websocket_has_its_own_game(client):
+    # Dos visitantes a la vez: lo que hace uno no mueve el auto del otro
+    with client.websocket_connect("/ws?level=N2") as a, client.websocket_connect("/ws?level=N1") as b:
+        assert _ws(a, "reset", {"seed": 5})["level"] == "N2"
+        assert _ws(b, "reset", {"seed": 5})["level"] == "N1"
+        _ws(a, "agent", {"agent": "rule"})
+        for _ in range(3):
+            _ws(a, "step")
+        assert _ws(a, "state")["steps"] == 3
+        assert _ws(b, "state")["steps"] == 0
+    assert client.get("/api/state").json()["steps"] == 0      # la partida REST tampoco se movió
+
+
+def test_websocket_rejects_unknown_level(client):
+    from starlette.websockets import WebSocketDisconnect
+    with pytest.raises(WebSocketDisconnect), client.websocket_connect("/ws?level=N9") as ws:
+        ws.receive_text()
+
+
+def test_steps_batch_matches_single_steps(client):
+    # Pedir 20 pasos de una vez da exactamente lo mismo que pedirlos de a uno (la red no cambia la física)
+    with client.websocket_connect("/ws?level=N1") as a, client.websocket_connect("/ws?level=N1") as b:
+        for ws in (a, b):
+            _ws(ws, "agent", {"agent": "rule"})
+            _ws(ws, "reset", {"seed": 11})
+        batch = _ws(a, "steps", {"n": 20})["frames"]
+        singles = [_ws(b, "step") for _ in range(len(batch))]
+        assert [f["car"] for f in batch] == [f["car"] for f in singles]
+        assert len(batch) == 20 or batch[-1]["status"] != "running"
+        assert _ws(a, "steps", {"n": 0})["type"] == "error"
+        assert _ws(a, "steps", {"n": 65})["type"] == "error"
+
+
+def test_steps_batch_stops_when_the_episode_ends(client):
+    with client.websocket_connect("/ws?level=N1") as ws:
+        _ws(ws, "agent", {"agent": "rule"})
+        _ws(ws, "reset", {"seed": 0})
+        frames = []
+        while not frames or frames[-1]["status"] == "running":
+            frames += _ws(ws, "steps", {"n": 64})["frames"]
+        assert all(f["status"] == "running" for f in frames[:-1])
+        assert _ws(ws, "steps", {"n": 5})["type"] == "error"      # terminado: hay que reiniciar
+
+
+def test_public_server_blocks_training_and_reports_identity():
+    client = TestClient(create_app(public=True, allowed_origins=["https://parking.example"]))
+    config = client.get("/api/config").json()
+    assert config["can_train"] is False
+    assert client.post("/api/train", json={"episodes": 10}).status_code == 400
+    health = client.get("/api/health").json()
+    assert health["status"] == "ok" and health["public"] is True and "N5" in health["levels"]
+    assert client.get("/api/config?level=N3").json()["level"] == "N3"
+    assert client.get("/api/config?level=N9").status_code == 400
+    cors = client.get("/api/health", headers={"Origin": "https://parking.example"})
+    assert cors.headers["access-control-allow-origin"] == "https://parking.example"
+    other = client.get("/api/health", headers={"Origin": "https://otro.example"})
+    assert "access-control-allow-origin" not in other.headers
+
+
 # ---------------------------------------------------------------- niveles
 def test_levels_match_environment_version():
     from envs.levels import LEVEL_IDS, load_level, make_env

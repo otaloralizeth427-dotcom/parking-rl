@@ -8,10 +8,17 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
-import { themeFor } from "./themes.js?v=3";
+import { themeFor } from "./themes.js";
 
-// La paleta depende del nivel activo en el servidor; al cambiar de nivel la página se recarga
-const THEME = themeFor(await fetch("api/config").then((r) => r.json()).then((c) => c.level).catch(() => "N1"));
+// Dirección del servidor de la simulación. En local queda vacía (la web la sirve el mismo servidor);
+// en la versión publicada (Vercel) la fija VITE_API_BASE_URL al construir.
+const API_BASE = (import.meta.env?.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
+// El nivel va en el link (?level=N3): así cada visitante tiene su partida y la recarga lo conserva
+let currentLevel = new URLSearchParams(location.search).get("level");
+
+// La paleta depende del nivel; al cambiar a un nivel con otra paleta la página se recarga
+const THEME = themeFor(await fetch(`${API_BASE}/api/config${currentLevel ? `?level=${currentLevel}` : ""}`)
+  .then((r) => r.json()).then((c) => (currentLevel = c.level)).catch(() => currentLevel ?? "N1"));
 document.documentElement.dataset.theme = THEME.id;
 
 // ============================================================ constantes
@@ -51,8 +58,9 @@ class Connection {
   }
 
   connect() {
-    const proto = location.protocol === "https:" ? "wss" : "ws";
-    this.ws = new WebSocket(`${proto}://${location.host}/ws`);
+    const base = API_BASE ? new URL(API_BASE) : location;
+    const proto = base.protocol === "https:" ? "wss" : "ws";
+    this.ws = new WebSocket(`${proto}://${base.host}/ws${currentLevel ? `?level=${currentLevel}` : ""}`);
     this.ready = new Promise((resolve) => (this.ws.onopen = () => { this.onStatus(true); resolve(); }));
     this.ws.onmessage = (event) => {
       const message = JSON.parse(event.data);
@@ -1020,8 +1028,12 @@ const sim = {
   pose: { x: 0, y: 0, heading: 0, steer: 0, sensors: [] },
   statusAt: 0,
   agent: null, held: null,   // held: acción que el usuario mantiene presionada en modo manual
+  // Pasos del agente pedidos por adelantado: el servidor calcula varios por petición y aquí se
+  // reproducen uno a uno, así la demora de internet no frena la animación.
+  queue: [], fetching: false, epoch: 0, serverDone: false,
 };
 const stepInterval = () => BASE_STEP_MS / sim.speed;
+const batchSize = () => Math.min(64, Math.max(4, Math.ceil(1000 / stepInterval())));   // ~1 s de juego
 
 function lerpAngle(a, b, t) {
   return a + Math.atan2(Math.sin(b - a), Math.cos(b - a)) * t;
@@ -1204,10 +1216,15 @@ function tick(now) {
   lastFrameTime = now;
   if (sim.running && !sim.inFlight) {
     if (sim.episodeOver && now >= sim.autoResetAt) doReset();
-    else if (!sim.episodeOver && now - sim.lastStepAt >= stepInterval()) {
+    else if (!sim.episodeOver && sim.agent !== "manual") {
+      if (!sim.fetching && !sim.serverDone && sim.queue.length <= batchSize() / 2) fetchSteps();
+      if (sim.queue.length && now - sim.lastStepAt >= stepInterval()) {
+        applyFrame(sim.queue.shift());
+        sim.lastStepAt = now;
+      }
+    } else if (!sim.episodeOver && sim.held !== null && now - sim.lastStepAt >= stepInterval()) {
       // En modo manual el tiempo solo avanza mientras se mantiene presionada una acción
-      if (sim.agent !== "manual") doStep();
-      else if (sim.held !== null) doStep(sim.held);
+      doStep(sim.held);
     }
   }
   updatePose(now);
@@ -1366,7 +1383,29 @@ async function doStep(action) {
   }
 }
 
+async function fetchSteps() {
+  const epoch = sim.epoch;
+  sim.fetching = true;
+  try {
+    const { frames } = await connection.send("steps", { n: batchSize() });
+    if (epoch !== sim.epoch) return;              // llegó tarde: ya se reinició o se cambió de agente
+    sim.queue.push(...frames);
+    sim.serverDone = frames.at(-1).status !== "running";
+  } catch (err) {
+    if (epoch === sim.epoch) { showError(err); setRunning(false); }
+  } finally {
+    sim.fetching = false;
+  }
+}
+
+function dropQueue() {
+  sim.epoch += 1;
+  sim.queue = [];
+  sim.serverDone = false;
+}
+
 async function doReset(payload = {}) {
+  dropQueue();
   sim.inFlight = true;
   try {
     applyReset(await connection.send("reset", payload));
@@ -1424,7 +1463,10 @@ $("speed").oninput = (e) => {
   setText("speed-label", `${sim.speed}×`);
 };
 $("difficulty").onchange = async (e) => {
-  sim.level = e.target.value;
+  sim.level = currentLevel = e.target.value;
+  const url = new URL(location.href);
+  url.searchParams.set("level", currentLevel);
+  history.replaceState(null, "", url);
   await doReset({ level: e.target.value });
   if (THEMES_DIFFER(e.target.value)) return location.reload();
   await refreshConfig();

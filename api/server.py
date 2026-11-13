@@ -6,12 +6,16 @@ REST y WebSocket comparten el mismo despachador de comandos (SimulationSession.h
 from __future__ import annotations
 
 import json
+import os
+import subprocess
 import threading
 from pathlib import Path
 
 import numpy as np
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from starlette.concurrency import run_in_threadpool
 
 from agents.registry import list_manifests, load_manifest, load_policy
 from agents.rule_based import RuleBasedPolicy
@@ -20,6 +24,8 @@ from envs.parking_env import ACTION_NAMES, ParkingEnv
 
 ROOT = Path(__file__).resolve().parents[1]
 WEB_DIR = ROOT / "web"
+MAX_BATCH = 64            # pasos por petición «steps» (el cliente los anima uno a uno)
+MAX_SESSIONS = 50         # partidas simultáneas en el servidor público
 EXPERIMENTS_DIR = ROOT / "configs" / "experiments"
 BASELINES = {
     "random": {"label": "Aleatoria", "mode": "Aleatorio"},
@@ -28,10 +34,29 @@ BASELINES = {
 }
 
 
+# Los modelos son de solo lectura: todas las partidas comparten la misma copia en memoria
+_POLICIES: dict[str, object] = {}
+_POLICIES_LOCK = threading.Lock()
+
+
+def git_commit() -> str | None:
+    """Commit del código servido (GIT_COMMIT, el archivo SERVED_COMMIT del Space, o git en local)."""
+    if os.environ.get("GIT_COMMIT"):
+        return os.environ["GIT_COMMIT"]
+    served = ROOT / "SERVED_COMMIT"           # lo escribe deploy/build_space.py al armar el Space
+    if served.exists():
+        return served.read_text().strip() or None
+    try:
+        return subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True,
+                              text=True, timeout=5).stdout.strip() or None
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
 class SimulationSession:
-    def __init__(self, level: str | None = None, sensor_noise: float | None = None):
+    def __init__(self, level: str | None = None, sensor_noise: float | None = None, public: bool = False):
         self._lock = threading.Lock()
-        self._policies: dict[str, object] = {}
+        self.public = public          # versión publicada: sin entrenamiento desde la interfaz
         self.episode = 0
         self.collisions = 0
         self.successes = 0
@@ -48,6 +73,7 @@ class SimulationSession:
             "reset": lambda: self.reset(payload.get("seed"), payload.get("level"),
                                         payload.get("sensor_noise")),
             "step": lambda: self.step(payload.get("action")),
+            "steps": lambda: self.steps(payload.get("n")),
             "state": self.state,
             "agent": lambda: self.set_agent(payload.get("agent")),
             "train": lambda: self.start_training(payload.get("episodes", 1000)),
@@ -61,11 +87,17 @@ class SimulationSession:
         return {"type": "config", "actions": ACTION_NAMES, "environment_version": self.environment_version,
                 "levels": [{"id": lid, "name": load_level(lid)["name"]} for lid in LEVEL_IDS],
                 "level": self.level_id, "sensor_noise": self.sensor_noise,
-                "agent": self.agent_name, "agents": self.catalog(),
-                "can_train": (EXPERIMENTS_DIR / f"{self.level_id}-exp01-dqn.json").exists()}
+                "agent": self.agent_name, "agents": self.catalog(refresh=True),
+                "can_train": not self.public and (EXPERIMENTS_DIR / f"{self.level_id}-exp01-dqn.json").exists()}
 
-    def catalog(self) -> list[dict]:
-        """Referencias + modelos registrados del nivel actual (desde sus manifiestos)."""
+    def catalog(self, refresh: bool = False) -> list[dict]:
+        """Referencias + modelos registrados del nivel actual (desde sus manifiestos).
+
+        Se guarda por nivel; se vuelve a leer del disco al pedir la configuración (refresh=True),
+        así un modelo recién entrenado aparece sin leer los manifiestos en cada paso.
+        """
+        if not refresh and getattr(self, "_catalog", None) and self._catalog[0] == self.level_id:
+            return self._catalog[1]
         items = [{"id": key, **info, "available": True} for key, info in BASELINES.items()]
         for m in list_manifests(self.level_id):
             summary = m.get("evaluation_summary") or {}
@@ -79,6 +111,7 @@ class SimulationSession:
                 "test_success_rate": summary.get("success_rate"), "test_mean_time_s": summary.get("mean_time_s"),
                 "diagnostic": m.get("diagnostic"),
             })
+        self._catalog = (self.level_id, items)
         return items
 
     def reset(self, seed=None, level=None, sensor_noise=None) -> dict:
@@ -128,6 +161,22 @@ class SimulationSession:
                 self.status = "timeout"
             return {"type": "state", **self._frame()}
 
+    def steps(self, n) -> dict:
+        """Varios pasos del agente en una sola petición (evita esperar la red en cada paso).
+
+        Se detiene al terminar el episodio; el cliente reproduce los cuadros a la velocidad elegida.
+        """
+        if not isinstance(n, int) or not 1 <= n <= MAX_BATCH:
+            raise ValueError(f"n debe ser un entero entre 1 y {MAX_BATCH}")
+        if self.agent_name == "manual":
+            raise ValueError("En modo manual cada paso necesita una acción (flechas del teclado)")
+        frames = []
+        for _ in range(n):
+            frames.append(self.step())
+            if self.status != "running":
+                break
+        return {"type": "states", "frames": frames}
+
     def state(self) -> dict:
         with self._lock:
             return {"type": "state", **self._frame()}
@@ -143,6 +192,8 @@ class SimulationSession:
 
     def start_training(self, episodes) -> dict:
         """Lanza el pipeline real: el run queda registrado en MLflow y con manifiesto."""
+        if self.public:
+            raise ValueError("El entrenamiento no está disponible en la versión publicada; se entrena en local")
         if not isinstance(episodes, int) or not 1 <= episodes <= 50_000:
             raise ValueError("episodes debe ser un entero entre 1 y 50000")
         if self.training["running"]:
@@ -190,9 +241,10 @@ class SimulationSession:
     def _policy(self, name: str):
         if name in ("random", "manual"):
             return None
-        if name not in self._policies:
-            self._policies[name] = RuleBasedPolicy() if name == "rule" else load_policy(load_manifest(name))
-        return self._policies[name]
+        with _POLICIES_LOCK:
+            if name not in _POLICIES:
+                _POLICIES[name] = RuleBasedPolicy() if name == "rule" else load_policy(load_manifest(name))
+            return _POLICIES[name]
 
     def _policy_action(self) -> int:
         policy = self._policy(self.agent_name)
@@ -241,9 +293,25 @@ class SimulationSession:
         }
 
 
-def create_app(session: SimulationSession | None = None) -> FastAPI:
+def create_app(session: SimulationSession | None = None, *, public: bool | None = None,
+               allowed_origins: list[str] | None = None) -> FastAPI:
+    """App de la simulación.
+
+    - REST (/api/...) usa una partida compartida (scripts y pruebas).
+    - Cada conexión WebSocket (/ws?level=N3) tiene su propia partida: varias personas pueden jugar a la vez.
+    - public=True (o PARKING_PUBLIC=1) desactiva el entrenamiento desde la interfaz.
+    - allowed_origins (o PARKING_ALLOWED_ORIGINS, separados por coma) habilita CORS para la web publicada.
+    """
+    if public is None:
+        public = os.environ.get("PARKING_PUBLIC", "") == "1"
+    if allowed_origins is None:
+        allowed_origins = [o.strip() for o in os.environ.get("PARKING_ALLOWED_ORIGINS", "").split(",") if o.strip()]
     app = FastAPI(title="Parking RL")
-    app.state.session = session or SimulationSession()
+    app.state.session = session or SimulationSession(os.environ.get("PARKING_LEVEL"), public=public)
+    app.state.session.public = app.state.session.public or public
+    app.state.default_level = app.state.session.level_id
+    app.state.live_sessions = 0
+    commit = git_commit()
 
     def call(cmd: str, payload: dict | None = None) -> dict:
         try:
@@ -251,9 +319,25 @@ def create_app(session: SimulationSession | None = None) -> FastAPI:
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+    def check_level(level: str | None) -> str:
+        if level is None:
+            return app.state.default_level
+        if level not in LEVEL_IDS:
+            raise HTTPException(status_code=400, detail=f"Nivel desconocido: {level!r}")
+        return level
+
+    @app.get("/api/health")
+    def health():
+        """Identidad de lo que está servido: commit del código y nivel por defecto."""
+        return {"status": "ok", "git_commit": commit, "public": public, "default_level": app.state.default_level,
+                "levels": list(LEVEL_IDS), "live_sessions": app.state.live_sessions}
+
     @app.get("/api/config")
-    def get_config():
-        return call("config")
+    def get_config(level: str | None = None):
+        if level is None or level == app.state.session.level_id:
+            return call("config")
+        # Solo para leer el catálogo de otro nivel (la web lo usa para elegir su paleta)
+        return SimulationSession(check_level(level), public=public).config()
 
     @app.get("/api/state")
     def get_state():
@@ -277,19 +361,37 @@ def create_app(session: SimulationSession | None = None) -> FastAPI:
 
     @app.websocket("/ws")
     async def websocket(ws: WebSocket):
+        level = ws.query_params.get("level") or app.state.default_level
         await ws.accept()
+        if level not in LEVEL_IDS:
+            await ws.close(code=1008, reason="Nivel desconocido")
+            return
+        if app.state.live_sessions >= MAX_SESSIONS:
+            await ws.close(code=1013, reason="Servidor lleno, intenta en un momento")
+            return
+        app.state.live_sessions += 1
+        base = app.state.session      # mismo ruido que se pidió al lanzar el servidor (--sensor-noise)
         try:
+            # Crear la partida y calcular pasos va en un hilo aparte: así una partida no congela a las demás
+            own = await run_in_threadpool(SimulationSession, level,
+                                          base.sensor_noise if level == app.state.default_level else None,
+                                          public=public)
             while True:
                 try:
                     message = json.loads(await ws.receive_text())
                     if not isinstance(message, dict):
                         raise ValueError("El mensaje debe ser un objeto JSON")
-                    response = app.state.session.handle(message.get("cmd", ""), message.get("payload"))
+                    response = await run_in_threadpool(own.handle, message.get("cmd", ""), message.get("payload"))
                 except (ValueError, json.JSONDecodeError) as exc:
                     response = {"type": "error", "message": str(exc)}
                 await ws.send_text(json.dumps(response))
         except WebSocketDisconnect:
             pass
+        finally:
+            app.state.live_sessions -= 1
+
+    if allowed_origins:
+        app.add_middleware(CORSMiddleware, allow_origins=allowed_origins, allow_methods=["*"], allow_headers=["*"])
 
     @app.middleware("http")
     async def no_cache(request, call_next):
@@ -298,5 +400,9 @@ def create_app(session: SimulationSession | None = None) -> FastAPI:
         response.headers["Cache-Control"] = "no-cache, must-revalidate"
         return response
 
-    app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")
+    # En local también se sirve la web (en producción la publica Vercel y aquí solo queda la API)
+    if (WEB_DIR / "public").is_dir():
+        app.mount("/models", StaticFiles(directory=WEB_DIR / "public" / "models"), name="models")
+    if (WEB_DIR / "index.html").exists():
+        app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")
     return app

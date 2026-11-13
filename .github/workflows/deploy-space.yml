@@ -1,0 +1,43 @@
+# Publica el servidor de la simulación en Hugging Face Spaces cada vez que cambia main.
+# Requiere en GitHub → Settings → Secrets and variables → Actions:
+#   - secreto  HF_TOKEN  (token de Hugging Face con permiso de escritura)
+#   - variable HF_SPACE  (por ejemplo usuario/parking-rl)
+# La web la publica Vercel por su cuenta (proyecto conectado al repositorio, carpeta web/).
+name: Publicar servidor (Hugging Face)
+
+on:
+  push:
+    branches: [main]
+    paths: ["api/**", "agents/**", "envs/**", "configs/levels/**", "manifests/**", "artifacts/**", "deploy/**"]
+  workflow_dispatch:
+
+concurrency: deploy-space
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ vars.HF_SPACE != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Pruebas rápidas del servidor
+        run: |
+          pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
+          python -m pytest -q -k "api or websocket or steps or public or level"
+      - name: Armar el Space (verifica el hash de cada modelo)
+        run: python deploy/build_space.py build/space
+      - name: Subir al Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: ${{ vars.HF_SPACE }}
+        run: |
+          pip install huggingface_hub
+          python - <<'PY'
+          import os
+          from huggingface_hub import HfApi
+          HfApi(token=os.environ["HF_TOKEN"]).upload_folder(
+              folder_path="build/space", repo_id=os.environ["HF_SPACE"], repo_type="space",
+              delete_patterns=["*"], commit_message=f"Publica {os.environ['GITHUB_SHA'][:7]}")
+          PY
