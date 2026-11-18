@@ -10,7 +10,8 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { themeFor } from "./themes.js?v=3";
 
-// La paleta depende del nivel activo en el servidor; al cambiar de nivel la página se recarga
+// La paleta inicial se toma del nivel activo; el selector puede cambiar de nivel
+// durante la sesión sin perder el estado de la interfaz.
 const THEME = themeFor(await fetch("api/config").then((r) => r.json()).then((c) => c.level).catch(() => "N1"));
 document.documentElement.dataset.theme = THEME.id;
 
@@ -1426,7 +1427,6 @@ $("speed").oninput = (e) => {
 $("difficulty").onchange = async (e) => {
   sim.level = e.target.value;
   await doReset({ level: e.target.value });
-  if (THEMES_DIFFER(e.target.value)) return location.reload();
   await refreshConfig();
 };
 $("tg-sensors").onchange = (e) => setOverlays(e.target.checked, sim.showTrail);
