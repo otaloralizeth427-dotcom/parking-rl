@@ -19,7 +19,7 @@
 | `web/` | Juego 3D (TypeScript + Vite) y presentación (`public/presentacion.html`) | Página en Vercel |
 | `deploy/`, `render.yaml` | Docker del servidor y de MLflow para Render | Despliegue |
 | `tests/` | 83 pruebas automáticas (corren en GitHub Actions) | Calidad |
-| `docs/` | Ficha, experimentos, pipeline, rollback y monitoreo, despliegue, informe y guion | Documentación de la entrega |
+| `docs/` | Ficha, experimentos, pipeline, rollback y monitoreo, despliegue e informe | Documentación de la entrega |
 | `README.md` | Misión, arquitectura, instalación, ejecución y reproducción | Punto de entrada |
 
 ## 2. Orden de la exposición (10 minutos)
@@ -34,6 +34,6 @@
 | 6 | Lo que no funcionó | Conos invisibles, conos que tapaban el giro, «usted primero», atropellos, pasillos angostos, N6 en curso | Diapositiva 7 | `docs/experimentos.md` |
 | 7 | Versionamiento | Receta → entrenamiento → MLflow → manifiesto → evaluación → modelo servido; ramas y tags | Diapositiva 8 + MLflow | `manifests/`, `serving/` |
 | 8 | Pipeline, despliegue y monitoreo | 8 pasos en Prefect; Vercel + Render; monitoreo | Diapositiva 9 | `pipelines/flow.py`, `docs/pipeline.md` |
-| 9 | Demo | N5 → N3 (frena por la peatona) → Métricas → Comparar → MLflow → rollback | Juego publicado | `docs/guion_presentacion.md` |
+| 9 | Demo | N5 → N3 (frena por la peatona) → Métricas → Comparar → MLflow → rollback | Juego publicado | presentación (`web/public/presentacion.html`) |
 | 10 | Limitaciones y aprendizajes | Física simplificada, freno con posición real del peatón, servidor gratuito | Diapositiva 11 | `docs/informe.md` |
 | 11 | Cierre | Enlaces y preguntas | Diapositiva 12 | — |
