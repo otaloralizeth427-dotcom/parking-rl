@@ -917,9 +917,9 @@ def test_pipeline_verification_rolls_back_a_broken_promotion(serving_dir, monkey
 # ---------------------------------------------------------------- selector de nivel y métricas (web)
 def test_levels_endpoint_lists_every_level_with_its_served_model():
     from agents.serving import served_run
-    from envs.levels import LEVEL_IDS
+    from envs.levels import WEB_LEVEL_IDS
     levels = TestClient(create_app(SimulationSession("N1"), public=True)).get("/api/levels").json()
-    assert [lv["id"] for lv in levels] == list(LEVEL_IDS)
+    assert [lv["id"] for lv in levels] == list(WEB_LEVEL_IDS) and "N6" not in WEB_LEVEL_IDS   # N6 oculto
     for lv in levels:
         assert lv["served"] == served_run(lv["id"]) and lv["environment_version"].startswith("parking-v")
 
