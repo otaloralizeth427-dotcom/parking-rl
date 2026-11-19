@@ -553,6 +553,10 @@ cola queda dentro del cupo y la nariz apunta al pasillo; entrar de frente no val
 | `N6-exp01-ppo-curriculo` | Currículo de 3 etapas (cola en el cupo → cupo recién pasado → nivel completo; 3 M de pasos) con la receta de N2: las 3 semillas superan a la regla | Ver abajo | **sin conclusión**: detenido |
 | `N6-exp02-ppo-curriculo-grande` | Red 128×128 con lotes más grandes | no se lanzó | pendiente |
 
+**Referencias en `N6-suite-v1`.**
+- Regla: **0 %**. Entra de frente, que no cuenta, y choca (46) o se sale (54).
+- Aleatoria: 0 %.
+
 **Qué pasó con exp01.**
 - Las semillas 42 y 43 **fallaron al arrancar**. Las tres semillas intentaron crear a la vez el experimento
   `parking-N6` en MLflow y chocaron (restricción de unicidad). No dejaron run ni manifiesto. Corrección: el
