@@ -131,6 +131,7 @@ episodios (frente a ~0.2 % desde el pasillo).
 | `parking-v9` | Agrega `fair_cones` (conos «justos»). Ningún cono queda en la zona de giro hacia el cupo (a menos de 4.5 m en x del cupo, en su mitad del pasillo). El cono bloqueante va centrado (\|y\| ≤ 1 m), entre el arranque y el cupo, con más de 3 m libres arriba y abajo y sin otros conos a la par. Dos conos a la par siempre dejan un hueco de 3 m. El arranque es a 6–10 m del cupo. Solo N2 la usa. |
 | `parking-v10` | Agrega `safety_brake=1`: freno de emergencia para peatones (`envs/safety.py`). Si un peatón va a quedar en el recorrido del auto hasta detenerse (proyección de 1.2 s), la acción pasa a FRENAR, y con el auto quieto no lo deja arrancar hacia él. Esperar al peatón no se castiga como «quedarse quieto». La usaron solo los runs `exp05` de N3 y N4: quedaban 2 atropellos y se reemplazó por v11. |
 | `parking-v11` | `safety_brake=2`: además, con un peatón a menos de 4 m adelante el auto no pasa de 1.2 m/s (zona de precaución), y los peatones nunca dan un paso contra el auto (se devuelven o se hacen al otro lado). N3 y N4 la usan. |
+| `parking-v12` | `fair_cones=2` y `aisle_width`. En N2 el pasillo mide 11 m en vez de 9 m (las filas de cupos no cambian), el cono bloqueante queda a 4.5 m o más del arranque (lo que necesita el auto para rodearlo sin retroceder) y el arranque es a 9–12.5 m del cupo. v9 sigue reproducible con `fair_cones=1`. Solo N2 la usa. |
 
 ## Simplificaciones
 

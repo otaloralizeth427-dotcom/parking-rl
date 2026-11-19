@@ -33,7 +33,7 @@ tarea en la vida real:
 | Nivel | Versión del ambiente | Qué agrega |
 |---|---|---|
 | N1 · Misión base | `parking-v2` | Pasillo con dos filas de autos y columnas |
-| N2 · Conos en el pasillo | `parking-v9` | Conos, uno de ellos bloqueando la ruta; 5 sensores de parachoques. Desde v9 los conos nunca tapan el giro hacia el cupo y el bloqueante se rodea por ambos lados |
+| N2 · Conos en el pasillo | `parking-v12` | Conos, uno de ellos bloqueando la ruta; 5 sensores de parachoques. Los conos nunca tapan el giro hacia el cupo, el bloqueante se rodea por ambos lados y el pasillo mide 11 m |
 | N3 · Peatones cruzando | `parking-v11` | Peatones que cruzan y siempre se mueven; desde v11, freno de emergencia y zona de precaución |
 | N4 · Todo junto | `parking-v11` | Conos + peatones + ruido en los sensores (σ = 0.1), con el freno de emergencia de v11 |
 | N5 · Garaje grande | `parking-v8` | Azotea de 40 × 50 m con 3 filas; hay que rodear el parqueadero para llegar al cupo |
@@ -69,7 +69,7 @@ todos los niveles.
 | Nivel | Regla (suite) | **Modelo servido** (suite) | Test final reservado (regla / modelo) | Modelo servido |
 |---|---|---|---|---|
 | N1 | 49 % | **97 %** · 6.6 s | 53 % / **97 %** (`N1-final-v1`) | `N1-exp03-ppo-s42-64bf7433` |
-| N2 | 19 % | **82 %** · 10.2 s | 28 % / **82 %** (`N2-final-v2`) | `N2-exp07-ppo-ft-v9-s43-ea914db6` |
+| N2 | 19 % | **96 %** · 7.9 s | 15 % / **91 %** (`N2-final-v3`) | `N2-exp09-ppo-ft-v12-s42-25fea815` |
 | N3 | 43 % | **96 %** · 10.0 s, 0 atropellos | 43 % / **97 %** (`N3-final-v5`) | `N3-exp06-ppo-ft-v11-s42-2a9f8d11` |
 | N4 | 16 % | **91 %** · 10.6 s, 0 atropellos | 11 % / **91 %** (`N4-final-v4`) | `N4-exp06-ppo-ft-v11-s42-4a905c49` |
 | N5 | 30 % | **100 %** · 14.4 s | 21 % / **100 %** (`N5-final-v1`) | `N5-exp05-ppo-inverso-3m-s44-78c82696` |
@@ -92,7 +92,7 @@ con su manifiesto. Además se conserva **1 run interrumpido** (KILLED), con su d
 - **Código:**
   - ramas `feature/nivel-N` y `fix/...`, unidas a `main` con `--no-ff`;
   - un tag por nivel (`nivel-1-v1.0` … `nivel-5-v1.0`) y un tag de entrega `v1.0`.
-- **Ambiente:** `ENV_VERSION` (`parking-v2` … `parking-v11`). Cada nivel fija su versión en
+- **Ambiente:** `ENV_VERSION` (`parking-v2` … `parking-v12`). Cada nivel fija su versión en
   `configs/levels/NX.json`, y un modelo solo se ofrece en el nivel si coincide (`model_matches_level`).
 - **Configuraciones:**
   - un JSON por experimento, con `hypothesis` y `change_vs_baseline`;
@@ -139,7 +139,7 @@ con su manifiesto. Además se conserva **1 run interrumpido** (KILLED), con su d
 - **Promover o revertir el modelo servido** se hace con commit y push del puntero, que Render vuelve a
   publicar. Desde la web el rollback aplica a la partida del visitante.
 - **N2 y N4 todavía fallan:**
-  - N2: 18 % de los episodios (sobre todo tiempo agotado, y algunos roces con conos);
+  - N2: 4–9 % de los episodios (tiempo agotado y algunos roces con conos);
   - N4: 9 % (tiempo agotado y conos).
   - Los atropellos de N3 y N4 bajaron a 0 con el freno de emergencia (v11), pero el freno usa la posición real
     del peatón; un auto real dependería de sensores con errores.

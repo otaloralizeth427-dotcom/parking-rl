@@ -483,3 +483,30 @@ v10 se reemplazó antes de elegir un modelo; sus semillas no se reutilizan.
 
 **Limitación.** El freno conoce la posición y velocidad reales del peatón, como un detector perfecto. En un auto
 real dependería de cámaras o radar, con errores.
+
+
+### N2 · pasillo más ancho (`parking-v9` → `parking-v12`)
+
+**Diagnóstico.** Se revisaron los 18 fallos del modelo servido en v9. En 12 de ellos el auto quedaba
+**congelado** (0 m de movimiento en los últimos 60 pasos) frente al cono bloqueante, que estaba a solo 2.5–3 m.
+Con un radio de giro de unos 4 m no alcanzaba a rodearlo sin retroceder.
+
+**Intervención (v12).**
+- Pasillo de 11 m (antes 9 m).
+- Cono bloqueante a 4.5 m o más del arranque.
+- Arranque a 9–12.5 m del cupo.
+
+El modelo servido de v9 pasó de 82 % a 90 % en v12 sin reentrenar.
+
+| Experimento (commit `9c7e793`) | Hipótesis | Resultado en la suite (s42 / s43 / s44) | Decisión |
+|---|---|---|---|
+| `N2-exp09-ppo-ft-v12` | Continuar el servido de v9 1 M de pasos en v12 lleva las 3 semillas a ≥ 90 % | **96** / 84 / 95 % | **aceptada para el modelo**: 2 de 3 semillas superan el 90 % |
+
+| Test final `N2-final-v3` | Éxito | Choques con conos | Tiempo agotado |
+|---|---|---|---|
+| Regla | 15 % | 80 | 0 |
+| **exp09 · s42** | **91 %** | 3 | 6 |
+| exp09 · s44 | 91 % | 1 | 8 |
+
+**Decisión del pipeline.** Se promovió `N2-exp09-ppo-ft-v12-s42-25fea815`: 96 % en la suite contra 89 % del
+servido anterior evaluado en v12. N2 pasa de 80 % (v3) a **96 % en la suite y 91 % en el test final**.
