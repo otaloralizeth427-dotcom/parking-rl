@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AutoPark RL · Presentación</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --night: #0b1033;        /* fondo */
+    --night-2: #141a4d;
+    --card: #1b2260;
+    --card-2: #232c78;
+    --line: #3a4396;
+    --blue: #4f8cff;
+    --blue-soft: #9cc0ff;
+    --purple: #9b6bff;
+    --purple-soft: #cdb8ff;
+    --text: #eef1ff;
+    --muted: #b6bde8;
+    --good: #5eead4;
+    --warn: #fbbf77;
+    --display: "Fredoka", "Nunito", system-ui, sans-serif;
+    --body: "Nunito", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    margin: 0; background: var(--night); color: var(--text); font: 18px/1.5 var(--body);
+    background-image: radial-gradient(1200px 700px at 85% -10%, rgba(155,107,255,.28), transparent 60%),
+                      radial-gradient(900px 600px at -10% 110%, rgba(79,140,255,.25), transparent 60%);
+    background-attachment: fixed;
+  }
+  /* Una diapositiva a la vez, del alto de la pantalla; si no cabe (pantalla pequeña), se desplaza por dentro */
+  section.slide {
+    position: fixed; inset: 0; overflow-y: auto; display: none;
+    padding: clamp(28px, 6vh, 64px) clamp(16px, 6vw, 96px) 56px;
+    flex-direction: column; justify-content: center; gap: clamp(12px, 2.4vh, 24px);
+  }
+  section.slide.active { display: flex; animation: enter .35s ease both; }
+  section.slide > * { width: 100%; max-width: 1180px; margin-left: auto; margin-right: auto; }
+  @keyframes enter { from { opacity: 0; transform: translateY(12px); } }
+  .eyebrow { font: 800 14px var(--body); letter-spacing: .14em; text-transform: uppercase; color: var(--purple-soft); margin: 0; }
+  h1 { font: 700 clamp(40px, min(7vw, 10vh), 88px)/1.02 var(--display); margin: 0;
+       background: linear-gradient(90deg, var(--blue-soft), var(--purple-soft)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  h2 { font: 600 clamp(28px, min(4.2vw, 6vh), 52px)/1.1 var(--display); margin: 0; }
+  h3 { font: 600 22px/1.2 var(--display); margin: 0 0 6px; color: var(--blue-soft); }
+  p { margin: 0; }
+  .lead { font-size: clamp(19px, 2vw, 24px); color: var(--muted); max-width: 900px; }
+  .grid { display: grid; gap: 16px; }
+  .g2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+  .g3 { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+  .g4 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .card { background: linear-gradient(180deg, var(--card), var(--night-2)); border: 1px solid var(--line); border-radius: 18px; padding: clamp(12px, 2vh, 18px) 20px; }
+  .card p, .card li { color: var(--muted); }
+  .card ul { margin: 6px 0 0; padding-left: 20px; }
+  .card li { margin: 3px 0; }
+  .big { font: 700 clamp(30px, 5vh, 44px)/1 var(--display); color: var(--text); }
+  .big small { font-size: 20px; color: var(--muted); }
+  .pill { display: inline-block; padding: 4px 12px; border-radius: 999px; font: 700 14px var(--body); background: rgba(155,107,255,.2); color: var(--purple-soft); border: 1px solid rgba(155,107,255,.45); }
+  .pill.blue { background: rgba(79,140,255,.18); color: var(--blue-soft); border-color: rgba(79,140,255,.45); }
+  .pill.good { background: rgba(94,234,212,.15); color: var(--good); border-color: rgba(94,234,212,.4); }
+  .pill.warn { background: rgba(251,191,119,.15); color: var(--warn); border-color: rgba(251,191,119,.4); }
+  table { width: 100%; border-collapse: collapse; font-size: 17px; }
+  th.num { text-align: right; }
+  th { text-align: left; font: 800 13px var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--purple-soft); padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  td { padding: 10px 12px; border-bottom: 1px solid rgba(58,67,150,.6); color: var(--muted); vertical-align: top; }
+  td b { color: var(--text); }
+  td.num { text-align: right; font: 600 18px var(--display); color: var(--text); white-space: nowrap; }
+  td.model { color: var(--good); }
+  .table-wrap { overflow-x: auto; background: rgba(27,34,96,.55); border: 1px solid var(--line); border-radius: 18px; padding: 6px 8px; }
+  .shot { width: 100%; max-height: 30vh; object-fit: cover; object-position: center top; border-radius: 16px;
+          border: 1px solid var(--line); display: block; box-shadow: 0 18px 40px rgba(0,0,0,.35); }
+  .g2 .shot { max-height: 48vh; object-fit: contain; background: var(--night-2); }
+  .flow { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .step { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 14px; font: 600 16px var(--display); }
+  .step small { display: block; font: 600 13px var(--body); color: var(--muted); }
+  .arrow { color: var(--purple); font: 700 22px var(--display); }
+  .bar { display: grid; grid-template-columns: 130px 1fr 60px; gap: 10px; align-items: center; margin: 6px 0; }
+  .bar .track { height: 14px; border-radius: 7px; background: rgba(255,255,255,.08); overflow: hidden; }
+  .bar .fill { height: 100%; border-radius: 7px; background: linear-gradient(90deg, var(--blue), var(--purple)); }
+  .bar .fill.rule { background: #6b7280; }
+  .bar span:last-child { text-align: right; font: 600 18px var(--display); }
+  a { color: var(--blue-soft); }
+  .links a { display: inline-block; margin: 4px 14px 4px 0; font-weight: 800; }
+  /* navegación */
+  nav.dots { position: fixed; right: 18px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 10px; z-index: 5; }
+  nav.dots a { width: 11px; height: 11px; border-radius: 50%; background: rgba(205,184,255,.3); display: block; }
+  nav.dots a.on { background: var(--purple-soft); box-shadow: 0 0 0 4px rgba(155,107,255,.25); }
+  .counter { position: fixed; left: 18px; bottom: 14px; font: 700 14px var(--body); color: var(--muted); z-index: 5; }
+  .hint { font-size: 14px; color: var(--muted); }
+  @media (max-width: 700px) { nav.dots { display: none; } .bar { grid-template-columns: 90px 1fr 50px; } }
+</style>
+</head>
+<body>
+
+<!-- 1 · Portada -->
+<section class="slide" id="s1">
+  <p class="eyebrow">MLOps · Visualización 2 · Grupo A · Universidad Externado de Colombia</p>
+  <h1>AutoPark RL<br>un auto que aprende a estacionarse</h1>
+  <p class="lead">Escenario <b>Autonomous Parking</b>: aprendizaje por refuerzo con trazabilidad completa, de la configuración al modelo servido en la web.</p>
+  <p class="lead"><b>Lizeth Otálora</b> · <b>Esteban Molina</b></p>
+  <p class="links">
+    <a href="https://parking-rl.vercel.app" target="_blank" rel="noopener">Juego 3D ↗</a>
+    <a href="https://parking-rl-mlflow.onrender.com/#/experiments/5/runs?workflowType=machine_learning" target="_blank" rel="noopener">MLflow ↗</a>
+    <a href="https://github.com/otaloralizeth427-dotcom/parking-rl" target="_blank" rel="noopener">Repositorio ↗</a>
+  </p>
+  <p class="hint">Flechas ← → (o ↑ ↓, espacio) para avanzar · los puntos de la derecha llevan a cada sección.</p>
+</section>
+
+<!-- 2 · Problema -->
+<section class="slide" id="s2">
+  <p class="eyebrow">1 · El problema</p>
+  <h2>Estacionar bien, sin chocar y en poco tiempo</h2>
+  <div class="grid g3">
+    <div class="card"><h3>La misión</h3><p>Llevar el auto hasta un cupo libre y detenerlo dentro, alineado, sin tocar autos, columnas, conos ni peatones, y sin salirse del área.</p></div>
+    <div class="card"><h3>Por qué importa</h3><p>Estacionar causa roces y pérdida de tiempo. Un auto que lo hace solo aprovecha mejor el espacio y protege a quien camina por el parqueadero.</p></div>
+    <div class="card"><h3>Cómo lo resolvimos</h3><p>Aprendizaje por refuerzo: el auto prueba, recibe premios y castigos, y mejora. Todo queda versionado y se puede reproducir.</p></div>
+  </div>
+  <img class="shot" src="presentacion/garaje-n5.jpg" alt="El auto morado en el garaje grande del nivel 5, buscando el cupo libre">
+</section>
+
+<!-- 3 · Ambiente -->
+<section class="slide" id="s3">
+  <p class="eyebrow">2 · El ambiente (Gymnasium)</p>
+  <h2>Qué ve, qué hace y cuándo termina</h2>
+  <div class="grid g2">
+    <div class="card"><h3>Observación</h3><ul>
+      <li>Dónde está el cupo respecto al auto, error de orientación, velocidad y dirección.</li>
+      <li>8 sensores tipo LiDAR + 5 de parachoques (desde N2).</li>
+      <li>En el garaje grande, además, su posición en el mapa.</li></ul></div>
+    <div class="card"><h3>Acciones · <code>Discrete(5)</code></h3><ul>
+      <li>Avanzar · Retroceder · Izquierda · Derecha · Frenar.</li>
+      <li>Física de bicicleta, un paso cada 0.2 s.</li></ul></div>
+    <div class="card"><h3>Recompensa</h3><ul>
+      <li><b>+100</b> al estacionar · <b>−50</b> al chocar.</li>
+      <li>Premio por acercarse y alinearse; castigo por tiempo y por quedarse quieto.</li></ul></div>
+    <div class="card"><h3>Fin del episodio</h3><ul>
+      <li><b>terminated</b>: estacionó o chocó (auto, cono, peatón o borde).</li>
+      <li><b>truncated</b>: se acabó el tiempo (200 pasos; 400 en el garaje).</li></ul></div>
+  </div>
+</section>
+
+<!-- 4 · Niveles -->
+<section class="slide" id="s4">
+  <p class="eyebrow">3 · Seis niveles</p>
+  <h2>Cada nivel agrega una decisión nueva</h2>
+  <div class="table-wrap"><table>
+    <tr><th>Nivel</th><th>Qué agrega</th><th>Ambiente</th></tr>
+    <tr><td><b>N1 · Misión base</b></td><td>Pasillo con autos estacionados y columnas</td><td>parking-v2</td></tr>
+    <tr><td><b>N2 · Conos</b></td><td>Conos, uno bloqueando la ruta; siempre rodeables; pasillo de 11 m</td><td>parking-v13</td></tr>
+    <tr><td><b>N3 · Peatones</b></td><td>Peatones que cruzan y nunca se quedan quietos; freno de emergencia</td><td>parking-v11</td></tr>
+    <tr><td><b>N4 · Todo junto</b></td><td>Conos + peatones + sensores con ruido</td><td>parking-v11</td></tr>
+    <tr><td><b>N5 · Garaje grande</b></td><td>Azotea de 40 × 50 m: hay que rodear las filas para encontrar el cupo</td><td>parking-v8</td></tr>
+    <tr><td><b>N6 · En reversa</b></td><td>Solo cuenta si entra con la cola primero</td><td>parking-v14</td></tr>
+  </table></div>
+  <img class="shot" src="presentacion/niveles.jpg" alt="Selector de niveles en el juego con el éxito del modelo de cada nivel">
+</section>
+
+<!-- 5 · Modelo -->
+<section class="slide" id="s5">
+  <p class="eyebrow">4 · El modelo</p>
+  <h2>PPO (Stable-Baselines3) con currículo</h2>
+  <div class="grid g3">
+    <div class="card"><h3>Algoritmo</h3><p>PPO como referencia del curso. DQN y Q-learning tabular quedaron como comparación: no superaron a la regla en N1.</p></div>
+    <div class="card"><h3>Currículo</h3><p>Primero arranca cerca del cupo y luego cada vez más lejos. Sin esto, PPO dependía de encontrar un éxito por suerte.</p></div>
+    <div class="card"><h3>Continuar modelos</h3><p>N3 y N4 parten del mejor modelo anterior (<code>parent_run_id</code>): el mismo resultado con un tercio de los pasos.</p></div>
+    <div class="card"><h3>Currículo inverso (N5)</h3><p>Empieza junto al cupo y retrocede por la ruta de entrada hasta recorrer todo el garaje.</p></div>
+    <div class="card"><h3>3 semillas</h3><p>Cada receta se entrena con 3 semillas: un 97 % con una sola semilla escondía una receta que fallaba 2 de 3 veces.</p></div>
+    <div class="card"><h3>Seguridad</h3><p>Freno de emergencia para peatones: el aprendizaje bajó los atropellos, el freno los llevó a cero.</p></div>
+  </div>
+</section>
+
+<!-- 6 · Resultados -->
+<section class="slide" id="s6">
+  <p class="eyebrow">5 · Resultados</p>
+  <h2>La IA contra las referencias</h2>
+  <p class="lead">100 episodios con el modelo congelado. La política aleatoria logra <b>0 %</b> en todos los niveles.</p>
+  <div class="table-wrap"><table>
+    <tr><th>Nivel</th><th class="num">Regla (suite)</th><th class="num">Modelo servido (suite)</th><th class="num">Test final secreto</th></tr>
+    <tr><td><b>N1</b></td><td class="num">49 %</td><td class="num model">97 %</td><td class="num">97 %</td></tr>
+    <tr><td><b>N2</b></td><td class="num">19 %</td><td class="num model">96 %</td><td class="num">92 %</td></tr>
+    <tr><td><b>N3</b></td><td class="num">43 %</td><td class="num model">96 % · 0 atropellos</td><td class="num">97 %</td></tr>
+    <tr><td><b>N4</b></td><td class="num">16 %</td><td class="num model">91 % · 0 atropellos</td><td class="num">91 %</td></tr>
+    <tr><td><b>N5</b></td><td class="num">30 %</td><td class="num model">100 %</td><td class="num">100 %</td></tr>
+    <tr><td><b>N6</b></td><td class="num">[__ %]</td><td class="num model">[__ %]</td><td class="num">[__ %]</td></tr>
+  </table></div>
+  <p class="hint">Se elige con la suite fija y se confirma una sola vez con el test final, cuyas semillas no están en el repositorio.</p>
+</section>
+
+<!-- 7 · Lo que no funcionó -->
+<section class="slide" id="s7">
+  <p class="eyebrow">6 · Lo que no funcionó (y lo que aprendimos)</p>
+  <h2>Cuando nada aprende, revisar si el ambiente es justo</h2>
+  <div class="grid g3">
+    <div class="card"><span class="pill warn">N1</span><h3>DQN y PPO sin currículo</h3><p>0–42 % según la semilla. Faltaba guiar el aprendizaje.</p></div>
+    <div class="card"><span class="pill warn">N2</span><h3>Conos invisibles</h3><p>En 36 de 67 episodios ningún sensor veía el cono. Se agregaron 5 sensores de parachoques.</p></div>
+    <div class="card"><span class="pill warn">N2</span><h3>Conos que tapaban el giro</h3><p>Con un cono a menos de 4.5 m del cupo solo estacionaba 58 %. Conos “justos” y pasillo de 11 m: de 80 % a 96 %.</p></div>
+    <div class="card"><span class="pill warn">N3</span><h3>“Usted primero”</h3><p>El auto y el peatón se esperaban hasta el timeout. Ahora el peatón siempre camina.</p></div>
+    <div class="card"><span class="pill warn">N3–N4</span><h3>Atropellos</h3><p>El modelo veía al peatón y seguía acelerando. Un primer freno dejó 2 atropellos; el segundo, con zona de precaución, 0.</p></div>
+    <div class="card"><span class="pill warn">N5</span><h3>Pasillos angostos</h3><p>4 pilotos con 0–12 %: la maniobra final casi no cabía. Con pasillos de 8.5 m, 98–100 %.</p></div>
+  </div>
+</section>
+
+<!-- 8 · Versionamiento -->
+<section class="slide" id="s8">
+  <p class="eyebrow">7 · Versionamiento y trazabilidad</p>
+  <h2>Cada modelo sabe de dónde viene</h2>
+  <div class="flow">
+    <div class="step">Configuración JSON<small>hipótesis + cambio</small></div><span class="arrow">→</span>
+    <div class="step">Entrenamiento<small>commit + semilla</small></div><span class="arrow">→</span>
+    <div class="step">MLflow<small>parámetros, métricas, paquete</small></div><span class="arrow">→</span>
+    <div class="step">Manifiesto<small>SHA-256 de modelo y config</small></div><span class="arrow">→</span>
+    <div class="step">Suite fija + test final<small>resultados por caso</small></div><span class="arrow">→</span>
+    <div class="step">Modelo servido<small>serving/ con historial</small></div>
+  </div>
+  <div class="grid g4">
+    <div class="card"><div class="big">v2 → v14</div><p>Versiones del ambiente; un modelo solo se ofrece en la versión con que se entrenó.</p></div>
+    <div class="card"><div class="big">35 <small>configs</small></div><p>Experimentos con hipótesis, incluidos los rechazados.</p></div>
+    <div class="card"><div class="big">80+ <small>runs</small></div><p>En MLflow, con su manifiesto y el hash verificado al cargar.</p></div>
+    <div class="card"><div class="big">Git</div><p>Ramas por nivel, tags <code>nivel-N-v1.x</code> y release <code>v1.0</code>.</p></div>
+  </div>
+  <img class="shot" src="presentacion/mlflow.jpg" alt="Registro de experimentos en MLflow con los runs del nivel 5">
+</section>
+
+<!-- 9 · Operación -->
+<section class="slide" id="s9">
+  <p class="eyebrow">8 · Pipeline, despliegue y monitoreo</p>
+  <h2>De la configuración a la web, en 8 pasos</h2>
+  <div class="flow">
+    <div class="step">1. Validar</div><span class="arrow">→</span><div class="step">2. Pruebas</div><span class="arrow">→</span>
+    <div class="step">3. Entrenar o cargar</div><span class="arrow">→</span><div class="step">4. Evaluar</div><span class="arrow">→</span>
+    <div class="step">5. Verificar hashes</div><span class="arrow">→</span><div class="step">6. Seleccionar</div><span class="arrow">→</span>
+    <div class="step">7. Publicar</div><span class="arrow">→</span><div class="step">8. Verificar · rollback</div>
+  </div>
+  <div class="grid g3">
+    <div class="card"><h3>Prefect</h3><p>Solo promueve si el candidato gana en la suite (o empata y es 2 % más rápido). Si la verificación falla, vuelve a la versión anterior solo.</p></div>
+    <div class="card"><h3>Despliegue</h3><p>Web en <b>Vercel</b> (TypeScript + Vite), simulación y MLflow en <b>Render</b> (Docker, HTTPS), pruebas en GitHub Actions. Cada visitante juega su propia partida.</p></div>
+    <div class="card"><h3>Monitoreo y rollback</h3><p>Éxito y causas de fallo por nivel, latencia p95 y versión servida. Rollback probado en N5 con un simulacro real.</p></div>
+  </div>
+</section>
+
+<!-- 10 · Demo -->
+<section class="slide" id="s10">
+  <p class="eyebrow">9 · Demo</p>
+  <h2>Lo vemos funcionando</h2>
+  <div class="grid g2">
+    <div class="card"><h3>Guion de la demo</h3><ol>
+      <li>Abrir el juego en el nivel 5 y verlo rodear el garaje.</li>
+      <li>Cambiar al nivel 3: el auto frena y espera a la peatona.</li>
+      <li>Botón <b>Métricas</b>: suite, test final, comparación e identidad del modelo.</li>
+      <li>Panel: <b>Evaluar y comparar</b> modelos en los mismos casos.</li>
+      <li><b>Ver este run en MLflow</b> y volver.</li>
+      <li><b>Volver a la versión anterior</b> (rollback en la partida).</li></ol>
+      <p class="links"><a href="https://parking-rl.vercel.app/?level=N5" target="_blank" rel="noopener">Abrir el juego ↗</a></p></div>
+    <img class="shot" src="presentacion/metricas.jpg" alt="Ventana de métricas del nivel 3 con éxito, comparación e identidad del modelo">
+  </div>
+</section>
+
+<!-- 11 · Limitaciones -->
+<section class="slide" id="s11">
+  <p class="eyebrow">10 · Limitaciones y aprendizajes</p>
+  <h2>Lo que falta y lo que nos llevamos</h2>
+  <div class="grid g2">
+    <div class="card"><h3>Limitaciones</h3><ul>
+      <li>Física simplificada: acciones discretas, sin derrape ni latencia del actuador.</li>
+      <li>El freno de emergencia usa la posición real del peatón; un auto real dependería de sensores con error.</li>
+      <li>El plan gratuito de Render se duerme y tiene poco procesador.</li>
+      <li>MLflow publicado es de solo consulta; las métricas de monitoreo se reinician con el servidor.</li></ul></div>
+    <div class="card"><h3>Aprendizajes</h3><ul>
+      <li>Ver la escena 3D encontró errores que las métricas no mostraban.</li>
+      <li>El currículo y el punto de partida importaron más que los hiperparámetros.</li>
+      <li>Las semillas importan: una sola puede engañar.</li>
+      <li>La trazabilidad sirvió de verdad: encontramos y corregimos modelos de otra versión gracias al manifiesto.</li></ul></div>
+  </div>
+  <img class="shot" src="presentacion/peatona.jpg" alt="Peatona del nivel 3 cruzando el parqueadero">
+</section>
+
+<!-- 12 · Cierre -->
+<section class="slide" id="s12">
+  <p class="eyebrow">Gracias</p>
+  <h1>¿Preguntas?</h1>
+  <p class="lead"><b>Lizeth Otálora</b> · <b>Esteban Molina</b> · Grupo A</p>
+  <p class="links">
+    <a href="https://parking-rl.vercel.app" target="_blank" rel="noopener">parking-rl.vercel.app ↗</a>
+    <a href="https://github.com/otaloralizeth427-dotcom/parking-rl" target="_blank" rel="noopener">GitHub ↗</a>
+    <a href="https://parking-rl-mlflow.onrender.com" target="_blank" rel="noopener">MLflow ↗</a>
+  </p>
+</section>
+
+<nav class="dots" id="dots" aria-label="Diapositivas"></nav>
+<div class="counter" id="counter"></div>
+
+<script>
+  // Navegación: una diapositiva a la vez. Flechas, espacio, Re Pág/Av Pág, Inicio/Fin, puntos y enlace #sN
+  const slides = [...document.querySelectorAll("section.slide")];
+  const dots = document.getElementById("dots");
+  const counter = document.getElementById("counter");
+  let current = 0;
+  const show = (i) => {
+    current = Math.max(0, Math.min(slides.length - 1, i));
+    slides.forEach((s, j) => s.classList.toggle("active", j === current));
+    [...dots.children].forEach((d, j) => d.classList.toggle("on", j === current));
+    counter.textContent = (current + 1) + " / " + slides.length;
+    history.replaceState(null, "", "#" + slides[current].id);
+  };
+  slides.forEach((s, i) => {
+    const a = document.createElement("a");
+    a.href = "#" + s.id;
+    a.setAttribute("aria-label", "Diapositiva " + (i + 1));
+    a.onclick = (e) => { e.preventDefault(); show(i); };
+    dots.appendChild(a);
+  });
+  addEventListener("keydown", (e) => {
+    if (["ArrowRight", "ArrowDown", "PageDown", " "].includes(e.key)) { e.preventDefault(); show(current + 1); }
+    if (["ArrowLeft", "ArrowUp", "PageUp"].includes(e.key)) { e.preventDefault(); show(current - 1); }
+    if (e.key === "Home") show(0);
+    if (e.key === "End") show(slides.length - 1);
+  });
+  let touchY = null;   // deslizar en celular o tableta
+  addEventListener("touchstart", (e) => { touchY = e.touches[0].clientY; }, { passive: true });
+  addEventListener("touchend", (e) => {
+    if (touchY === null) return;
+    const dy = e.changedTouches[0].clientY - touchY;
+    if (Math.abs(dy) > 60) show(current + (dy < 0 ? 1 : -1));
+    touchY = null;
+  });
+  const start = slides.findIndex((s) => "#" + s.id === location.hash);
+  show(start >= 0 ? start : 0);
+</script>
+</body>
+</html>
