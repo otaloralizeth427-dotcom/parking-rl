@@ -127,6 +127,17 @@ semilla y el hash del modelo activo. Con el agente **«Manual (teclado)»** se m
 mientras se mantiene presionada una acción. «Entrenar DQN» lanza el pipeline real, así que ese entrenamiento
 también queda registrado en MLflow y con manifiesto.
 
+El catálogo histórico de un nivel está en `GET /api/catalog?level=N5`, y la evaluación guardada de un
+modelo en `GET /api/model/<run_id>/evaluation`. El panel muestra la ficha del modelo elegido:
+- hipótesis;
+- éxito, retorno y tiempo en la suite;
+- causas de fallo;
+- un botón para ver su evaluación guardada;
+- un botón para activar esa versión en la propia partida.
+
+La carga verifica el SHA-256 del manifiesto. Sobre la partida REST también están
+`GET /api/compare?run_ids=a,b` (métricas guardadas) y `POST /api/rollback` (activar un run histórico).
+
 ### Versión publicada (Vercel + Render)
 
 La versión publicada tiene tres partes. Ninguna requiere instalar nada: se abren con un link.

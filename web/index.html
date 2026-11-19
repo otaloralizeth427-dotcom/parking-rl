@@ -100,6 +100,13 @@
         <label class="field">Agente o modelo
           <select id="agent-select"></select>
         </label>
+        <div class="model-card" id="model-card" hidden>
+          <b id="model-card-title">Modelo seleccionado</b>
+          <span id="model-card-hypothesis"></span>
+          <div class="model-metrics" id="model-card-metrics"></div>
+          <button class="secondary" id="btn-model-evaluation" type="button" hidden>Ver evaluación guardada</button>
+          <button class="secondary" id="btn-model-rollback" type="button" hidden>Activar esta versión</button>
+        </div>
         <label class="field">Velocidad <span id="speed-label">1×</span>
           <input type="range" id="speed" min="0.25" max="10" step="0.25" value="1">
         </label>

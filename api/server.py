@@ -15,7 +15,7 @@ from collections import Counter, deque
 from pathlib import Path
 
 import numpy as np
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
@@ -150,6 +150,7 @@ class SimulationSession:
         for m in list_manifests(self.level_id):
             summary = m.get("evaluation_summary") or {}
             matches = model_matches_level(m, self.level_id)
+            experiment = self._experiment_metadata(m)
             items.append({
                 "id": m["run_id"], "label": f"{m['agent'].upper()} · {m['experiment_id']} · s{m['seed']}",
                 "mode": "Evaluación (modelo congelado)", "available": m["status"] == "completed" and matches,
@@ -157,7 +158,13 @@ class SimulationSession:
                 "git_commit": m["git_commit"], "environment_version": m["environment_version"],
                 "model_sha256": m.get("model_sha256"), "created_at": m["created_at"],
                 "test_success_rate": summary.get("success_rate"), "test_mean_time_s": summary.get("mean_time_s"),
-                "diagnostic": m.get("diagnostic"),
+                "diagnostic": m.get("diagnostic"), "hypothesis": m.get("hypothesis"),
+                "change_vs_baseline": m.get("change_vs_baseline"), "budget": m.get("budget"),
+                "parent_run_id": m.get("parent_run_id"), "evaluation_suite_id": m.get("evaluation_suite_id"),
+                "outcomes": summary.get("outcomes", {}), "mean_return": summary.get("mean_return"),
+                "mean_final_distance_m": summary.get("mean_final_distance_m"),
+                "mean_final_heading_error_deg": summary.get("mean_final_heading_error_deg"),
+                "mlflow": m.get("mlflow"), "experiment": experiment,
                 "mlflow_run_id": (m.get("mlflow") or {}).get("run_id"),
                 "mlflow_experiment": (m.get("mlflow") or {}).get("experiment"),
             })
@@ -198,6 +205,16 @@ class SimulationSession:
                             "summary": summarize(cases), "outcomes_by_case": [c["outcome"] for c in cases]})
         return {"type": "evaluation", "level": self.level_id, "suite_id": suite["suite_id"],
                 "seed_start": suite["seed_start"], "episodes": episodes, "results": results}
+
+    @staticmethod
+    def _experiment_metadata(manifest: dict) -> dict | None:
+        path = EXPERIMENTS_DIR / f"{manifest.get('experiment_id')}.json"
+        if not path.exists():
+            return None
+        try:
+            return json.loads(path.read_text())
+        except (OSError, json.JSONDecodeError):
+            return None
 
     def reset(self, seed=None, level=None, sensor_noise=None) -> dict:
         if seed is not None and (not isinstance(seed, int) or seed < 0):
@@ -448,6 +465,55 @@ def create_app(session: SimulationSession | None = None, *, public: bool | None 
             return call("config")
         # Solo para leer el catálogo de otro nivel (la web lo usa para elegir su paleta)
         return SimulationSession(check_level(level), public=public).config()
+
+    @app.get("/api/catalog")
+    def get_catalog(level: str | None = None):
+        """Catálogo de modelos de un nivel (por defecto, el de la partida REST) con su metadata."""
+        session = app.state.session
+        if level is not None and check_level(level) != session.level_id:
+            session = SimulationSession(level, public=public)
+        return {"level": session.level_id, "environment_version": session.environment_version,
+                "recommended": session._default_agent(), "items": session.catalog()}
+
+    @app.get("/api/model/{run_id}/evaluation")
+    def get_model_evaluation(run_id: str):
+        try:
+            manifest = load_manifest(run_id)
+        except FileNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        uri = manifest.get("evaluation_uri")
+        if not uri:
+            raise HTTPException(status_code=404, detail="El modelo no tiene evaluación guardada")
+        path = ROOT / uri
+        if not path.exists():
+            raise HTTPException(status_code=404, detail="Falta el artefacto de evaluación")
+        return {"run_id": run_id, "manifest": manifest, "evaluation": json.loads(path.read_text())}
+
+    @app.post("/api/rollback")
+    def rollback(payload: dict):
+        """Activa un modelo histórico compatible en la partida REST y reinicia el episodio.
+
+        Es reversible: cualquier modelo anterior puede volver a activarse por su run_id. Cada visitante de
+        la web lo hace en su propia partida (comando «agent» del WebSocket); el rollback del modelo servido
+        a todos es el puntero versionado serving/<nivel>.json (python -m agents.serving rollback).
+        """
+        run_id = payload.get("run_id") if isinstance(payload, dict) else None
+        if not run_id:
+            raise HTTPException(status_code=400, detail="run_id es obligatorio")
+        config = call("agent", {"agent": run_id})
+        reset = call("reset", {})
+        return {"type": "rollback", "run_id": run_id, "config": config, "reset": reset}
+
+    @app.get("/api/compare")
+    def compare(run_ids: str = Query(..., description="run_id separados por coma")):
+        wanted = [value.strip() for value in run_ids.split(",") if value.strip()]
+        if not 2 <= len(wanted) <= 8:
+            raise HTTPException(status_code=400, detail="Selecciona entre 2 y 8 modelos")
+        by_id = {item["id"]: item for item in app.state.session.catalog()}
+        missing = [run_id for run_id in wanted if run_id not in by_id or not by_id[run_id]["available"]]
+        if missing:
+            raise HTTPException(status_code=409, detail=f"Modelos no compatibles: {', '.join(missing)}")
+        return {"level": app.state.session.level_id, "items": [by_id[run_id] for run_id in wanted]}
 
     @app.get("/api/state")
     def get_state():

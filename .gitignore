@@ -16,3 +16,4 @@ build/
 .env*
 !.env.example
 !web/.env.example
+runs/

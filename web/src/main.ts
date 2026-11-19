@@ -1425,6 +1425,7 @@ async function refreshConfig() {
     return option;
   }));
   $<HTMLSelectElement>("agent-select").value = config.agent;
+  renderModelCard(config.agents.find((a) => a.id === config.agent));
   setManual(config.agent === "manual");
   $<HTMLSelectElement>("difficulty").replaceChildren(...config.levels.map((l) => {
     const option = document.createElement("option");
@@ -1472,6 +1473,7 @@ async function useAgent(id: string, note?: string) {
   try {
     await connection.send("agent", { agent: id });
     $<HTMLSelectElement>("agent-select").value = id;
+    renderModelCard(sim.catalog.find((a) => a.id === id));
     setManual(false);
     await doReset();
     setText("eval-note", "");
@@ -1492,6 +1494,47 @@ function showNotice(text: string) {
   el.hidden = false;
   clearTimeout(noticeTimer);
   noticeTimer = setTimeout(() => { el.hidden = true; el.classList.remove("info"); }, 7000);
+}
+
+// ============================================================ ficha del modelo elegido
+// Hipótesis del experimento y métricas guardadas en su manifiesto (suite fija). «Activar esta versión»
+// cambia el modelo solo en la partida de este visitante.
+const BASELINE_IDS = ["random", "rule", "manual"];
+
+function renderModelCard(item: CatalogItem | undefined) {
+  const card = $("model-card");
+  if (!item || BASELINE_IDS.includes(item.id)) {
+    card.hidden = true;
+    return;
+  }
+  card.hidden = false;
+  setText("model-card-title", `${item.label} · ${item.status ?? ""}`);
+  setText("model-card-hypothesis", item.hypothesis || "Sin hipótesis registrada.");
+  const outcomes = item.outcomes ?? {};
+  $("model-card-metrics").replaceChildren(...([
+    ["Éxito", item.test_success_rate == null ? "—" : pct(item.test_success_rate)],
+    ["Retorno", item.mean_return == null ? "—" : item.mean_return.toFixed(1)],
+    ["Tiempo", item.test_mean_time_s == null ? "—" : `${item.test_mean_time_s.toFixed(1)} s`],
+    ["Choques", outcomes.obstacle ?? 0], ["Atropellos", outcomes.pedestrian ?? 0], ["Timeout", outcomes.timeout ?? 0],
+  ] as [string, string | number][]).map(([label, value]) => {
+    const el = document.createElement("span");
+    el.textContent = `${label}: ${value}`;
+    return el;
+  }));
+  const evaluation = $<HTMLButtonElement>("btn-model-evaluation");
+  evaluation.hidden = !item.evaluation_suite_id;
+  evaluation.onclick = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/model/${encodeURIComponent(item.id)}/evaluation`);
+      if (!res.ok) throw new Error(`Evaluación guardada: el servidor respondió ${res.status}`);
+      const { evaluation: ev } = await res.json() as { evaluation: { suite_id: string; summary: { success_rate: number; episodes: number } } };
+      showNotice(`Evaluación guardada de ${shortRun(item.id)} en ${ev.suite_id}: ` +
+        `${pct(ev.summary.success_rate)} de éxito en ${ev.summary.episodes} episodios`);
+    } catch (err) { showError(err); }
+  };
+  const activate = $<HTMLButtonElement>("btn-model-rollback");
+  activate.hidden = !item.available || item.id === sim.agent;
+  activate.onclick = () => useAgent(item.id, `Versión activada en esta partida: ${shortRun(item.id)}`);
 }
 
 // ============================================================ evaluar y comparar
@@ -1667,6 +1710,7 @@ $<HTMLSelectElement>("agent-select").onchange = async (e) => {
   try {
     await connection.send("agent", { agent: value });
     setManual(value === "manual");
+    renderModelCard(sim.catalog.find((a) => a.id === value));
     await doReset();
   } catch (err) {
     showError(err);

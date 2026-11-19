@@ -384,6 +384,16 @@ select, input[type="number"] {
   padding: 8px 10px;
 }
 select option { background: var(--violet-800); }
+.model-card {
+  display: grid; gap: 5px; margin: -4px 0 14px; padding: 10px 12px;
+  border: 1px solid rgb(var(--edge) / 0.45); border-radius: 12px;
+  background: rgb(var(--deep) / 0.35); font-size: 12px;
+}
+.model-card > b { font: 600 14px var(--display); color: #fff; }
+.model-card > span { color: var(--muted); line-height: 1.35; }
+.model-metrics { display: flex; flex-wrap: wrap; gap: 6px 10px; color: #b7f7d0; }
+.model-metrics span { white-space: nowrap; }
+.secondary { border: 1px solid rgb(var(--edge) / 0.5); border-radius: 9px; padding: 6px 8px; background: rgb(var(--deep) / 0.55); color: #fff; cursor: pointer; }
 input[type="range"] { width: 100%; margin-top: 8px; accent-color: var(--pink); }
 
 .toggles { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }

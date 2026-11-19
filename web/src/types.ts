@@ -73,6 +73,8 @@ export interface CatalogItem extends ModelIdentity {
   id: string; label: string; mode: string; available: boolean; status?: string;
   agent?: string; environment_version?: string; created_at?: string;
   test_mean_time_s?: number | null; diagnostic?: string | null;
+  hypothesis?: string | null; change_vs_baseline?: string | null; evaluation_suite_id?: string | null;
+  parent_run_id?: string | null; mean_return?: number | null; outcomes?: Partial<Record<Outcome, number>>;
 }
 
 export interface ServingEntry {
