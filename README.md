@@ -11,7 +11,11 @@ cupo de un parqueadero, evitando autos estacionados, columnas y bordillos. Inclu
 - **Pipeline** de entrenamiento que registra cada run en **MLflow** y empaqueta el modelo con su
   **manifiesto** (hashes SHA-256, commit, versión del ambiente, configuración y semilla).
 - **Evaluación** con suites fijas y resultados por episodio. Ver el [registro de experimentos](docs/experimentos.md).
-- **Visualización 3D** (Three.js) que carga cualquier modelo registrado del catálogo.
+- **Visualización 3D** (Three.js + TypeScript) que carga cualquier modelo registrado del catálogo, evalúa y
+  compara modelos, y muestra el monitoreo del servidor.
+- **Operación:** pipeline de 8 pasos con Prefect ([pipeline](docs/pipeline.md)), modelo servido versionado con
+  rollback y monitoreo ([rollback y monitoreo](docs/rollback_y_monitoreo.md)), y despliegue en Vercel y Render.
+- **[Informe final](docs/informe.md):** decisiones, resultados, límites y contribuciones.
 
 ![Comparación N1](results/N1/comparison.png)
 
