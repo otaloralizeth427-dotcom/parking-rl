@@ -7,15 +7,7 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='9' fill='%236d3fd1'/><text x='16' y='23' font-size='20' font-family='sans-serif' font-weight='700' fill='white' text-anchor='middle'>P</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-      }
-    }
-  </script>
+  <link rel="stylesheet" href="/src/styles.css">
 </head>
 <body>
   <main class="game" id="viewport">
@@ -184,6 +176,6 @@
     window.addEventListener("error", (e) => showLoadError(e.message || "Error al cargar un recurso"));
     window.addEventListener("unhandledrejection", (e) => showLoadError(String(e.reason)));
   </script>
-  <script type="module" src="app.js"></script>
+  <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

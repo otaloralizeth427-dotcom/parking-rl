@@ -73,4 +73,6 @@ export const THEMES = {
   },
 };
 
-export const themeFor = (level) => ({ id: THEMES[level] ? level : "N1", ...(THEMES[level] ?? THEMES.N1) });
+export type Theme = (typeof THEMES)["N1"] & { id: string };
+const BY_LEVEL: Record<string, (typeof THEMES)["N1"]> = THEMES;
+export const themeFor = (level: string): Theme => ({ id: BY_LEVEL[level] ? level : "N1", ...(BY_LEVEL[level] ?? THEMES.N1) });

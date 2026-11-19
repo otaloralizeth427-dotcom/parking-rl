@@ -19,7 +19,7 @@ cupo de un parqueadero, evitando autos estacionados, columnas y bordillos. Inclu
 
 ## Instalación
 
-Requisitos: Python 3.12 (probado con 3.12.7) y un navegador moderno.
+Requisitos: Python 3.12 (probado con 3.12.7), Node.js 20 o superior (para construir la web) y un navegador moderno.
 
 ```bash
 cd Parking
@@ -33,6 +33,12 @@ dependencias directas; `requirements.lock.txt` fija las versiones exactas con qu
 En macOS, PyTorch se instala desde PyPI; en Linux/Windows sin GPU puede usarse el índice CPU
 (`--index-url https://download.pytorch.org/whl/cpu`) antes de instalar el resto.
 
+La web (TypeScript + Vite + three.js, versiones fijas en `web/package-lock.json`) se construye una vez:
+
+```bash
+cd web && npm ci && npm run build && cd ..     # → web/dist, que sirve `run.py serve`
+```
+
 Los comandos siguientes usan `.venv/bin/python` desde la carpeta `Parking/`.
 
 ## Uso rápido
@@ -40,7 +46,7 @@ Los comandos siguientes usan `.venv/bin/python` desde la carpeta `Parking/`.
 ```bash
 .venv/bin/python run.py train configs/experiments/N1-exp01-dqn.json   # entrena y registra un experimento
 .venv/bin/python run.py evaluate --level N1                           # compara referencias y modelos
-.venv/bin/python run.py serve --level N1                              # http://127.0.0.1:8000
+.venv/bin/python run.py serve --level N1                              # http://127.0.0.1:8000 (tras construir la web)
 .venv/bin/python -m mlflow ui --backend-store-uri sqlite:///mlflow.db  # http://127.0.0.1:5000
 ```
 
@@ -117,39 +123,42 @@ semilla y el hash del modelo activo. Con el agente **«Manual (teclado)»** se m
 mientras se mantiene presionada una acción. «Entrenar DQN» lanza el pipeline real, así que ese entrenamiento
 también queda registrado en MLflow y con manifiesto.
 
-### Versión publicada (Vercel + Hugging Face)
+### Versión publicada (Vercel + Render)
 
-La versión publicada tiene dos partes. Cada visitante juega **su propia partida**: cada conexión
-WebSocket crea su sesión, y los modelos se cargan una sola vez y se comparten.
+La versión publicada tiene tres partes. Ninguna requiere instalar nada: se abren con un link.
 
 | Parte | Dónde | Qué hace |
 |---|---|---|
-| Web 3D (`web/`) | **Vercel** · Root Directory `web`, `npm ci`, `npm run build`, salida `dist` | Solo dibuja; se conecta a la API definida en `VITE_API_BASE_URL` (ver `web/.env.example`). |
-| Servidor (`deploy/space/`) | **Hugging Face Spaces** (Docker, HTTPS) | Corre el ambiente y los modelos congelados. Con `PARKING_PUBLIC=1` no se entrena desde la interfaz. |
+| **Web 3D** (`web/`, TypeScript + Vite) | **Vercel** · Root Directory `web`, `npm ci`, `npm run build`, salida `dist` | Solo dibuja. Se conecta a la API definida en `VITE_API_BASE_URL` y enlaza cada modelo con su run en `VITE_MLFLOW_URL` (ver `web/.env.example`). |
+| **Servidor de la simulación** (`deploy/Dockerfile`) | **Render** (`render.yaml`, servicio `parking-rl-api`) | Corre el ambiente y los modelos congelados, por HTTPS y WebSocket. Con `PARKING_PUBLIC=1` no se entrena desde la interfaz. |
+| **Registro de experimentos** (`deploy/mlflow.Dockerfile`) | **Render** (servicio `parking-rl-mlflow`) | MLflow de solo consulta, armado desde la copia versionada `registry/` y los paquetes de `artifacts/`. |
 
+- **Cada visitante juega su propia partida:** cada conexión WebSocket crea su sesión. Los modelos se cargan una
+  sola vez y se comparten.
 - **El nivel va en el link:** `…/?level=N3`.
-- **Para que internet no frene la animación,** el agente pide los pasos en bloques (comando `steps`), que la web
-  reproduce uno a uno a la velocidad elegida. La física es la misma: se comprueba en `test_steps_batch_matches_single_steps`.
-- **`GET /api/health`** devuelve el commit servido y la cantidad de partidas activas.
-- **CORS** solo admite los dominios en `PARKING_ALLOWED_ORIGINS`.
+- **Para que internet no frene la animación,** el agente pide los pasos en bloques (comando `steps`) y la web
+  los reproduce uno a uno. La física es la misma: se comprueba en `test_steps_batch_matches_single_steps`.
+- **`GET /api/health`** devuelve el commit servido, el modelo servido de cada nivel y las partidas activas.
+  **`GET /api/metrics`** devuelve el monitoreo. Ver [rollback y monitoreo](docs/rollback_y_monitoreo.md).
+- **CORS y origen del WebSocket** se limitan a `PARKING_ALLOWED_ORIGINS` y `PARKING_ALLOWED_ORIGIN_REGEX`
+  (vistas previas de Vercel).
+- **El plan gratuito de Render se duerme** tras 15 min sin visitas. La primera visita espera hasta un
+  minuto, y la web avisa que el servidor está despertando.
 
 **Publicación automática:**
-- Al hacer push a `main`, Vercel reconstruye la web.
-- El workflow `.github/workflows/deploy-space.yml` actualiza el servidor:
-  1. corre las pruebas del servidor;
-  2. arma el Space con `deploy/build_space.py`, que copia solo el código y los modelos y verifica el hash de cada uno;
-  3. lo sube.
-- El workflow necesita el secreto `HF_TOKEN` y la variable `HF_SPACE` en GitHub.
+- `.github/workflows/ci.yml` corre las pruebas y construye la web en cada push.
+- Al llegar a `main`, Render y Vercel vuelven a publicar.
+- Después de entrenar, `python deploy/mlflow_snapshot.py` actualiza la copia del registro antes del commit.
 
 **Probar lo mismo en local:**
 
 ```bash
-python deploy/build_space.py build/space && docker build -t parking-space build/space
-docker run -p 7860:7860 -e PARKING_ALLOWED_ORIGINS=http://127.0.0.1:4173 parking-space
-cd web && npm ci && VITE_API_BASE_URL=http://127.0.0.1:7860 npm run build && npx vite preview --port 4173
+docker build -f deploy/Dockerfile -t parking-api . && docker run -p 10000:10000 \
+  -e PARKING_ALLOWED_ORIGINS=http://127.0.0.1:4173 parking-api
+cd web && VITE_API_BASE_URL=http://127.0.0.1:10000 npm run build && npm run preview
 ```
 
-Para seguir creando niveles no cambia nada. Se entrena en local; al unir a `main`, las dos partes se
+Para seguir creando niveles no cambia nada. Se entrena en local; al unir a `main`, las partes se
 actualizan solas y los niveles anteriores siguen disponibles.
 
 ### Pruebas
@@ -209,27 +218,34 @@ Parking/
 │   ├── neural_q_learning.py  MLP con Adam, memoria de experiencias y agente DQN
 │   ├── rule_based.py     Política de referencia por reglas (sin aprendizaje)
 │   ├── ppo_agent.py      PPO de Stable-Baselines3 con la misma interfaz act()
-│   └── registry.py       Catálogo de manifiestos y carga verificada por SHA-256
-├── api/server.py         FastAPI: REST + WebSocket sobre una SimulationSession
+│   ├── registry.py       Catálogo de manifiestos y carga verificada por SHA-256
+│   └── serving.py        Modelo servido por nivel: promote / rollback con historial
+├── api/server.py         FastAPI: REST + WebSocket (una partida por conexión), evaluación y métricas
 ├── pipelines/
-│   ├── train.py          Pipeline: MLflow + entrenamiento + evaluación + manifiesto
-│   └── evaluate.py       Suites fijas, resultados por episodio y gráficas
+│   ├── train.py          Entrenamiento: MLflow + evaluación + manifiesto
+│   ├── scoring.py        Núcleo de evaluación (lo comparten pipeline y servidor)
+│   ├── evaluate.py       Suites fijas, test final reservado, resultados por episodio y gráficas
+│   └── flow.py           Pipeline de 8 pasos con Prefect (ver docs/pipeline.md)
 ├── configs/
 │   ├── levels/           Un JSON por nivel (N1.json, …)
 │   ├── experiments/      Un JSON por experimento, con hipótesis
 │   └── suites/           Suites de evaluación fijas
 ├── artifacts/            Paquete de cada run: pesos, configuración, curvas, evaluación
 ├── manifests/            Un manifiesto JSON por run (identidad y hashes del modelo)
-├── docs/                 ficha_ambiente.md (contrato) y experimentos.md (registro)
+├── serving/              Puntero versionado al modelo servido de cada nivel (con historial)
+├── registry/             Copia versionada del registro de MLflow (para el servicio de consulta)
+├── deploy/               Dockerfiles de Render (API y MLflow) y scripts de la copia del registro
+├── docs/                 Ficha del ambiente, experimentos, pipeline, rollback y monitoreo, informe
 ├── run.py                CLI: serve | train | demo | evaluate
 ├── tests/test_parking.py Pruebas automáticas (pytest)
-└── web/                  index.html, styles.css, app.js (Three.js) y models/ (auto glTF)
+└── web/                  TypeScript + Vite: src/main.ts (escena three.js), src/types.ts (contrato
+                          con la API), src/themes.ts, src/styles.css y public/models/ (auto glTF)
 ```
 
 ```
  Navegador (Three.js)                       Python
  ┌──────────────────────┐   WebSocket /ws   ┌──────────────────────────┐
- │ app.js               │ ────────────────▶ │ server.SimulationSession │
+ │ src/main.ts          │ ────────────────▶ │ server.SimulationSession │
  │  · escena y modelos  │  {cmd, payload}   │  · ParkingEnv            │
  │  · interpolación     │ ◀──────────────── │  · agentes cargados      │
  │  · panel / controles │   estado JSON     │  · hilo de entrenamiento │
@@ -404,7 +420,7 @@ niveles se conservan en `results/legacy/`.
 
 ## Créditos
 
-- Modelo 3D del superdeportivo (`web/models/sports_car.glb`): tomado de los ejemplos oficiales de
+- Modelo 3D del superdeportivo (`web/public/models/sports_car.glb`): tomado de los ejemplos oficiales de
   [three.js](https://github.com/mrdoob/three.js/tree/dev/examples/models/gltf) (`ferrari.glb`),
   creado por **vicent091036** en Sketchfab ([modelo original](https://skfb.ly/6CQBT)), con licencia
   que exige atribución. Se recolorea en tiempo de ejecución y se le oscurecen los acentos de marca.

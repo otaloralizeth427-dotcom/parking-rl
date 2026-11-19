@@ -520,9 +520,15 @@ def create_app(session: SimulationSession | None = None, *, public: bool | None 
         response.headers["Cache-Control"] = "no-cache, must-revalidate"
         return response
 
-    # En local también se sirve la web (en producción la publica Vercel y aquí solo queda la API)
-    if (WEB_DIR / "public").is_dir():
-        app.mount("/models", StaticFiles(directory=WEB_DIR / "public" / "models"), name="models")
-    if (WEB_DIR / "index.html").exists():
-        app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")
+    # En local también se sirve la web ya construida (cd web && npm ci && npm run build).
+    # En producción la publica Vercel y aquí solo queda la API.
+    dist = WEB_DIR / "dist"
+    if (dist / "index.html").exists():
+        app.mount("/", StaticFiles(directory=dist, html=True), name="web")
+    elif WEB_DIR.exists():
+        @app.get("/", include_in_schema=False)
+        def web_not_built():
+            from fastapi.responses import HTMLResponse
+            return HTMLResponse("<h1>Falta construir la web</h1><p>Ejecute <code>cd web && npm ci && npm run build</code> "
+                                "y recargue. La API ya está disponible en <code>/api</code>.</p>", status_code=503)
     return app
