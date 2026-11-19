@@ -3,6 +3,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { Reflector } from "three/addons/objects/Reflector.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
@@ -940,50 +941,133 @@ function buildObstacles(layout: Layout) {
 // ============================================================ peatones (nivel 3)
 const pedestrianGroup = new THREE.Group();
 scene.add(pedestrianGroup);
-const PERSON = {
-  skin: [0xf1c7a6, 0xc68863, 0x8d5a3b].map((c) => std({ color: c, roughness: 0.7 })),
-  shirts: [0xf472b6, 0x2dd4bf, 0xfbbf24, 0x60a5fa].map((c) => std({ color: c, roughness: 0.6 })),
-  pants: std({ color: 0x3b3561, roughness: 0.8 }),
-  hair: std({ color: 0x2a1d1a, roughness: 0.9 }),
-  limb: new THREE.CapsuleGeometry(1, 1, 4, 10),
-  head: new THREE.SphereGeometry(0.13, 16, 12),
-  hairCap: new THREE.SphereGeometry(0.135, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2),
-};
+// Muñequitos de bloques estilo «chibi» (diseño propio): cabeza grande con carita, cabello largo,
+// camiseta corta con estrella, mangas abullonadas, pantalón ancho, zapatos gruesos y bolsito.
+// Miran hacia +x; piernas y brazos giran desde cadera y hombro al caminar.
+const PERSON_LOOKS = [
+  { skin: 0xf6d2b8, hair: 0x5a2e1f, top: 0xfdf6f9, star: 0xf472b6, pants: 0xf7a8cc, bag: 0xfdf6f9 },
+  { skin: 0xe2ab86, hair: 0x231c26, top: 0xe2d4ff, star: 0x8b5cf6, pants: 0xa9cdfc, bag: 0xffffff },
+  { skin: 0xf3cfb3, hair: 0xe3b86c, top: 0xffc9df, star: 0xffffff, pants: 0xf5efe6, bag: 0xf472b6 },
+  { skin: 0xa8714f, hair: 0x7a3420, top: 0xc5f5e3, star: 0x10b981, pants: 0xcdb5ff, bag: 0xfdf6f9 },
+];
+const SHOE = std({ color: 0xffffff, roughness: 0.45 });
+const roundBox = (w: number, h: number, d: number, r = 0.05) => new RoundedBoxGeometry(d, h, w, 3, r);
+
+function faceTexture() {
+  return canvasTexture(256, 256, (ctx) => {
+    for (const x of [78, 178]) {           // ojos grandes con brillo y pestañas
+      ctx.fillStyle = "#2a1a1f";
+      ctx.beginPath(); ctx.ellipse(x, 120, 21, 27, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath(); ctx.arc(x + 7, 109, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x - 6, 130, 3.5, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#2a1a1f"; ctx.lineWidth = 5; ctx.lineCap = "round";
+      const out = x < 128 ? -1 : 1;
+      ctx.beginPath(); ctx.moveTo(x + out * 18, 98); ctx.lineTo(x + out * 30, 88); ctx.stroke();
+    }
+    ctx.fillStyle = "rgba(255,120,150,0.55)";   // cachetes
+    for (const x of [58, 198]) { ctx.beginPath(); ctx.ellipse(x, 160, 20, 11, 0, 0, Math.PI * 2); ctx.fill(); }
+    ctx.strokeStyle = "#3a1d22"; ctx.lineWidth = 6; ctx.lineCap = "round";   // sonrisa
+    ctx.beginPath(); ctx.arc(128, 160, 16, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
+  });
+}
+
+function starTexture(top: number, star: number) {
+  const hex = (c: number) => `#${c.toString(16).padStart(6, "0")}`;
+  return canvasTexture(128, 128, (ctx, w, h) => {
+    ctx.fillStyle = hex(top);
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = hex(star);
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const r = i % 2 ? 13 : 30, a = -Math.PI / 2 + (i * Math.PI) / 5;
+      ctx.lineTo(64 + r * Math.cos(a), 60 + r * Math.sin(a));
+    }
+    ctx.closePath();
+    ctx.fill();
+  });
+}
+
+const FACE_MAP = faceTexture();
 interface PedestrianMesh { group: THREE.Group; limbs: THREE.Group[]; phase: number; last: { x: number; y: number } | null }
 const pedestrianMeshes: PedestrianMesh[] = [];
 
-function capsule(material: THREE.Material, radius: number, length: number, y: number) {
-  const mesh = shadowed(new THREE.Mesh(PERSON.limb, material), true, false);
-  mesh.scale.set(radius, length / 2, radius);
-  mesh.position.y = y;
+function part(geometry: THREE.BufferGeometry, material: THREE.Material, x: number, y: number, z: number) {
+  const mesh = shadowed(new THREE.Mesh(geometry, material), true, false);
+  mesh.position.set(x, y, z);
   return mesh;
 }
 
-// Persona estilizada que mira hacia +x; piernas y brazos giran desde cadera y hombro
 function makePedestrian(index: number): PedestrianMesh {
+  const look = PERSON_LOOKS[index % PERSON_LOOKS.length];
+  const skin = std({ color: look.skin, roughness: 0.6 });
+  const hair = std({ color: look.hair, roughness: 0.35, metalness: 0.05 });
+  const top = std({ color: look.top, roughness: 0.6 });
+  const pants = std({ color: look.pants, roughness: 0.65 });
+  const bag = std({ color: look.bag, roughness: 0.4 });
   const group = new THREE.Group();
-  const shirt = PERSON.shirts[index % PERSON.shirts.length];
-  const skin = PERSON.skin[index % PERSON.skin.length];
-  group.add(capsule(shirt, 0.17, 0.4, 1.22));
-  const head = shadowed(new THREE.Mesh(PERSON.head, skin), true, false);
-  head.position.y = 1.66;
-  const hair = new THREE.Mesh(PERSON.hairCap, PERSON.hair);
-  hair.position.y = 1.68;
-  group.add(head, hair);
+
+  // Cabeza grande con carita al frente (+x)
+  group.add(part(roundBox(0.46, 0.42, 0.42, 0.08), skin, 0, 1.43, 0));
+  const face = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.36),
+    new THREE.MeshStandardMaterial({ map: FACE_MAP, transparent: true, roughness: 0.6, envMapIntensity: 0.3 }));
+  face.rotation.y = Math.PI / 2;
+  face.position.set(0.212, 1.42, 0);
+  group.add(face);
+  // Cabello: capul, coronilla, mechones a los lados y largo por la espalda
+  group.add(part(roundBox(0.5, 0.09, 0.46, 0.04), hair, -0.01, 1.655, 0));
+  group.add(part(roundBox(0.47, 0.06, 0.05, 0.025), hair, 0.205, 1.615, 0));   // flequillo delgado
+  for (const z of [-0.255, 0.255]) group.add(part(roundBox(0.06, 0.62, 0.36, 0.03), hair, -0.03, 1.36, z));
+  group.add(part(roundBox(0.5, 0.82, 0.12, 0.05), hair, -0.2, 1.27, 0));
+  // Torso: camiseta corta con estrella y pancita
+  const torso = part(roundBox(0.42, 0.3, 0.24, 0.06), top, 0, 1.05, 0);
+  const star = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.2),
+    std({ map: starTexture(look.top, look.star), roughness: 0.6 }));
+  star.rotation.y = Math.PI / 2;
+  star.position.set(0.122, 1.06, 0);
+  group.add(torso, star, part(roundBox(0.36, 0.07, 0.2, 0.02), skin, 0, 0.88, 0));
+  // Bolsito al costado con su correa
+  group.add(part(roundBox(0.06, 0.16, 0.2, 0.05), bag, 0, 0.86, 0.27));
+  const strap = part(new THREE.BoxGeometry(0.02, 0.62, 0.025), bag, 0.02, 1.08, 0.07);
+  strap.rotation.x = 0.55;
+  group.add(strap);
+
+  // Piernas (pantalón ancho + zapato grueso) y brazos (manga abullonada + mano), con pivote
   const limbs: THREE.Group[] = [];
-  const parts: [number, number, THREE.Material, number, number][] = [
-    [0.92, 0.09, PERSON.pants, 0.075, 0.72], [0.92, -0.09, PERSON.pants, 0.075, 0.72],
-    [1.44, 0.24, skin, 0.05, 0.5], [1.44, -0.24, skin, 0.05, 0.5],
-  ];
-  for (const [y, z, material, radius, length] of parts) {
-    const pivot = new THREE.Group();
-    pivot.position.set(0, y, z);
-    pivot.add(capsule(material, radius, length, -length / 2 - radius));
-    group.add(pivot);
-    limbs.push(pivot);
+  for (const z of [0.11, -0.11]) {
+    const hip = new THREE.Group();
+    hip.position.set(0, 0.85, z);
+    hip.add(part(roundBox(0.2, 0.74, 0.22, 0.05), pants, 0, -0.39, 0));
+    hip.add(part(roundBox(0.2, 0.13, 0.32, 0.05), SHOE, 0.04, -0.78, 0));
+    group.add(hip);
+    limbs.push(hip);
+  }
+  for (const z of [0.29, -0.29]) {
+    const shoulder = new THREE.Group();
+    shoulder.position.set(0, 1.15, z);
+    shoulder.add(part(roundBox(0.17, 0.34, 0.19, 0.07), top, 0, -0.15, 0));
+    shoulder.add(part(roundBox(0.11, 0.1, 0.11, 0.04), skin, 0, -0.36, 0));
+    group.add(shoulder);
+    limbs.push(shoulder);
   }
   pedestrianGroup.add(group);
   return { group, limbs, phase: 0, last: null };
+}
+
+// Solo en desarrollo (npm run dev): mirar de cerca a un peatón para revisar el diseño
+if (import.meta.env.DEV) {
+  (window as unknown as Record<string, unknown>).__lookAtPedestrian = (i = 0, dist = 2.6) => {
+    const p = pedestrianMeshes[i]?.group;
+    if (!p) return "sin peatón";
+    sim.camera = "top";              // detiene el seguimiento automático
+    controls.enabled = false;
+    const front = new THREE.Vector3(1, 0, 0).applyQuaternion(p.quaternion);
+    camera.position.copy(p.position).addScaledVector(front, dist).add(new THREE.Vector3(0.8, 1.6, 0.6));
+    controls.target.copy(p.position).add(new THREE.Vector3(0, 1.0, 0));
+    camera.lookAt(controls.target);
+    setRunning(false);
+    return "ok";
+  };
 }
 
 function ensurePedestrians(count: number) {
