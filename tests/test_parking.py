@@ -100,6 +100,39 @@ def test_collision_with_lot_boundary(env):
     assert terminated and info["collision"]
 
 
+def test_catalog_exposes_recoverable_models_and_metadata():
+    client = TestClient(create_app(SimulationSession("N5")))
+    response = client.get("/api/catalog")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["level"] == "N5"
+    models = [item for item in body["items"] if item["available"] and item["id"] not in {"random", "rule", "manual"}]
+    assert models
+    assert all("hypothesis" in item and "test_success_rate" in item for item in models)
+
+
+def test_catalog_compare_and_rollback_are_compatible():
+    client = TestClient(create_app(SimulationSession("N5")))
+    items = [item for item in client.get("/api/catalog").json()["items"]
+             if item["available"] and item["id"] not in {"random", "rule", "manual"}]
+    ids = [items[0]["id"], items[1]["id"]]
+    compared = client.get("/api/compare", params={"run_ids": ",".join(ids)})
+    assert compared.status_code == 200
+    assert [item["id"] for item in compared.json()["items"]] == ids
+    rollback = client.post("/api/rollback", json={"run_id": ids[0]})
+    assert rollback.status_code == 200
+    assert rollback.json()["run_id"] == ids[0]
+
+
+def test_model_evaluation_endpoint_returns_saved_evaluation():
+    client = TestClient(create_app(SimulationSession("N5")))
+    item = next(item for item in client.get("/api/catalog").json()["items"]
+                if item["available"] and item["id"] not in {"random", "rule", "manual"})
+    response = client.get(f"/api/model/{item['id']}/evaluation")
+    assert response.status_code == 200
+    assert response.json()["evaluation"]["summary"]["episodes"] == 100
+
+
 def test_success_when_parked_aligned_and_stopped(env):
     tx, ty = env.target["center"]
     place(env, tx, ty, env.target["angle"])
