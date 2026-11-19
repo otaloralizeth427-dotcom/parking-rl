@@ -25,16 +25,18 @@ FAIR_GAP = 3.0       # v9: hueco vertical mínimo entre conos a la par (auto de 
 
 # Cambia cuando cambian observaciones, acciones, dinámica o recompensa:
 # un modelo solo es compatible con la versión con que fue entrenado.
-ENV_VERSION = "parking-v9"   # v3: cono bloqueante, peatón que cruza y parachoques; v4: peatones que no se congelan;
+ENV_VERSION = "parking-v10"  # v3: cono bloqueante, peatón que cruza y parachoques; v4: peatones que no se congelan;
                               # v5: con cono bloqueante y peatón que cruza a la vez, el peatón no atraviesa el cono;
                               # v6: los peatones nunca se quedan quietos: si el auto se acerca, se alejan o se apartan;
                               # v7: mapa «garage» (N5) con pasillos de 6.7 m (solo pilotos; ya no se reproduce);
                               # v8: garage con pasillos de 8.5 m, arranques sobre la ruta (route_start) y castigo
                               #     por detenerse a medias dentro del cupo;
                               # v9: conos «justos» (fair_cones, N2): zona de giro hacia el cupo libre de conos, el
-                              #     cono bloqueante centrado y rodeable por ambos lados, arranque a 6-10 m
+                              #     cono bloqueante centrado y rodeable por ambos lados, arranque a 6-10 m;
+                              # v10: freno de emergencia para peatones (safety_brake, N3 y N4): si un peatón va a
+                              #     quedar en el recorrido del auto, la acción se cambia por frenar (envs/safety.py)
 # Versiones que este código reproduce: con sus valores por defecto, v3 se comporta exactamente como v2
-SUPPORTED_VERSIONS = ("parking-v2", "parking-v3", "parking-v4", "parking-v5", "parking-v6", "parking-v8", "parking-v9")
+SUPPORTED_VERSIONS = ("parking-v2", "parking-v3", "parking-v4", "parking-v5", "parking-v6", "parking-v8", "parking-v9", "parking-v10")
 
 
 @dataclass(frozen=True)
@@ -164,7 +166,8 @@ class ParkingEnv(gym.Env):
                  config: ParkingConfig | None = None, pedestrians: int = 0, cones: int | None = None,
                  blocking_cones: int = 0, bumper_sensors: int = 0, crossing_pedestrians: int = 0,
                  pedestrians_yield: bool = False, pedestrians_evade: bool = False, layout: str = "aisle",
-                 route_start: tuple | list | None = None, fair_cones: bool = False):
+                 route_start: tuple | list | None = None, fair_cones: bool = False,
+                 safety_brake: bool = False):
         if difficulty not in DIFFICULTIES:
             raise ValueError(f"difficulty debe ser uno de {DIFFICULTIES}, no {difficulty!r}")
         if layout not in LAYOUTS:
@@ -197,6 +200,7 @@ class ParkingEnv(gym.Env):
         self.n_cones = cones   # None = la cantidad por defecto de la dificultad
         self.blocking_cones = blocking_cones   # 1 = un cono extra justo en la línea recta hacia el cupo
         self.fair_cones = bool(fair_cones)     # v9: los conos nunca hacen imposible entrar al cupo
+        self.safety_brake = bool(safety_brake)  # v10: freno de emergencia para peatones (envs/safety.py)
         self.crossing_pedestrians = crossing_pedestrians   # 1 = uno de los peatones cruza frente a la ruta
         self.pedestrians_yield = bool(pedestrians_yield)   # v4: si el auto está quieto, el peatón sigue (sin «usted primero»)
         self.pedestrians_evade = bool(pedestrians_evade)   # v6: el peatón siempre camina y se aparta del auto
@@ -455,6 +459,10 @@ class ParkingEnv(gym.Env):
             raise ValueError(f"Acción inválida: {action!r}")
         cfg = self.cfg
         action = int(action)
+        braked = False
+        if self.safety_brake and self.pedestrians:
+            from envs.safety import apply as emergency_brake
+            action, braked = emergency_brake(self, action)
 
         if action == FORWARD:
             self.speed += cfg.accel * cfg.dt
@@ -493,7 +501,7 @@ class ParkingEnv(gym.Env):
             # Garaje: detenerse dentro del cupo sin quedar estacionado (torcido o a medias) también castiga
             if self.garage and not success and abs(self.speed) < cfg.idle_speed:
                 reward += cfg.r_idle
-        elif abs(self.speed) < cfg.idle_speed:
+        elif abs(self.speed) < cfg.idle_speed and not braked:   # esperar a un peatón no se castiga
             reward += cfg.r_idle
         if collision:
             reward += cfg.r_collision
@@ -502,8 +510,9 @@ class ParkingEnv(gym.Env):
 
         terminated = collision or success
         truncated = not terminated and self.steps >= cfg.max_steps
-        return self._observation(), float(reward), terminated, truncated, \
-            self._info(collision=collision, success=success, collision_kind=collision_kind)
+        info = self._info(collision=collision, success=success, collision_kind=collision_kind)
+        info["safety_brake"] = braked
+        return self._observation(), float(reward), terminated, truncated, info
 
     # ------------------------------------------------------------------ helpers
     def _relative_target(self):

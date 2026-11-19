@@ -1,0 +1,19 @@
+{
+  "experiment_id": "N4-exp05-ppo-ft-v10",
+  "level_id": "N4",
+  "agent": "ppo",
+  "hypothesis": "En parking-v10 el freno de emergencia evita todos los atropellos (el modelo servido de v6 pasa de 85 % con 3 atropellos a 0 atropellos sin reentrenar), pero tras frenar queda en situaciones que no conoce y agota el tiempo más seguido. Continuarlo 500 000 pasos con el freno activo le enseña a esperar al peatón y retomar: 0 atropellos y éxito igual o mayor que en v6 en las 3 semillas.",
+  "change_vs_baseline": "Continúa N4-exp04-ppo-ft-v6-s43-e098d962 en N4 con parking-v10 (safety_brake); 500 000 pasos, ent_coef 0.01.",
+  "parent_run_id": "N4-exp04-ppo-ft-v6-s43-e098d962",
+  "seed": 42,
+  "budget": {
+    "timesteps": 500000
+  },
+  "hyperparameters": {
+    "ent_coef": 0.01
+  },
+  "validation": {
+    "episodes": 20,
+    "every": 25000
+  }
+}

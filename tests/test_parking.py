@@ -975,3 +975,52 @@ def test_fair_cones_only_change_n2():
         assert not make_env(level).fair_cones
     with pytest.raises(ValueError):
         ParkingEnv("hard", layout="garage", fair_cones=True)
+
+
+# ---------------------------------------------------------------- freno de emergencia (N3 y N4, parking-v10)
+def test_safety_brake_stops_before_a_pedestrian_in_front():
+    from envs.levels import make_env
+    env = make_env("N3")
+    assert env.safety_brake
+    env.reset(seed=0)
+    # Peatón quieto 4 m delante del auto, sobre su línea: acelerar a fondo no debe atropellarlo
+    c, s = np.cos(env.heading), np.sin(env.heading)
+    p = env.pedestrians[0]
+    p.update(x=float(env.pos[0] + 4.0 * c), y=float(env.pos[1] + 4.0 * s), moving=False, speed=0.0)
+    for p2 in env.pedestrians[1:]:
+        p2.update(x=99.0, y=99.0, moving=False, speed=0.0)
+    braked = 0
+    for _ in range(25):
+        _, _, terminated, _, info = env.step(FORWARD)
+        braked += info["safety_brake"]
+        assert info["collision_kind"] != "pedestrian"
+        if terminated:
+            break
+    assert braked > 0
+
+
+def test_safety_brake_only_in_n3_and_n4_and_never_without_pedestrians():
+    from envs.levels import load_level, make_env
+    for level in ("N3", "N4"):
+        assert make_env(level).safety_brake and load_level(level)["environment_version"] == "parking-v10"
+    for level in ("N1", "N2", "N5"):
+        assert not make_env(level).safety_brake
+    env = ParkingEnv("hard", safety_brake=True)       # sin peatones el freno nunca interviene
+    env.reset(seed=1)
+    for _ in range(30):
+        _, _, terminated, truncated, info = env.step(FORWARD)
+        assert info["safety_brake"] is False
+        if terminated or truncated:
+            break
+
+
+def test_served_models_never_hit_pedestrians_with_the_brake():
+    from agents.registry import list_manifests, load_policy
+    from envs.levels import make_env
+    from pipelines.scoring import run_case
+    for level in ("N3", "N4"):
+        env = make_env(level)
+        manifest = next(m for m in list_manifests(level) if m["status"] == "completed")   # cualquier modelo del nivel
+        policy = load_policy(manifest)
+        outcomes = [run_case(env, policy, 7000 + i)["outcome"] for i in range(15)]
+        assert "pedestrian" not in outcomes, (level, outcomes)
