@@ -3,7 +3,7 @@
 # Los cambios hechos desde la interfaz no persisten: cada despliegue vuelve a la copia versionada.
 FROM python:3.12-slim
 RUN pip install --no-cache-dir mlflow==3.18.0
-RUN useradd -m -u 1000 app
+RUN useradd -m -u 1000 app && mkdir -p /home/app/src && chown app:app /home/app/src
 WORKDIR /home/app/src
 COPY --chown=app registry/ registry/
 COPY --chown=app artifacts/ artifacts/

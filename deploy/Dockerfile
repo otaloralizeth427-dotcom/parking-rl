@@ -12,7 +12,7 @@ FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 OMP_NUM_THREADS=1 \
     PARKING_PUBLIC=1 PARKING_LEVEL=N5 PORT=10000
 
-RUN useradd -m -u 1000 app
+RUN useradd -m -u 1000 app && mkdir -p /home/app/srv && chown app:app /home/app/srv
 WORKDIR /home/app/srv
 
 COPY deploy/requirements-serve.txt .
