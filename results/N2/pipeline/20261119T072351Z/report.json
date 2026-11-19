@@ -1,0 +1,62 @@
+{
+  "level_id": "N2",
+  "at": "20261119T072351Z",
+  "mode": "load",
+  "candidate": "N2-exp09-ppo-ft-v12-s42-25fea815",
+  "served_before": "N2-exp07-ppo-ft-v9-s43-ea914db6",
+  "served_after": "N2-exp09-ppo-ft-v12-s42-25fea815",
+  "outcome": "promovido",
+  "decision": {
+    "promote": true,
+    "reason": "Más éxito en la suite: 96% contra 89%"
+  },
+  "evaluations": {
+    "candidate": {
+      "run_id": "N2-exp09-ppo-ft-v12-s42-25fea815",
+      "episodes": 100,
+      "success_rate": 0.96,
+      "outcomes": {
+        "success": 96,
+        "obstacle": 2,
+        "pedestrian": 0,
+        "boundary": 0,
+        "timeout": 2
+      },
+      "mean_return": 104.184,
+      "mean_time_s": 7.944,
+      "mean_final_distance_m": 0.981,
+      "mean_final_heading_error_deg": 5.637,
+      "mean_latency_ms": 0.095
+    },
+    "served": {
+      "run_id": "N2-exp07-ppo-ft-v9-s43-ea914db6",
+      "episodes": 100,
+      "success_rate": 0.89,
+      "outcomes": {
+        "success": 89,
+        "obstacle": 3,
+        "pedestrian": 0,
+        "boundary": 0,
+        "timeout": 8
+      },
+      "mean_return": 93.527,
+      "mean_time_s": 11.178,
+      "mean_final_distance_m": 1.878,
+      "mean_final_heading_error_deg": 12.491,
+      "mean_latency_ms": 0.099
+    }
+  },
+  "registration": {
+    "model_sha256": "390531d8007e7d78e6a1b2ad2aae458578ef44042cb27c4e7c27ceac91670a72",
+    "config_sha256": "5f47ac2b8929d7537ddc009b76be6efd994ca3a674f3b40895d47cdb6a0abcf0",
+    "mlflow_run": "25fea815e34c4289bcb39ded5f7d60ac"
+  },
+  "tests": "23 passed, 57 deselected in 12.32s",
+  "verification": {
+    "ok": true,
+    "served": "N2-exp09-ppo-ft-v12-s42-25fea815"
+  },
+  "suite_id": "N2-suite-v1",
+  "environment_version": "parking-v12",
+  "dry_run": false
+}

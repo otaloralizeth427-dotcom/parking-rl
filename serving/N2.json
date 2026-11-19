@@ -18,15 +18,24 @@
       "model_sha256": "1e9243a013e6780407b9627ac24fe9cfc233397990fa001f04ec1c220e09eb8d",
       "test_success_rate": 0.82,
       "at": "2026-11-19T06:40:03Z"
+    },
+    {
+      "run_id": "N2-exp09-ppo-ft-v12-s42-25fea815",
+      "action": "promote",
+      "reason": "Pipeline: Más éxito en la suite: 96% contra 89%",
+      "environment_version": "parking-v12",
+      "model_sha256": "390531d8007e7d78e6a1b2ad2aae458578ef44042cb27c4e7c27ceac91670a72",
+      "test_success_rate": 0.96,
+      "at": "2026-11-19T07:24:12Z"
     }
   ],
   "current": {
-    "run_id": "N2-exp07-ppo-ft-v9-s43-ea914db6",
+    "run_id": "N2-exp09-ppo-ft-v12-s42-25fea815",
     "action": "promote",
-    "reason": "Pipeline: Más éxito en la suite: 82% contra 49%",
-    "environment_version": "parking-v9",
-    "model_sha256": "1e9243a013e6780407b9627ac24fe9cfc233397990fa001f04ec1c220e09eb8d",
-    "test_success_rate": 0.82,
-    "at": "2026-11-19T06:40:03Z"
+    "reason": "Pipeline: Más éxito en la suite: 96% contra 89%",
+    "environment_version": "parking-v12",
+    "model_sha256": "390531d8007e7d78e6a1b2ad2aae458578ef44042cb27c4e7c27ceac91670a72",
+    "test_success_rate": 0.96,
+    "at": "2026-11-19T07:24:12Z"
   }
 }
