@@ -37,6 +37,7 @@ tarea en la vida real:
 | N3 · Peatones cruzando | `parking-v11` | Peatones que cruzan y siempre se mueven; desde v11, freno de emergencia y zona de precaución |
 | N4 · Todo junto | `parking-v11` | Conos + peatones + ruido en los sensores (σ = 0.1), con el freno de emergencia de v11 |
 | N5 · Garaje grande | `parking-v8` | Azotea de 40 × 50 m con 3 filas; hay que rodear el parqueadero para llegar al cupo |
+| N6 · En reversa (en curso) | `parking-v14` | El pasillo de N1, pero solo cuenta si entra con la cola primero |
 
 ## 3. Decisiones clave
 
@@ -86,6 +87,7 @@ con su manifiesto. Además se conserva **1 run interrumpido** (KILLED), con su d
 | N2 | PPO desde cero con 8 ambientes en paralelo (exp03, exp04) | 0 % en las 6 semillas |
 | N4 | Currículo desde cero | Dejó de ser confiable: 76 % con una semilla y 38 % con otra |
 | N5 | 4 pilotos con pasillos angostos | 10, 0, 7 y 12 %. Diagnóstico: la maniobra final casi no cabía |
+| N6 | Currículo de reversa (exp01) | Aprendió a retroceder con la cola ya en el cupo (100 %), pero en el nivel completo la validación quedó en 0 %; se detuvo y queda en curso |
 
 ## 5. Versionamiento y trazabilidad
 

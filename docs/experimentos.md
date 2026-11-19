@@ -534,3 +534,36 @@ la opción «segura».
 - El pipeline lo promovió: mismo éxito en la suite (96 %) y más rápido (6.8 s contra 7.9 s).
 
 **Pendiente.** Los roces con conos (~6 %) siguen siendo el fallo principal.
+
+
+---
+
+## Nivel 6 · Estacionar en reversa (`configs/levels/N6.json`, `parking-v14`) — experimento en curso
+
+**Qué cambia.** El mismo pasillo de N1, sin conos, sin peatones y sin ruido. Solo cuenta como estacionado si la
+cola queda dentro del cupo y la nariz apunta al pasillo; entrar de frente no vale.
+
+**Verificación del ambiente antes de entrenar.**
+- 0 arranques con choque en 1 000 por etapa.
+- Desde el arranque `tutorial`, retroceder recto y frenar estaciona.
+- El auto de frente dentro del cupo no cuenta como estacionado; en reversa sí (pruebas `test_n6_*`).
+
+| Experimento (commit `590d83d`) | Hipótesis | Resultado | Decisión |
+|---|---|---|---|
+| `N6-exp01-ppo-curriculo` | Currículo de 3 etapas (cola en el cupo → cupo recién pasado → nivel completo; 3 M de pasos) con la receta de N2: las 3 semillas superan a la regla | Ver abajo | **sin conclusión**: detenido |
+| `N6-exp02-ppo-curriculo-grande` | Red 128×128 con lotes más grandes | no se lanzó | pendiente |
+
+**Qué pasó con exp01.**
+- Las semillas 42 y 43 **fallaron al arrancar**. Las tres semillas intentaron crear a la vez el experimento
+  `parking-N6` en MLflow y chocaron (restricción de unicidad). No dejaron run ni manifiesto. Corrección: el
+  pipeline ahora usa el experimento si otra semilla ya lo creó.
+- La semilla 44 se **detuvo a mano** a 2.0 M de 3 M de pasos; en MLflow queda como `KILLED` con su diagnóstico.
+  Aprendió la etapa 1 (cola en el cupo: 10 % → 100 %) y en parte la 2 (maniobra corta: 100 % → 62 %). En el
+  nivel completo la validación quedó en **0 %** desde 1.3 M pasos. Se detuvo para liberar el procesador para N4
+  antes de la presentación.
+
+**Siguientes hipótesis.**
+1. Alargar la etapa de la maniobra corta hasta que se sostenga por encima del 80 %, y agregar una etapa
+   intermedia (cupo a 4 m antes de pasarlo) antes del nivel completo.
+2. Probar exp02 (red más grande).
+3. Darle más peso a la alineación por la cola cuando está cerca del cupo.

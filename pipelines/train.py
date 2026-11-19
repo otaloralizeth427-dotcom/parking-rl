@@ -233,7 +233,13 @@ def run_experiment(config: dict, progress=None) -> dict:
     mlflow.set_tracking_uri(MLFLOW_URI)
     experiment_name = f"parking-{resolved['level_id']}"
     if mlflow.get_experiment_by_name(experiment_name) is None:
-        mlflow.create_experiment(experiment_name, artifact_location=MLFLOW_ARTIFACTS.as_uri())
+        try:
+            mlflow.create_experiment(experiment_name, artifact_location=MLFLOW_ARTIFACTS.as_uri())
+        except Exception:
+            # Varias semillas lanzadas a la vez pueden intentar crearlo al mismo tiempo (le pasó a N6):
+            # si otra ya lo creó, se usa ese; si no existe, el error era otro y se propaga.
+            if mlflow.get_experiment_by_name(experiment_name) is None:
+                raise
     mlflow.set_experiment(experiment_name)
 
     with mlflow.start_run(run_name=f"{resolved['experiment_id']}-seed{resolved['seed']}") as active:
