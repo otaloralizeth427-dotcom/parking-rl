@@ -35,7 +35,7 @@ tarea en la vida real:
 | N1 · Misión base | `parking-v2` | Pasillo con dos filas de autos y columnas |
 | N2 · Conos en el pasillo | `parking-v13` | Conos, uno de ellos bloqueando la ruta; 5 sensores de parachoques. Los conos nunca tapan el giro hacia el cupo, el bloqueante se rodea por ambos lados y el pasillo mide 11 m |
 | N3 · Peatones cruzando | `parking-v11` | Peatones que cruzan y siempre se mueven; desde v11, freno de emergencia y zona de precaución |
-| N4 · Todo junto | `parking-v11` | Conos + peatones + ruido en los sensores (σ = 0.1), con el freno de emergencia de v11 |
+| N4 · Todo junto | `parking-v13` | Conos justos + pasillo de 11 m + peatones + ruido en los sensores (σ = 0.1), con el freno de emergencia |
 | N5 · Garaje grande | `parking-v8` | Azotea de 40 × 50 m con 3 filas; hay que rodear el parqueadero para llegar al cupo |
 | N6 · En reversa (en curso) | `parking-v14` | El pasillo de N1, pero solo cuenta si entra con la cola primero |
 
@@ -72,7 +72,7 @@ todos los niveles.
 | N1 | 49 % | **97 %** · 6.6 s | 53 % / **97 %** (`N1-final-v1`) | `N1-exp03-ppo-s42-64bf7433` |
 | N2 | 19 % | **96 %** · 6.8 s | 9 % / **92 %** (`N2-final-v4`) | `N2-exp10-ppo-ft-v13-s42-c7bdedfb` |
 | N3 | 43 % | **96 %** · 10.0 s, 0 atropellos | 43 % / **97 %** (`N3-final-v5`) | `N3-exp06-ppo-ft-v11-s42-2a9f8d11` |
-| N4 | 16 % | **91 %** · 10.6 s, 0 atropellos | 11 % / **91 %** (`N4-final-v4`) | `N4-exp06-ppo-ft-v11-s42-4a905c49` |
+| N4 | 9 % | **95 %** · 11.9 s, 0 atropellos | 9 % / **95 %** (`N4-final-v5`) | `N4-exp07-ppo-ft-v13-s43-a0b9bd2b` |
 | N5 | 30 % | **100 %** · 14.4 s | 21 % / **100 %** (`N5-final-v1`) | `N5-exp05-ppo-inverso-3m-s44-78c82696` |
 
 En total hay **24 configuraciones** de experimento, cada una con hipótesis, y **56 runs completos** en MLflow
@@ -142,7 +142,7 @@ con su manifiesto. Además se conserva **1 run interrumpido** (KILLED), con su d
   publicar. Desde la web el rollback aplica a la partida del visitante.
 - **N2 y N4 todavía fallan:**
   - N2: 4–9 % de los episodios (tiempo agotado y algunos roces con conos);
-  - N4: 9 % (tiempo agotado y conos).
+  - N4: 5 % (tiempo agotado y algunos roces con conos).
   - Los atropellos de N3 y N4 bajaron a 0 con el freno de emergencia (v11), pero el freno usa la posición real
     del peatón; un auto real dependería de sensores con errores.
 - **Simplificaciones de la física:** acciones discretas, cinemática sin derrape ni latencia del actuador, y

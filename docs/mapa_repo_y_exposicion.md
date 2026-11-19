@@ -30,7 +30,7 @@
 | 2 | El ambiente | Qué ve, 5 acciones, +100 / −50, terminated o truncated | Diapositiva 3 | `envs/`, `docs/ficha_ambiente.md` |
 | 3 | Los niveles | 6 niveles; cada cambio del mundo sube la versión (v2 → v14) | Diapositiva 4 | `configs/levels/` |
 | 4 | El modelo | PPO con currículo, continuar modelos, 3 semillas | Diapositiva 5 | `agents/`, `configs/experiments/` |
-| 5 | Resultados | Aleatorio 0 %, regla 16–49 %, IA 91–100 %; prueba fija + examen secreto | Diapositiva 6 | `results/`, `configs/suites/` |
+| 5 | Resultados | Aleatorio 0 %, regla 9–49 %, IA 95–100 %; prueba fija + examen secreto | Diapositiva 6 | `results/`, `configs/suites/` |
 | 6 | Lo que no funcionó | Conos invisibles, conos que tapaban el giro, «usted primero», atropellos, pasillos angostos, N6 en curso | Diapositiva 7 | `docs/experimentos.md` |
 | 7 | Versionamiento | Receta → entrenamiento → MLflow → manifiesto → evaluación → modelo servido; ramas y tags | Diapositiva 8 + MLflow | `manifests/`, `serving/` |
 | 8 | Pipeline, despliegue y monitoreo | 8 pasos en Prefect; Vercel + Render; monitoreo | Diapositiva 9 | `pipelines/flow.py`, `docs/pipeline.md` |

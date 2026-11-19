@@ -571,3 +571,25 @@ cola queda dentro del cupo y la nariz apunta al pasillo; entrar de frente no val
    intermedia (cupo a 4 m antes de pasarlo) antes del nivel completo.
 2. Probar exp02 (red más grande).
 3. Darle más peso a la alineación por la cola cuando está cerca del cupo.
+
+
+### N4 · conos justos, pasillo de 11 m y sin congelarse (`parking-v11` → `parking-v13`)
+
+**Diagnóstico.** N4 conservaba la colocación de conos de v3. En 300 partidas nuevas el servido de v11 estacionaba
+86 % y chocaba un cono en 5 %.
+
+**Intervención.** Las mismas reglas de N2 (`fair_cones=2`, pasillo de 11 m, `stuck_penalty`), más el freno de
+emergencia de v11. El servido de v11 bajó a 69 % en el nuevo arreglo, así que se reentrenó.
+
+| Experimento (commit `df6cf7f`) | Hipótesis | Resultado en la suite (s42 / s43 / s44) | Decisión |
+|---|---|---|---|
+| `N4-exp07-ppo-ft-v13` | Continuar el servido de v11 1.5 M de pasos en v13 lleva las 3 semillas a ≥ 90 % con menos choques y 0 atropellos | 87 / **95** / 89 % · 0 atropellos | **aceptada para el modelo**: 1 de 3 semillas ≥ 90 % y las 3 por encima de v11 |
+
+| 300 partidas nuevas (semillas 5000-5299, v13) | Éxito | Choques con conos | Tiempo agotado | Atropellos |
+|---|---|---|---|---|
+| servido de v11 · `N4-exp06-…-s42` | 68.7 % | 17 | 76 | 0 |
+| **v13 · `N4-exp07-…-s43`** | **95.0 %** | 5 | 10 | 0 |
+
+**Resultados.**
+- Test final `N4-final-v5`: regla 9 %, **exp07 s43 95 %**, exp07 s44 93 %, 0 atropellos.
+- El pipeline lo promovió: 95 % contra 72 % del anterior en la suite.
