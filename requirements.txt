@@ -8,3 +8,4 @@ httpx>=0.27
 torch>=2.2
 stable-baselines3>=2.3
 mlflow>=3.0
+prefect>=3.0

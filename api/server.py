@@ -6,11 +6,13 @@ REST y WebSocket comparten el mismo despachador de comandos (SimulationSession.h
 from __future__ import annotations
 
 import json
+import os
 import threading
 from pathlib import Path
 
 import numpy as np
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from agents.registry import list_manifests, load_manifest, load_policy
@@ -70,6 +72,7 @@ class SimulationSession:
         for m in list_manifests(self.level_id):
             summary = m.get("evaluation_summary") or {}
             matches = model_matches_level(m, self.level_id)
+            experiment = self._experiment_metadata(m)
             items.append({
                 "id": m["run_id"], "label": f"{m['agent'].upper()} · {m['experiment_id']} · s{m['seed']}",
                 "mode": "Evaluación (modelo congelado)", "available": m["status"] == "completed" and matches,
@@ -77,9 +80,25 @@ class SimulationSession:
                 "git_commit": m["git_commit"], "environment_version": m["environment_version"],
                 "model_sha256": m.get("model_sha256"), "created_at": m["created_at"],
                 "test_success_rate": summary.get("success_rate"), "test_mean_time_s": summary.get("mean_time_s"),
-                "diagnostic": m.get("diagnostic"),
+                "diagnostic": m.get("diagnostic"), "hypothesis": m.get("hypothesis"),
+                "change_vs_baseline": m.get("change_vs_baseline"), "budget": m.get("budget"),
+                "parent_run_id": m.get("parent_run_id"), "evaluation_suite_id": m.get("evaluation_suite_id"),
+                "outcomes": summary.get("outcomes", {}), "mean_return": summary.get("mean_return"),
+                "mean_final_distance_m": summary.get("mean_final_distance_m"),
+                "mean_final_heading_error_deg": summary.get("mean_final_heading_error_deg"),
+                "mlflow": m.get("mlflow"), "experiment": experiment,
             })
         return items
+
+    @staticmethod
+    def _experiment_metadata(manifest: dict) -> dict | None:
+        path = EXPERIMENTS_DIR / f"{manifest.get('experiment_id')}.json"
+        if not path.exists():
+            return None
+        try:
+            return json.loads(path.read_text())
+        except (OSError, json.JSONDecodeError):
+            return None
 
     def reset(self, seed=None, level=None, sensor_noise=None) -> dict:
         if seed is not None and (not isinstance(seed, int) or seed < 0):
@@ -244,6 +263,10 @@ class SimulationSession:
 def create_app(session: SimulationSession | None = None) -> FastAPI:
     app = FastAPI(title="Parking RL")
     app.state.session = session or SimulationSession()
+    allowed_origins = [o.strip() for o in os.getenv("PARKING_ALLOWED_ORIGINS", "").split(",") if o.strip()]
+    if allowed_origins:
+        app.add_middleware(CORSMiddleware, allow_origins=allowed_origins,
+                           allow_credentials=False, allow_methods=["*"], allow_headers=["*"])
 
     def call(cmd: str, payload: dict | None = None) -> dict:
         try:
@@ -254,6 +277,28 @@ def create_app(session: SimulationSession | None = None) -> FastAPI:
     @app.get("/api/config")
     def get_config():
         return call("config")
+
+    @app.get("/api/catalog")
+    def get_catalog():
+        session = app.state.session
+        return {"level": session.level_id, "environment_version": session.environment_version,
+                "recommended": session._default_agent(), "items": session.catalog()}
+
+    @app.get("/api/model/{run_id}/evaluation")
+    def get_model_evaluation(run_id: str):
+        try:
+            manifest = load_manifest(run_id)
+        except FileNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        if manifest.get("level_id") != app.state.session.level_id:
+            raise HTTPException(status_code=409, detail="El modelo pertenece a otro nivel")
+        uri = manifest.get("evaluation_uri")
+        if not uri:
+            raise HTTPException(status_code=404, detail="El modelo no tiene evaluación guardada")
+        path = ROOT / uri
+        if not path.exists():
+            raise HTTPException(status_code=404, detail="Falta el artefacto de evaluación")
+        return {"run_id": run_id, "manifest": manifest, "evaluation": json.loads(path.read_text())}
 
     @app.get("/api/state")
     def get_state():

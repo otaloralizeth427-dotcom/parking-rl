@@ -10,9 +10,12 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { themeFor } from "./themes.js?v=3";
 
+const API_BASE = new URLSearchParams(location.search).get("api") || globalThis.PARKING_API_BASE_URL || "";
+const apiUrl = (path) => `${API_BASE.replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
+
 // La paleta inicial se toma del nivel activo; el selector puede cambiar de nivel
 // durante la sesión sin perder el estado de la interfaz.
-const THEME = themeFor(await fetch("api/config").then((r) => r.json()).then((c) => c.level).catch(() => "N1"));
+const THEME = themeFor(await fetch(apiUrl("api/config")).then((r) => r.json()).then((c) => c.level).catch(() => "N1"));
 document.documentElement.dataset.theme = THEME.id;
 
 // ============================================================ constantes
@@ -52,8 +55,9 @@ class Connection {
   }
 
   connect() {
-    const proto = location.protocol === "https:" ? "wss" : "ws";
-    this.ws = new WebSocket(`${proto}://${location.host}/ws`);
+    const target = new URL(apiUrl("ws"), location.href);
+    target.protocol = target.protocol === "https:" ? "wss:" : "ws:";
+    this.ws = new WebSocket(target.href);
     this.ready = new Promise((resolve) => (this.ws.onopen = () => { this.onStatus(true); resolve(); }));
     this.ws.onmessage = (event) => {
       const message = JSON.parse(event.data);
@@ -1341,6 +1345,7 @@ async function refreshConfig() {
     return option;
   }));
   $("agent-select").value = config.agent;
+  renderModelCard(config.agents.find((a) => a.id === config.agent));
   setManual(config.agent === "manual");
   $("difficulty").replaceChildren(...config.levels.map((l) => {
     const option = document.createElement("option");
@@ -1352,6 +1357,33 @@ async function refreshConfig() {
   sim.canTrain = config.can_train;
   $("difficulty").value = config.level;
   return config;
+}
+
+function renderModelCard(item) {
+  const card = $("model-card");
+  if (!item || ["random", "rule", "manual"].includes(item.id)) {
+    card.hidden = true;
+    return;
+  }
+  card.hidden = false;
+  setText("model-card-title", `${item.label} · ${item.status}`);
+  setText("model-card-hypothesis", item.hypothesis || "Sin hipótesis registrada.");
+  const summary = item.outcomes || {};
+  $("model-card-metrics").replaceChildren(...[
+    ["Éxito", item.test_success_rate == null ? "—" : `${Math.round(item.test_success_rate * 100)}%`],
+    ["Retorno", item.mean_return == null ? "—" : Number(item.mean_return).toFixed(1)],
+    ["Tiempo", item.test_mean_time_s == null ? "—" : `${Number(item.test_mean_time_s).toFixed(1)} s`],
+    ["Choques", summary.obstacle ?? 0], ["Atropellos", summary.pedestrian ?? 0],
+    ["Timeout", summary.timeout ?? 0],
+  ].map(([label, value]) => { const el = document.createElement("span"); el.textContent = `${label}: ${value}`; return el; }));
+  const button = $("btn-model-evaluation");
+  button.hidden = !item.evaluation_suite_id;
+  button.onclick = async () => {
+    try {
+      const result = await fetch(apiUrl(`api/model/${encodeURIComponent(item.id)}/evaluation`)).then((r) => r.json());
+      if (result.evaluation) showBanner("success", `Evaluación ${result.evaluation.summary?.success_rate == null ? "cargada" : `${Math.round(result.evaluation.summary.success_rate * 100)}% de éxito`}`);
+    } catch (err) { showError(err); }
+  };
 }
 
 async function doStep(action) {
@@ -1412,6 +1444,7 @@ $("agent-select").onchange = async (e) => {
   try {
     await connection.send("agent", { agent: e.target.value });
     setManual(e.target.value === "manual");
+    const config = await refreshConfig();
     await doReset();
   } catch (err) {
     showError(err);

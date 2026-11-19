@@ -117,6 +117,19 @@ semilla y el hash del modelo activo. Con el agente **«Manual (teclado)»** se m
 mientras se mantiene presionada una acción. «Entrenar DQN» lanza el pipeline real, así que ese entrenamiento
 también queda registrado en MLflow y con manifiesto.
 
+El catálogo histórico está disponible en `GET /api/catalog` y la evaluación guardada de
+un modelo en `GET /api/model/<run_id>/evaluation`. El panel muestra la hipótesis, el
+presupuesto, la suite, las métricas por causa y permite recuperar modelos compatibles;
+la carga verifica el SHA-256 del manifiesto. Para el pipeline reproducible, consulte
+`docs/despliegue.md` y ejecute `python -m pipelines.flow ...`.
+
+### Despliegue
+
+La interfaz puede publicarse como sitio estático y conectarse a una API HTTPS externa.
+Consulte [docs/despliegue.md](docs/despliegue.md), use `.env.example` como plantilla y
+configure `PARKING_ALLOWED_ORIGINS` en el backend. Nunca publique credenciales ni la
+base local de MLflow.
+
 ### Pruebas
 
 ```bash
