@@ -1,13 +1,14 @@
 {
   "level_id": "N2",
   "name": "Conos en el pasillo",
-  "environment_version": "parking-v3",
+  "environment_version": "parking-v9",
   "difficulty": "hard",
   "cones": 3,
   "blocking_cones": 1,
   "bumper_sensors": 5,
   "pedestrians": 0,
   "sensor_noise": 0.0,
-  "description": "Igual que N1 (arranque en el pasillo a 4-8 m del cupo), pero con 3 conos sueltos en el pasillo y 1 más justo en la línea recta hacia el cupo. La entrada al cupo siempre queda libre. El vehículo suma 5 sensores de parachoques (rayos paralelos hacia adelante, alcance 4 m) para ver conos que caben entre los 8 rayos radiales.",
-  "new_decision": "Decidir por dónde rodear los conos (o frenar y corregir) antes de girar hacia el cupo."
+  "description": "Igual que N1, pero con 3 conos sueltos en el pasillo y 1 más en la línea recta hacia el cupo. Desde parking-v9 los conos son «justos»: la zona de giro hacia el cupo queda libre, el cono que bloquea va centrado en el pasillo y se puede rodear por arriba o por abajo, y dos conos a la par siempre dejan un hueco de 3 m. El auto arranca a 6-10 m del cupo y suma 5 sensores de parachoques (alcance 4 m).",
+  "new_decision": "Decidir por dónde rodear los conos (o frenar y corregir) antes de girar hacia el cupo.",
+  "fair_cones": true
 }

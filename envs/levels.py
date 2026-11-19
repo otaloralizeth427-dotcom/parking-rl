@@ -53,4 +53,5 @@ def env_kwargs(level: dict) -> dict:
             **({"pedestrians_yield": True} if level.get("pedestrians_yield") else {}),
             **({"pedestrians_evade": True} if level.get("pedestrians_evade") else {}),
             **({"layout": level["layout"]} if level.get("layout", "aisle") != "aisle" else {}),
-            **({"route_start": level["route_start"]} if "route_start" in level else {})}
+            **({"route_start": level["route_start"]} if "route_start" in level else {}),
+            **({"fair_cones": True} if level.get("fair_cones") else {})}

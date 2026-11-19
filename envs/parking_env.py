@@ -19,18 +19,22 @@ FORWARD, REVERSE, LEFT, RIGHT, BRAKE = range(5)
 ACTION_NAMES = ["Avanzar", "Retroceder", "Izquierda", "Derecha", "Frenar"]
 
 DIFFICULTIES = ("tutorial", "easy", "normal", "roam", "hard")   # tutorial y roam: solo para etapas de currículo
-LAYOUTS = ("aisle", "garage")   # aisle: pasillo con 2 filas (N1-N4); garage: azotea con 3 filas (N5)
+LAYOUTS = ("aisle", "garage")
+FAIR_TURN_DX = 4.5   # v9: zona de giro hacia el cupo sin conos (m en x desde el centro del cupo)
+FAIR_GAP = 3.0       # v9: hueco vertical mínimo entre conos a la par (auto de 1.8 m + margen para girar)   # aisle: pasillo con 2 filas (N1-N4); garage: azotea con 3 filas (N5)
 
 # Cambia cuando cambian observaciones, acciones, dinámica o recompensa:
 # un modelo solo es compatible con la versión con que fue entrenado.
-ENV_VERSION = "parking-v8"   # v3: cono bloqueante, peatón que cruza y parachoques; v4: peatones que no se congelan;
+ENV_VERSION = "parking-v9"   # v3: cono bloqueante, peatón que cruza y parachoques; v4: peatones que no se congelan;
                               # v5: con cono bloqueante y peatón que cruza a la vez, el peatón no atraviesa el cono;
                               # v6: los peatones nunca se quedan quietos: si el auto se acerca, se alejan o se apartan;
                               # v7: mapa «garage» (N5) con pasillos de 6.7 m (solo pilotos; ya no se reproduce);
                               # v8: garage con pasillos de 8.5 m, arranques sobre la ruta (route_start) y castigo
-                              #     por detenerse a medias dentro del cupo
+                              #     por detenerse a medias dentro del cupo;
+                              # v9: conos «justos» (fair_cones, N2): zona de giro hacia el cupo libre de conos, el
+                              #     cono bloqueante centrado y rodeable por ambos lados, arranque a 6-10 m
 # Versiones que este código reproduce: con sus valores por defecto, v3 se comporta exactamente como v2
-SUPPORTED_VERSIONS = ("parking-v2", "parking-v3", "parking-v4", "parking-v5", "parking-v6", "parking-v8")
+SUPPORTED_VERSIONS = ("parking-v2", "parking-v3", "parking-v4", "parking-v5", "parking-v6", "parking-v8", "parking-v9")
 
 
 @dataclass(frozen=True)
@@ -160,7 +164,7 @@ class ParkingEnv(gym.Env):
                  config: ParkingConfig | None = None, pedestrians: int = 0, cones: int | None = None,
                  blocking_cones: int = 0, bumper_sensors: int = 0, crossing_pedestrians: int = 0,
                  pedestrians_yield: bool = False, pedestrians_evade: bool = False, layout: str = "aisle",
-                 route_start: tuple | list | None = None):
+                 route_start: tuple | list | None = None, fair_cones: bool = False):
         if difficulty not in DIFFICULTIES:
             raise ValueError(f"difficulty debe ser uno de {DIFFICULTIES}, no {difficulty!r}")
         if layout not in LAYOUTS:
@@ -181,6 +185,8 @@ class ParkingEnv(gym.Env):
             raise ValueError("cones debe ser None o un entero >= 0")
         if blocking_cones not in (0, 1):
             raise ValueError("blocking_cones debe ser 0 o 1")
+        if fair_cones and layout != "aisle":
+            raise ValueError("fair_cones solo aplica al pasillo (N1-N4)")
         if crossing_pedestrians not in (0, 1) or crossing_pedestrians > pedestrians:
             raise ValueError("crossing_pedestrians debe ser 0 o 1, y no mayor que pedestrians")
         if not isinstance(bumper_sensors, int) or bumper_sensors < 0 or bumper_sensors == 1:
@@ -190,6 +196,7 @@ class ParkingEnv(gym.Env):
         self.n_pedestrians = pedestrians
         self.n_cones = cones   # None = la cantidad por defecto de la dificultad
         self.blocking_cones = blocking_cones   # 1 = un cono extra justo en la línea recta hacia el cupo
+        self.fair_cones = bool(fair_cones)     # v9: los conos nunca hacen imposible entrar al cupo
         self.crossing_pedestrians = crossing_pedestrians   # 1 = uno de los peatones cruza frente a la ruta
         self.pedestrians_yield = bool(pedestrians_yield)   # v4: si el auto está quieto, el peatón sigue (sin «usted primero»)
         self.pedestrians_evade = bool(pedestrians_evade)   # v6: el peatón siempre camina y se aparta del auto
@@ -248,6 +255,26 @@ class ParkingEnv(gym.Env):
             {"center": (-w - t, 0), "half": (t, h + 2 * t), "kind": "curb"},
         ]
 
+    @staticmethod
+    def _fair_cone(p: np.ndarray, tc, row_sign: int, aisle: float, obstacles: list) -> bool:
+        """v9: un cono suelto es «justo» si no tapa la zona de giro hacia el cupo y no forma una pared.
+
+        - Zona de giro: el auto entra al cupo en un arco de ~4 m de radio; ningún cono a menos de
+          FAIR_TURN_DX en x del cupo en la mitad del pasillo del cupo (ni cerca de la línea central).
+        - Sin paredes: con los conos que quedan a la par (|Δx| < 3 m) siempre hay un hueco vertical
+          de al menos FAIR_GAP para pasar.
+        """
+        if abs(p[0] - tc[0]) < FAIR_TURN_DX and row_sign * p[1] > -1.5:
+            return False
+        cones = [np.asarray(o["center"], dtype=float) for o in obstacles if o["kind"] == "cone"] + [np.asarray(p)]
+        # La pared se mide alrededor del cono nuevo y de cada cono que queda a su par
+        for center in [c for c in cones if abs(c[0] - p[0]) < 3.0]:
+            ys = sorted(c[1] for c in cones if abs(c[0] - center[0]) < 3.0)
+            edges = [-aisle] + [e for y in ys for e in (y - 0.25, y + 0.25)] + [aisle]
+            if max(edges[i + 1] - edges[i] for i in range(0, len(edges), 2)) < FAIR_GAP:
+                return False
+        return True
+
     def _sample_layout(self):
         if self.garage:
             return self._sample_garage()
@@ -294,13 +321,26 @@ class ParkingEnv(gym.Env):
         else:
             side = rng.choice([-1, 1])
             limit = cfg.lot_width / 2 - 3.0
-            x = float(np.clip(tc[0] + side * rng.uniform(4.0, 8.0), -limit, limit))
-            if abs(x - tc[0]) < 3.0:  # rebotó contra el borde: usar el otro lado
-                x = float(np.clip(tc[0] - side * rng.uniform(4.0, 8.0), -limit, limit))
+            # v9: arranque más lejos para que el cono bloqueante quepa fuera de la zona de giro
+            near, far = (6.0, 10.0) if self.fair_cones else (4.0, 8.0)
+            x = float(np.clip(tc[0] + side * rng.uniform(near, far), -limit, limit))
+            if abs(x - tc[0]) < (near - 1.0 if self.fair_cones else 3.0):  # rebotó contra el borde: el otro lado
+                x = float(np.clip(tc[0] - side * rng.uniform(near, far), -limit, limit))
             y = rng.uniform(-1.5, 1.5)
             heading = (np.pi if x > tc[0] else 0.0) + rng.uniform(-0.2, 0.2)
 
-        if self.blocking_cones:
+        blocking_x = None
+        if self.blocking_cones and self.fair_cones:
+            # v9: entre el arranque y el cupo, centrado en el pasillo (hueco de más de 3 m por arriba y por
+            # abajo) y fuera de la zona de giro hacia el cupo: se puede rodear por cualquiera de los dos lados.
+            direction = np.sign(tc[0] - x)
+            span = abs(tc[0] - x)
+            lo, hi = FAIR_TURN_DX, span - 2.5                 # lejos del cupo y a más de 2.5 m del arranque
+            if hi >= lo:
+                cx = blocking_x = tc[0] - direction * rng.uniform(lo, hi)
+                obstacles.append({"center": (float(cx), float(rng.uniform(-1.0, 1.0))),
+                                  "half": (0.25, 0.25), "angle": 0.0, "kind": "cone"})
+        elif self.blocking_cones:
             # Entre el arranque y el cupo, a la altura del auto: obliga a rodearlo. Se omite si el cupo
             # está tan cerca que el cono taparía su entrada.
             direction = np.sign(tc[0] - x)
@@ -323,6 +363,10 @@ class ParkingEnv(gym.Env):
                 continue
             on_path = min(x, tc[0]) - 1 < p[0] < max(x, tc[0]) + 1 and abs(p[1] - y) < 2.2
             if self.difficulty == "normal" and on_path:
+                continue
+            if self.fair_cones and not self._fair_cone(p, tc, row_sign, aisle, obstacles):
+                continue
+            if blocking_x is not None and abs(p[0] - blocking_x) < 3.0:   # el bloqueante se rodea por ambos lados
                 continue
             obstacles.append({"center": tuple(p), "half": (0.25, 0.25), "angle": 0.0, "kind": "cone"})
             placed += 1

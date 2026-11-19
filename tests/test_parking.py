@@ -937,3 +937,41 @@ def test_level_metrics_match_the_versioned_results():
     assert client.get("/api/level-metrics?level=N9").status_code == 400
     png = client.get("/api/level-metrics/curves.png?level=N2")
     assert png.status_code == 200 and png.headers["content-type"] == "image/png"
+
+
+# ---------------------------------------------------------------- conos justos (N2, parking-v9)
+def test_fair_cones_keep_the_turn_into_the_slot_free_and_the_blocking_cone_passable():
+    from envs.levels import make_env
+    from envs.parking_env import FAIR_GAP, FAIR_TURN_DX
+    env = make_env("N2")
+    aisle = env.cfg.lot_height / 2 - env.cfg.slot_depth
+    with_blocking = 0
+    for seed in range(300):
+        env.reset(seed=seed)
+        tc = np.array(env.target["center"])
+        row_sign = 1 if env.target["row"] == 0 else -1
+        cones = [np.array(o["center"]) for o in env.obstacles if o["kind"] == "cone"]
+        assert cones
+        for c in cones:          # zona de giro hacia el cupo libre
+            assert not (abs(c[0] - tc[0]) < FAIR_TURN_DX and row_sign * c[1] > -1.5), (seed, c)
+        lo, hi = sorted([env.pos[0], tc[0]])
+        blocking = [c for c in cones if lo < c[0] < hi and abs(c[1]) <= 1.0 and abs(c[0] - tc[0]) >= FAIR_TURN_DX]
+        for b in blocking:       # rodeable por arriba y por abajo: nadie más a la par
+            with_blocking += 1
+            assert all(c is b or abs(c[0] - b[0]) >= 3.0 for c in cones if abs(c[1]) > 1.0 or c is b), seed
+            assert aisle - (abs(b[1]) + 0.25) >= FAIR_GAP
+        for c in cones:          # sin paredes: siempre queda un hueco de FAIR_GAP
+            ys = sorted(o[1] for o in cones if abs(o[0] - c[0]) < 3.0)
+            edges = [-aisle] + [e for y in ys for e in (y - 0.25, y + 0.25)] + [aisle]
+            assert max(edges[i + 1] - edges[i] for i in range(0, len(edges), 2)) >= FAIR_GAP
+        assert 5.0 <= abs(env.pos[0] - tc[0]) <= 10.0
+    assert with_blocking >= 200        # casi siempre hay un cono que rodear
+
+
+def test_fair_cones_only_change_n2():
+    from envs.levels import load_level, make_env
+    assert make_env("N2").fair_cones and load_level("N2")["environment_version"] == "parking-v9"
+    for level in ("N1", "N3", "N4"):
+        assert not make_env(level).fair_cones
+    with pytest.raises(ValueError):
+        ParkingEnv("hard", layout="garage", fair_cones=True)
