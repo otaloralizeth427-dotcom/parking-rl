@@ -18,6 +18,7 @@ export interface Obstacle {
 
 export interface Layout {
   kind: "aisle" | "garage" | string;
+  reverse?: boolean;                 // v14: el nivel exige estacionar en reversa
   lot: { width: number; height: number };
   slots: Slot[];
   obstacles: Obstacle[];

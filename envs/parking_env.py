@@ -28,7 +28,7 @@ FAIR_GAP = 3.0       # v9: hueco vertical mínimo entre conos a la par (auto de 
 
 # Cambia cuando cambian observaciones, acciones, dinámica o recompensa:
 # un modelo solo es compatible con la versión con que fue entrenado.
-ENV_VERSION = "parking-v13"  # v3: cono bloqueante, peatón que cruza y parachoques; v4: peatones que no se congelan;
+ENV_VERSION = "parking-v14"  # v3: cono bloqueante, peatón que cruza y parachoques; v4: peatones que no se congelan;
                               # v5: con cono bloqueante y peatón que cruza a la vez, el peatón no atraviesa el cono;
                               # v6: los peatones nunca se quedan quietos: si el auto se acerca, se alejan o se apartan;
                               # v7: mapa «garage» (N5) con pasillos de 6.7 m (solo pilotos; ya no se reproduce);
@@ -43,9 +43,11 @@ ENV_VERSION = "parking-v13"  # v3: cono bloqueante, peatón que cruza y parachoq
                               # v12: conos justos 2 (fair_cones=2) y pasillo de ancho configurable (aisle_width, N2:
                               #     11 m): el cono bloqueante queda a >= 4.5 m del arranque para poder rodearlo;
                               # v13: castigo creciente por quedarse congelado (stuck_penalty, N2): tras 2 s detenido
-                              #     fuera del cupo, cada paso quieto cuesta más (hasta 1.0 por paso)
+                              #     fuera del cupo, cada paso quieto cuesta más (hasta 1.0 por paso);
+                              # v14: estacionar en reversa (reverse_parking, N6): solo cuenta con la cola dentro del
+                              #     cupo y la nariz hacia el pasillo; arranques de currículo para la maniobra
 # Versiones que este código reproduce: con sus valores por defecto, v3 se comporta exactamente como v2
-SUPPORTED_VERSIONS = ("parking-v2", "parking-v3", "parking-v4", "parking-v5", "parking-v6", "parking-v8", "parking-v9", "parking-v10", "parking-v11", "parking-v12", "parking-v13")
+SUPPORTED_VERSIONS = ("parking-v2", "parking-v3", "parking-v4", "parking-v5", "parking-v6", "parking-v8", "parking-v9", "parking-v10", "parking-v11", "parking-v12", "parking-v13", "parking-v14")
 
 
 @dataclass(frozen=True)
@@ -176,7 +178,7 @@ class ParkingEnv(gym.Env):
                  blocking_cones: int = 0, bumper_sensors: int = 0, crossing_pedestrians: int = 0,
                  pedestrians_yield: bool = False, pedestrians_evade: bool = False, layout: str = "aisle",
                  route_start: tuple | list | None = None, fair_cones: int | bool = 0,
-                 aisle_width: float | None = None, stuck_penalty: bool = False,
+                 aisle_width: float | None = None, stuck_penalty: bool = False, reverse_parking: bool = False,
                  safety_brake: int | bool = 0):
         if difficulty not in DIFFICULTIES:
             raise ValueError(f"difficulty debe ser uno de {DIFFICULTIES}, no {difficulty!r}")
@@ -230,6 +232,9 @@ class ParkingEnv(gym.Env):
             self.cfg = replace(self.cfg, lot_height=float(aisle_width) + 2 * self.cfg.slot_depth)
         self.aisle_width = aisle_width
         self.stuck_penalty = bool(stuck_penalty)   # v13: congelarse sale cada vez más caro
+        if reverse_parking and layout != "aisle":
+            raise ValueError("reverse_parking solo aplica al pasillo")
+        self.reverse_parking = bool(reverse_parking)   # v14: hay que entrar en reversa (cola primero)
         self._idle_steps = 0
 
         # El mapa garage agrega la posición en el mapa: auto (x, y, cos θ, sin θ) y cupo libre (x, y).
@@ -336,7 +341,21 @@ class ParkingEnv(gym.Env):
 
         # Pose inicial en el pasillo
         aisle = cfg.lot_height / 2 - cfg.slot_depth
-        if self.difficulty == "tutorial":
+        if self.reverse_parking and self.difficulty == "tutorial":
+            # v14: la cola ya entra al cupo y la nariz mira al pasillo: basta retroceder, alinearse y frenar
+            x = tc[0] + rng.uniform(-0.4, 0.4)
+            y = row_sign * (aisle + rng.uniform(-0.3, 0.8))
+            heading = -row_sign * np.pi / 2 + rng.uniform(-0.2, 0.2)
+        elif self.reverse_parking and self.difficulty == "easy":
+            # v14: ya pasó el cupo por el pasillo; falta la maniobra de reversa (retroceder girando hacia el cupo)
+            side = rng.choice([-1, 1])
+            limit = cfg.lot_width / 2 - 3.0
+            if abs(tc[0] + side * 3.5) > limit:          # cupo de esquina: pasa por el otro lado
+                side = -side
+            x = tc[0] + side * rng.uniform(2.0, 3.5)
+            y = -row_sign * rng.uniform(-0.5, 1.5)
+            heading = (0.0 if side > 0 else np.pi) + rng.uniform(-0.15, 0.15)
+        elif self.difficulty == "tutorial":
             # La nariz ya entra al cupo: basta avanzar unos metros, alinearse y frenar
             x = tc[0] + rng.uniform(-0.4, 0.4)
             y = row_sign * (aisle - rng.uniform(0.2, 1.2))
@@ -553,7 +572,14 @@ class ParkingEnv(gym.Env):
         return np.array([c * delta[0] + s * delta[1], -s * delta[0] + c * delta[1]])
 
     def heading_error(self) -> float:
+        if self.reverse_parking:
+            # v14: el sentido importa. Estacionado en reversa = nariz hacia el pasillo (cola dentro del cupo)
+            return float(wrap_angle(self.heading - self._reverse_heading()))
         return fold_heading(self.heading - self.target["angle"])
+
+    def _reverse_heading(self) -> float:
+        """Rumbo de un auto estacionado en reversa: la nariz apunta hacia el pasillo."""
+        return -np.pi / 2 if self.target["center"][1] > 0 else np.pi / 2
 
     def distance(self) -> float:
         return float(np.linalg.norm(self.target["center"] - self.pos))
@@ -760,7 +786,7 @@ class ParkingEnv(gym.Env):
             rel = rel + self.np_random.normal(0, self.sensor_noise * 0.5, 2)
         obs = np.concatenate([
             np.clip(rel / 10.0, -5, 5),
-            [self.heading_error() / (np.pi / 2),
+            [self.heading_error() / (np.pi if self.reverse_parking else np.pi / 2),   # v14: error completo en [-1, 1]
              np.clip(self.speed / cfg.max_speed, -1, 1),
              self.steer / cfg.max_steer,
              float(self._corners_in_slot())],
@@ -818,6 +844,7 @@ class ParkingEnv(gym.Env):
         cfg = self.cfg
         return {
             "kind": self.layout_name,
+            "reverse": self.reverse_parking,          # v14: hay que estacionar en reversa
             "lot": {"width": cfg.lot_width, "height": cfg.lot_height},
             "slots": [{"id": s["id"], "x": float(s["center"][0]), "y": float(s["center"][1]),
                        "width": cfg.slot_width, "depth": cfg.slot_depth, "row": s["row"],

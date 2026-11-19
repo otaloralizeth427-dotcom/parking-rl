@@ -1154,7 +1154,7 @@ interface Sim {
   pose: Pose; statusAt: number;
   agent: string | null; held: number | null;
   queue: Frame[]; fetching: boolean; epoch: number; serverDone: boolean;
-  garage: boolean; canTrain: boolean; catalog: CatalogItem[]; serving: Config["serving"];
+  garage: boolean; reverse: boolean; canTrain: boolean; catalog: CatalogItem[]; serving: Config["serving"];
 }
 
 const sim: Sim = {
@@ -1168,7 +1168,7 @@ const sim: Sim = {
   // Pasos del agente pedidos por adelantado: el servidor calcula varios por petición y aquí se
   // reproducen uno a uno, así la demora de internet no frena la animación.
   queue: [], fetching: false, epoch: 0, serverDone: false,
-  garage: false, canTrain: false, catalog: [], serving: null,
+  garage: false, reverse: false, canTrain: false, catalog: [], serving: null,
 };
 const stepInterval = () => BASE_STEP_MS / sim.speed;
 const batchSize = () => Math.min(64, Math.max(4, Math.ceil(1000 / stepInterval())));   // ~1 s de juego
@@ -1187,6 +1187,7 @@ function poseFromFrame(frame: Frame): Pose {
 
 function applyReset(frame: ResetFrame) {
   sim.garage = frame.layout.kind === "garage";
+  sim.reverse = Boolean(frame.layout.reverse);
   if (!garageBuilt) (sim.garage ? buildRooftop : buildGarage)(frame.layout);
   sim.carHalf = [frame.car.length / 2, frame.car.width / 2];
   buildObstacles(frame.layout);
@@ -1418,7 +1419,8 @@ function updateHud(frame: Frame) {
   let status: Status = frame.status;
   if (status === "running" && !sim.running) status = frame.steps === 0 ? "idle" : "paused";
   $("hud-title").dataset.state = status;
-  setText("hud-title-text", sim.garage && ["idle", "running"].includes(status) ? "Encuentra el espacio libre" : TITLE_LABELS[status]);
+  const goal = sim.garage ? "Encuentra el espacio libre" : sim.reverse ? "Estaciona en reversa" : null;
+  setText("hud-title-text", goal && ["idle", "running"].includes(status) ? goal : TITLE_LABELS[status]);
   setText("hud-moves", `Movimientos: ${frame.steps}`);
   setText("hud-level", `Nivel: ${sim.level.replace("N", "")} ▾`);
 

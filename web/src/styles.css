@@ -92,6 +92,26 @@
   --btn-bg: linear-gradient(180deg, #2dd4bf 0%, #0fa192 55%, #0b7f74 100%);
 }
 
+:root[data-theme="N6"] {
+  --violet-900: #4a2230;
+  --violet-800: #5e2c3b;
+  --violet-700: #8a4a52;
+  --violet-600: #c06a5a;
+  --violet-500: #ff8a5c;
+  --violet-300: #ffc9b0;
+  --violet-200: #ffe6d6;
+  --pink: #c4a1ff;
+  --sky: #ffb48f;
+  --muted: #ffe0d2;
+  --shade: #8a3d2e;
+  --edge: 255 230 214;
+  --glass: 110 52 60;
+  --deep: 52 20 30;
+  --shadow: 50 18 26;
+  --ink: 90 35 30;
+  --btn-bg: linear-gradient(180deg, #ffa077 0%, #f27a52 55%, #d65f3c 100%);
+}
+
 * { box-sizing: border-box; }
 
 html, body {

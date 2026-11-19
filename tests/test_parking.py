@@ -1080,3 +1080,43 @@ def test_v13_stuck_penalty_grows_only_after_two_seconds_still():
     assert all(abs(d) < 1e-9 for d in diffs[:STUCK_GRACE_STEPS])          # los primeros 2 s, igual
     assert all(b >= a - 1e-9 for a, b in zip(diffs[STUCK_GRACE_STEPS:], diffs[STUCK_GRACE_STEPS + 1:]))
     assert 0 < diffs[-1] <= STUCK_MAX + 1e-9
+
+
+# ---------------------------------------------------------------- N6: estacionar en reversa (parking-v14)
+def test_n6_only_counts_parking_in_reverse():
+    from envs.levels import load_level, make_env
+    env = make_env("N6")
+    assert env.reverse_parking and load_level("N6")["environment_version"] == "parking-v14"
+    assert env.observation_space.shape == (14,) and not env.pedestrians_evade
+    for seed in range(20):
+        env.reset(seed=seed)
+        assert not [o for o in env.obstacles if o["kind"] in ("cone", "pedestrian")]
+        env.pos = np.array(env.target["center"], dtype=float)
+        env.speed = 0.0
+        env.heading = env._reverse_heading() + np.pi            # de frente: no cuenta
+        assert not env._is_parked()
+        env.heading = env._reverse_heading()                    # en reversa: sí
+        assert env._is_parked()
+        assert abs(env.heading_error()) < 1e-9
+
+
+def test_n6_curriculum_starts_are_clean_and_backing_up_parks():
+    from envs.levels import env_kwargs, load_level
+    kw = env_kwargs(load_level("N6"))
+    for difficulty in ("tutorial", "easy", "hard"):
+        env = ParkingEnv(**{**kw, "difficulty": difficulty})
+        for seed in range(150):
+            env.reset(seed=seed)
+            _, _, _, _, info = env.step(BRAKE)
+            assert not info["collision"], (difficulty, seed)
+    env = ParkingEnv(**{**kw, "difficulty": "tutorial"})       # la cola ya entra: retroceder y frenar basta
+    parked = 0
+    for seed in range(60):
+        env.reset(seed=seed)
+        for _ in range(60):
+            go_back = abs(env.pos[1]) < abs(env.target["center"][1]) and env.speed > -0.8
+            _, _, terminated, truncated, info = env.step(REVERSE if go_back else BRAKE)
+            if terminated or truncated:
+                break
+        parked += info["success"]
+    assert parked >= 40
