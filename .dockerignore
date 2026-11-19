@@ -1,16 +1,14 @@
-# Lista blanca: la imagen del servidor solo lleva lo necesario para servir los modelos
-*
-!api/
-!agents/
-!envs/
-!configs/levels/
-!manifests/
-!serving/
-!pipelines/__init__.py
-!pipelines/scoring.py
-!configs/suites/*-suite-v*.json
-!artifacts/**/model.zip
-!artifacts/**/model.npz
-!deploy/requirements-serve.txt
+# Lo que nunca entra a la imagen del servidor (el Dockerfile además copia solo carpetas concretas)
+.git
+.venv
 **/__pycache__
 **/*.pyc
+mlartifacts
+mlflow.db
+models
+results
+web
+build
+docs
+tests
+.github
