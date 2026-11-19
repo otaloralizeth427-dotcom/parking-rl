@@ -1002,7 +1002,7 @@ def test_safety_brake_stops_before_a_pedestrian_in_front():
 def test_safety_brake_only_in_n3_and_n4_and_never_without_pedestrians():
     from envs.levels import load_level, make_env
     for level in ("N3", "N4"):
-        assert make_env(level).safety_brake and load_level(level)["environment_version"] == "parking-v10"
+        assert make_env(level).safety_brake == 2 and load_level(level)["environment_version"] == "parking-v11"
     for level in ("N1", "N2", "N5"):
         assert not make_env(level).safety_brake
     env = ParkingEnv("hard", safety_brake=True)       # sin peatones el freno nunca interviene
@@ -1024,3 +1024,34 @@ def test_served_models_never_hit_pedestrians_with_the_brake():
         policy = load_policy(manifest)
         outcomes = [run_case(env, policy, 7000 + i)["outcome"] for i in range(15)]
         assert "pedestrian" not in outcomes, (level, outcomes)
+
+
+def test_v11_pedestrians_never_walk_into_a_stopped_car():
+    from envs.levels import make_env
+    env = make_env("N3")
+    for seed in range(40):
+        env.reset(seed=seed)
+        for _ in range(80):              # el auto quieto en el pasillo: nadie debe chocarlo
+            _, _, terminated, truncated, info = env.step(BRAKE)
+            assert info["collision_kind"] != "pedestrian", seed
+            if terminated or truncated:
+                break
+
+
+def test_v11_caution_zone_limits_speed_near_pedestrians():
+    from envs.levels import make_env
+    from envs.safety import CAUTION_SPEED, pedestrian_near_ahead
+    env = make_env("N4")
+    checked = 0
+    for seed in range(30):
+        env.reset(seed=seed)
+        for _ in range(60):
+            near_before, speed_before = pedestrian_near_ahead(env), abs(env.speed)
+            _, _, terminated, truncated, info = env.step(FORWARD)
+            if near_before and speed_before > CAUTION_SPEED:     # por encima del límite: siempre frena
+                assert info["safety_brake"] and abs(env.speed) < speed_before, (seed, speed_before, env.speed)
+            checked += near_before
+            assert info["collision_kind"] != "pedestrian"
+            if terminated or truncated:
+                break
+    assert checked > 0

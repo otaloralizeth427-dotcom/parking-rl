@@ -20,6 +20,10 @@ HORIZON_S = 1.2          # cuánto se proyecta el movimiento del peatón
 REACTION_S = 0.4         # margen antes de que el freno empiece a actuar
 SIDE_MARGIN = 0.6        # holgura lateral además del ancho del auto (m)
 FRONT_MARGIN = 0.8       # holgura delante (o detrás) del parachoques (m)
+# v11: zona de precaución — con un peatón cerca adelante, no se pasa de esta velocidad
+CAUTION_SPEED = 1.2      # m/s (~4 km/h)
+CAUTION_AHEAD = 4.0      # m delante del parachoques
+CAUTION_SIDE = 2.5       # m a cada lado del eje del auto
 
 
 def _stopping_distance(speed: float, decel: float) -> float:
@@ -55,9 +59,30 @@ def pedestrian_in_path(env, action: int) -> bool:
     return False
 
 
-def apply(env, action: int) -> tuple[int, bool]:
-    """Acción final y si el freno de emergencia intervino."""
-    if action != BRAKE and pedestrian_in_path(env, action):
+def pedestrian_near_ahead(env) -> bool:
+    """v11: ¿hay un peatón cerca delante (o detrás si va en reversa)?"""
+    cfg = env.cfg
+    direction = -1.0 if env.speed < -0.05 else 1.0
+    c, s = np.cos(env.heading), np.sin(env.heading)
+    for p in env.pedestrians:
+        px, py = p["x"] - env.pos[0], p["y"] - env.pos[1]
+        ahead = (px * c + py * s) * direction
+        side = -px * s + py * c
+        if 0.0 < ahead < cfg.car_length / 2 + CAUTION_AHEAD and abs(side) < CAUTION_SIDE:
+            return True
+    return False
+
+
+def apply(env, action: int, caution: bool = False) -> tuple[int, bool]:
+    """Acción final y si el freno de emergencia intervino.
+
+    caution (v11): además del freno, con un peatón cerca adelante no deja pasar de CAUTION_SPEED.
+    """
+    if action == BRAKE:
+        return action, False
+    if pedestrian_in_path(env, action):
+        return BRAKE, True
+    if caution and abs(env.speed) > CAUTION_SPEED and action in (FORWARD, REVERSE) and pedestrian_near_ahead(env):
         return BRAKE, True
     return action, False
 
