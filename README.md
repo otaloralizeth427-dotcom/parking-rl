@@ -23,6 +23,7 @@ cupo de un parqueadero, evitando autos estacionados, columnas y bordillos. Inclu
 - **Operación:** pipeline de 8 pasos con Prefect ([pipeline](docs/pipeline.md)), modelo servido versionado con
   rollback y monitoreo ([rollback y monitoreo](docs/rollback_y_monitoreo.md)), y despliegue en Vercel y Render.
 - **[Informe final](docs/informe.md):** decisiones, resultados, límites y contribuciones.
+- **[Guion de presentación](docs/presentacion.md):** sustentación de 10 minutos y demostración de Vercel.
 
 ![Comparación N1](results/N1/comparison.png)
 

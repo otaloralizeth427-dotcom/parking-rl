@@ -160,8 +160,8 @@ con su manifiesto. Además se conserva **1 run interrumpido** (KILLED), con su d
 
 | Integrante | Contribución |
 |---|---|
-| _Nombre completo_ | _…_ |
-| _Nombre completo_ | _…_ |
+| Juan Esteban Molina | Ambiente, pipeline, evaluación y trazabilidad de modelos |
+| Nathalia Otalora | Niveles, experimentos, visualización web y despliegue |
 
 Herramientas: el código y la documentación se desarrollaron con apoyo de un asistente de programación con
 IA (Claude Code). Las decisiones, las revisiones y la validación de resultados fueron del equipo.
