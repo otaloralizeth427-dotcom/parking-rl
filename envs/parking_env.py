@@ -6,7 +6,7 @@ El vehículo sigue un modelo cinemático de bicicleta.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import gymnasium as gym
 import numpy as np
@@ -25,7 +25,7 @@ FAIR_GAP = 3.0       # v9: hueco vertical mínimo entre conos a la par (auto de 
 
 # Cambia cuando cambian observaciones, acciones, dinámica o recompensa:
 # un modelo solo es compatible con la versión con que fue entrenado.
-ENV_VERSION = "parking-v11"  # v3: cono bloqueante, peatón que cruza y parachoques; v4: peatones que no se congelan;
+ENV_VERSION = "parking-v12"  # v3: cono bloqueante, peatón que cruza y parachoques; v4: peatones que no se congelan;
                               # v5: con cono bloqueante y peatón que cruza a la vez, el peatón no atraviesa el cono;
                               # v6: los peatones nunca se quedan quietos: si el auto se acerca, se alejan o se apartan;
                               # v7: mapa «garage» (N5) con pasillos de 6.7 m (solo pilotos; ya no se reproduce);
@@ -36,9 +36,11 @@ ENV_VERSION = "parking-v11"  # v3: cono bloqueante, peatón que cruza y parachoq
                               # v10: freno de emergencia para peatones (safety_brake, N3 y N4): si un peatón va a
                               #     quedar en el recorrido del auto, la acción se cambia por frenar (envs/safety.py);
                               # v11: freno 2 (safety_brake=2): además, con un peatón cerca adelante el auto no pasa
-                              #     de 1.2 m/s, y los peatones nunca dan un paso contra el auto
+                              #     de 1.2 m/s, y los peatones nunca dan un paso contra el auto;
+                              # v12: conos justos 2 (fair_cones=2) y pasillo de ancho configurable (aisle_width, N2:
+                              #     11 m): el cono bloqueante queda a >= 4.5 m del arranque para poder rodearlo
 # Versiones que este código reproduce: con sus valores por defecto, v3 se comporta exactamente como v2
-SUPPORTED_VERSIONS = ("parking-v2", "parking-v3", "parking-v4", "parking-v5", "parking-v6", "parking-v8", "parking-v9", "parking-v10", "parking-v11")
+SUPPORTED_VERSIONS = ("parking-v2", "parking-v3", "parking-v4", "parking-v5", "parking-v6", "parking-v8", "parking-v9", "parking-v10", "parking-v11", "parking-v12")
 
 
 @dataclass(frozen=True)
@@ -168,7 +170,8 @@ class ParkingEnv(gym.Env):
                  config: ParkingConfig | None = None, pedestrians: int = 0, cones: int | None = None,
                  blocking_cones: int = 0, bumper_sensors: int = 0, crossing_pedestrians: int = 0,
                  pedestrians_yield: bool = False, pedestrians_evade: bool = False, layout: str = "aisle",
-                 route_start: tuple | list | None = None, fair_cones: bool = False,
+                 route_start: tuple | list | None = None, fair_cones: int | bool = 0,
+                 aisle_width: float | None = None,
                  safety_brake: int | bool = 0):
         if difficulty not in DIFFICULTIES:
             raise ValueError(f"difficulty debe ser uno de {DIFFICULTIES}, no {difficulty!r}")
@@ -194,6 +197,10 @@ class ParkingEnv(gym.Env):
             raise ValueError("safety_brake debe ser 0 (sin freno), 1 (v10) o 2 (v11)")
         if fair_cones and layout != "aisle":
             raise ValueError("fair_cones solo aplica al pasillo (N1-N4)")
+        if int(fair_cones) not in (0, 1, 2):
+            raise ValueError("fair_cones debe ser 0, 1 (v9) o 2 (v12)")
+        if aisle_width is not None and (layout != "aisle" or not 8.0 <= aisle_width <= 14.0):
+            raise ValueError("aisle_width (m, entre 8 y 14) solo aplica al pasillo")
         if crossing_pedestrians not in (0, 1) or crossing_pedestrians > pedestrians:
             raise ValueError("crossing_pedestrians debe ser 0 o 1, y no mayor que pedestrians")
         if not isinstance(bumper_sensors, int) or bumper_sensors < 0 or bumper_sensors == 1:
@@ -203,7 +210,7 @@ class ParkingEnv(gym.Env):
         self.n_pedestrians = pedestrians
         self.n_cones = cones   # None = la cantidad por defecto de la dificultad
         self.blocking_cones = blocking_cones   # 1 = un cono extra justo en la línea recta hacia el cupo
-        self.fair_cones = bool(fair_cones)     # v9: los conos nunca hacen imposible entrar al cupo
+        self.fair_cones = int(fair_cones)      # v9 (1) / v12 (2): los conos nunca hacen imposible entrar al cupo
         # Freno de emergencia para peatones (envs/safety.py): 1 = v10; 2 = v11, con zona de precaución y
         # peatones que no caminan contra el auto
         self.safety_brake = int(safety_brake)
@@ -214,6 +221,9 @@ class ParkingEnv(gym.Env):
         self.layout_name = layout
         self.garage = layout == "garage"
         self.cfg = config or (GARAGE_CONFIG if self.garage else ParkingConfig())
+        if aisle_width is not None:   # v12: pasillo más ancho (las filas de cupos no cambian)
+            self.cfg = replace(self.cfg, lot_height=float(aisle_width) + 2 * self.cfg.slot_depth)
+        self.aisle_width = aisle_width
 
         # El mapa garage agrega la posición en el mapa: auto (x, y, cos θ, sin θ) y cupo libre (x, y).
         # No recibe la ruta: tiene que aprender a rodear las filas.
@@ -332,7 +342,7 @@ class ParkingEnv(gym.Env):
             side = rng.choice([-1, 1])
             limit = cfg.lot_width / 2 - 3.0
             # v9: arranque más lejos para que el cono bloqueante quepa fuera de la zona de giro
-            near, far = (6.0, 10.0) if self.fair_cones else (4.0, 8.0)
+            near, far = {0: (4.0, 8.0), 1: (6.0, 10.0), 2: (9.0, 12.5)}[self.fair_cones]
             x = float(np.clip(tc[0] + side * rng.uniform(near, far), -limit, limit))
             if abs(x - tc[0]) < (near - 1.0 if self.fair_cones else 3.0):  # rebotó contra el borde: el otro lado
                 x = float(np.clip(tc[0] - side * rng.uniform(near, far), -limit, limit))
@@ -345,7 +355,8 @@ class ParkingEnv(gym.Env):
             # abajo) y fuera de la zona de giro hacia el cupo: se puede rodear por cualquiera de los dos lados.
             direction = np.sign(tc[0] - x)
             span = abs(tc[0] - x)
-            lo, hi = FAIR_TURN_DX, span - 2.5                 # lejos del cupo y a más de 2.5 m del arranque
+            # lejos del cupo y del arranque (v9: 2.5 m; v12: 4.5 m, lo que necesita el auto para rodearlo sin retroceder)
+            lo, hi = FAIR_TURN_DX, span - (4.5 if self.fair_cones >= 2 else 2.5)
             if hi >= lo:
                 cx = blocking_x = tc[0] - direction * rng.uniform(lo, hi)
                 obstacles.append({"center": (float(cx), float(rng.uniform(-1.0, 1.0))),

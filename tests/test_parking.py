@@ -964,17 +964,24 @@ def test_fair_cones_keep_the_turn_into_the_slot_free_and_the_blocking_cone_passa
             ys = sorted(o[1] for o in cones if abs(o[0] - c[0]) < 3.0)
             edges = [-aisle] + [e for y in ys for e in (y - 0.25, y + 0.25)] + [aisle]
             assert max(edges[i + 1] - edges[i] for i in range(0, len(edges), 2)) >= FAIR_GAP
-        assert 5.0 <= abs(env.pos[0] - tc[0]) <= 10.0
+        assert 8.0 <= abs(env.pos[0] - tc[0]) <= 12.5
+        for b in blocking:       # v12: el bloqueante deja espacio para rodearlo sin retroceder
+            assert abs(b[0] - env.pos[0]) >= 4.5 - 1e-9
     assert with_blocking >= 200        # casi siempre hay un cono que rodear
 
 
 def test_fair_cones_only_change_n2():
     from envs.levels import load_level, make_env
-    assert make_env("N2").fair_cones and load_level("N2")["environment_version"] == "parking-v9"
+    env = make_env("N2")
+    assert env.fair_cones == 2 and load_level("N2")["environment_version"] == "parking-v12"
+    assert env.cfg.lot_height - 2 * env.cfg.slot_depth == 11.0      # pasillo de 11 m (antes 9 m)
+    assert make_env("N1").cfg.lot_height == 20.0
     for level in ("N1", "N3", "N4"):
         assert not make_env(level).fair_cones
     with pytest.raises(ValueError):
         ParkingEnv("hard", layout="garage", fair_cones=True)
+    with pytest.raises(ValueError):
+        ParkingEnv("hard", aisle_width=20.0)
 
 
 # ---------------------------------------------------------------- freno de emergencia (N3 y N4, parking-v10)
