@@ -1,0 +1,15 @@
+{
+  "level_id": "N6",
+  "name": "Estacionar en reversa",
+  "environment_version": "parking-v14",
+  "difficulty": "hard",
+  "cones": 0,
+  "blocking_cones": 0,
+  "pedestrians": 0,
+  "sensor_noise": 0.0,
+  "reverse_parking": true,
+  "description": "El mismo pasillo de N1, sin conos, sin peatones y sin ruido, pero el auto tiene que estacionarse en reversa: solo cuenta si termina con la cola dentro del cupo y la nariz hacia el pasillo, alineado y detenido. Arranca en el pasillo a 4-8 m del cupo.",
+  "new_decision": "Pasar el cupo, detenerse y retroceder girando para meter la cola primero (la maniobra de reversa).",
+  "hidden": true,
+  "hidden_reason": "Experimento en curso (validación 0 % en el nivel completo): no se publica en la web."
+}

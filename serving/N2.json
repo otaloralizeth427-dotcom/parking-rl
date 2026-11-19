@@ -9,15 +9,42 @@
       "model_sha256": "dee5936a73a879dac19bf79324d2fd88dc459d89512632b8a89dd410327b60b3",
       "test_success_rate": 0.8,
       "at": "2026-11-19T00:11:33Z"
+    },
+    {
+      "run_id": "N2-exp07-ppo-ft-v9-s43-ea914db6",
+      "action": "promote",
+      "reason": "Pipeline: Más éxito en la suite: 82% contra 49%",
+      "environment_version": "parking-v9",
+      "model_sha256": "1e9243a013e6780407b9627ac24fe9cfc233397990fa001f04ec1c220e09eb8d",
+      "test_success_rate": 0.82,
+      "at": "2026-11-19T06:40:03Z"
+    },
+    {
+      "run_id": "N2-exp09-ppo-ft-v12-s42-25fea815",
+      "action": "promote",
+      "reason": "Pipeline: Más éxito en la suite: 96% contra 89%",
+      "environment_version": "parking-v12",
+      "model_sha256": "390531d8007e7d78e6a1b2ad2aae458578ef44042cb27c4e7c27ceac91670a72",
+      "test_success_rate": 0.96,
+      "at": "2026-11-19T07:24:12Z"
+    },
+    {
+      "run_id": "N2-exp10-ppo-ft-v13-s42-c7bdedfb",
+      "action": "promote",
+      "reason": "Pipeline: Mismo éxito (96%) y más rápido: 6.798 s contra 7.944 s",
+      "environment_version": "parking-v13",
+      "model_sha256": "d77b353a5b16dc1f32e5228a539e50f10db2b3d970e51401d5e8f3c80e4aba90",
+      "test_success_rate": 0.96,
+      "at": "2026-11-19T07:59:43Z"
     }
   ],
   "current": {
-    "run_id": "N2-exp06-ppo-curriculo-3m-s44-7f36a120",
+    "run_id": "N2-exp10-ppo-ft-v13-s42-c7bdedfb",
     "action": "promote",
-    "reason": "Puntero inicial: el modelo con mayor éxito en la suite N2-suite-v1 (80%, 12.028 s promedio)",
-    "environment_version": "parking-v3",
-    "model_sha256": "dee5936a73a879dac19bf79324d2fd88dc459d89512632b8a89dd410327b60b3",
-    "test_success_rate": 0.8,
-    "at": "2026-11-19T00:11:33Z"
+    "reason": "Pipeline: Mismo éxito (96%) y más rápido: 6.798 s contra 7.944 s",
+    "environment_version": "parking-v13",
+    "model_sha256": "d77b353a5b16dc1f32e5228a539e50f10db2b3d970e51401d5e8f3c80e4aba90",
+    "test_success_rate": 0.96,
+    "at": "2026-11-19T07:59:43Z"
   }
 }

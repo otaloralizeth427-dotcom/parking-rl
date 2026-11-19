@@ -1,7 +1,7 @@
 {
   "level_id": "N4",
   "name": "Todo junto",
-  "environment_version": "parking-v6",
+  "environment_version": "parking-v13",
   "difficulty": "hard",
   "cones": 3,
   "blocking_cones": 1,
@@ -11,6 +11,10 @@
   "pedestrians_evade": true,
   "bumper_sensors": 5,
   "sensor_noise": 0.1,
-  "description": "La unión de N2 y N3 con sensores imprecisos: 3 conos sueltos y 1 en la línea recta hacia el cupo (N2), 2 peatones que cruzan el pasillo, uno de ellos entre el auto y el cupo justo después del cono (N3), y ruido gaussiano en los sensores (σ = 0.1 m en las distancias y 0.05 m en la posición relativa del cupo). Mismos 19 valores de observación que N2 y N3. Los peatones nunca se quedan quietos: si el auto se acerca, se alejan o se apartan.",
-  "new_decision": "Combinar todo: rodear el cono, ceder el paso al peatón y estacionar con mediciones que tiemblan."
+  "description": "La unión de N2 y N3 con sensores imprecisos (σ = 0.1): 3 conos sueltos y 1 en la línea recta hacia el cupo, 2 peatones (uno cruza entre el auto y el cupo) y 5 sensores de parachoques. Desde parking-v13: conos «justos» (zona de giro libre, cono bloqueante a 4.5 m o más del auto y rodeable por ambos lados), pasillo de 11 m, castigo creciente por quedarse congelado y freno de emergencia para peatones con zona de precaución (v11).",
+  "new_decision": "Combinar todo: rodear el cono, ceder el paso al peatón y estacionar con mediciones que tiemblan.",
+  "safety_brake": 2,
+  "fair_cones": 2,
+  "aisle_width": 11.0,
+  "stuck_penalty": true
 }

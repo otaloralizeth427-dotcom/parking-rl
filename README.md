@@ -10,7 +10,7 @@ La primera visita puede tardar hasta un minuto si el servidor gratuito estaba do
 Proyecto final de MLOps (escenario **Autonomous Parking**). Un vehículo aprende a estacionarse en un
 cupo de un parqueadero, evitando autos estacionados, columnas y bordillos. Incluye:
 
-- **Ambiente Gymnasium** versionado (`parking-v8`) con física de bicicleta, sensores tipo LiDAR y
+- **Ambiente Gymnasium** versionado (`parking-v2` … `parking-v14`) con física de bicicleta, sensores tipo LiDAR y
   colisiones exactas. Ver la [ficha del ambiente](docs/ficha_ambiente.md).
 - **Niveles versionados** en `configs/levels/`, cada uno desarrollado en su rama `feature/nivel-N`.
 - **Referencias** (aleatoria y por reglas) y agentes aprendidos: **PPO** (Stable-Baselines3), **DQN** y
@@ -428,9 +428,9 @@ test final reservado. Los finalistas se entrenaron con 3 semillas.
 | Nivel | Aleatoria | Regla | Modelo servido | Suite | Test final | Receta (3 semillas) |
 |---|---|---|---|---|---|---|
 | N1 · Misión base | 0 % | 49 % | PPO `N1-exp03-ppo-s42-64bf7433` | **97 %** | **97 %** | 97 / 0 / 0 % (depende de la semilla) |
-| N2 · Conos | 0 % | 18 % | PPO `N2-exp06-ppo-curriculo-3m-s44-7f36a120` | **80 %** | **80 %** | 62 / 67 / 80 % (currículo por etapas) |
-| N3 · Peatones (`parking-v6`) | 0 % | 37 % | PPO `N3-exp04-ppo-ft-v6-s43-bd380c76` | **93 %** | **94 %** | 92 / 93 / 92 % (continúa el modelo de N3 v4) |
-| N4 · Todo junto (`parking-v6`) | 0 % | 16 % | PPO `N4-exp04-ppo-ft-v6-s43-e098d962` | **85 %** | **79 %** | 83 / 85 / 80 % (continúa el modelo de N4 v5) |
+| N2 · Conos (`parking-v13`) | 0 % | 19 % | PPO `N2-exp10-ppo-ft-v13-s42-c7bdedfb` | **96 %** | **92 %** | 96 / 95 / 90 % (conos justos, pasillo de 11 m y sin congelarse) |
+| N3 · Peatones (`parking-v11`) | 0 % | 43 % | PPO `N3-exp06-ppo-ft-v11-s42-2a9f8d11` | **96 %** | **97 %** | 96 / 93 / 91 % (freno de emergencia, 0 atropellos) |
+| N4 · Todo junto (`parking-v13`) | 0 % | 9 % | PPO `N4-exp07-ppo-ft-v13-s43-a0b9bd2b` | **95 %** | **95 %** | 87 / 95 / 89 % (conos justos, pasillo de 11 m, freno, 0 atropellos) |
 | N5 · Garaje grande (`parking-v8`) | 0 % | 30 % | PPO `N5-exp05-ppo-inverso-3m-s44-78c82696` | **100 %** | **100 %** | 98 / 100 / 100 % (currículo inverso, desde cero) |
 
 ![Comparación N2](results/N2/comparison.png)

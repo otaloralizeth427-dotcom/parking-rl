@@ -1,0 +1,71 @@
+{
+  "run_id": "N3-exp05-ppo-ft-v10-s42-2534cccb",
+  "experiment_id": "N3-exp05-ppo-ft-v10",
+  "level_id": "N3",
+  "agent": "ppo",
+  "hypothesis": "En parking-v10 el freno de emergencia evita todos los atropellos (el modelo servido de v6 pasa de 93 % con 6 atropellos a 0 atropellos sin reentrenar), pero tras frenar queda en situaciones que no conoce y agota el tiempo más seguido. Continuarlo 500 000 pasos con el freno activo le enseña a esperar al peatón y retomar: 0 atropellos y éxito igual o mayor que en v6 en las 3 semillas.",
+  "change_vs_baseline": "Continúa N3-exp04-ppo-ft-v6-s43-bd380c76 en N3 con parking-v10 (safety_brake); 500 000 pasos, ent_coef 0.01.",
+  "environment_version": "parking-v10",
+  "environment_kwargs": {
+    "difficulty": "normal",
+    "sensor_noise": 0.0,
+    "pedestrians": 2,
+    "cones": 0,
+    "blocking_cones": 0,
+    "bumper_sensors": 5,
+    "crossing_pedestrians": 1,
+    "pedestrians_yield": true,
+    "pedestrians_evade": true,
+    "safety_brake": true
+  },
+  "observation_shape": [
+    19
+  ],
+  "git_commit": "437201670b7817093acabe20da709878cdf68191",
+  "git_branch": "feature/conos-justos",
+  "git_dirty": false,
+  "config_uri": "artifacts/N3/N3-exp05-ppo-ft-v10-s42-2534cccb/config.json",
+  "config_sha256": "f441794cc92e923a8f1f1d3929c1182efdab3dd313b6e10ee63815473d56454c",
+  "seed": 42,
+  "parent_run_id": "N3-exp04-ppo-ft-v6-s43-bd380c76",
+  "origin": "continuación de checkpoint",
+  "parent_model_sha256": "c04ab92696f2390a559dd64b286f5925997620ed1d157c2791d45b1af3b8e9a0",
+  "evaluation_suite_id": "N3-suite-v1",
+  "mlflow": {
+    "tracking_uri": "sqlite:///mlflow.db",
+    "experiment": "parking-N3",
+    "run_id": "2534cccb62764b81b8ceadabde156e58"
+  },
+  "created_at": "2026-11-19T05:38:26+00:00",
+  "status": "completed",
+  "model_uri": "artifacts/N3/N3-exp05-ppo-ft-v10-s42-2534cccb/model.zip",
+  "model_sha256": "441e94d1f108fa0e3006d02b380a6c62c92a2287157aab547421d2664879f45b",
+  "normalization_uri": "envs/parking_env.py#ParkingEnv._observation (escalado fijo dentro del ambiente; sin normalización aprendida)",
+  "observation_contract": "Box(19,) float32 · ver docs/ficha_ambiente.md",
+  "action_contract": "Discrete(5): avanzar, retroceder, izquierda, derecha, frenar",
+  "runtime_ref": "python 3.12.7 · requirements.lock.txt sha256:76cff4f909c98d69",
+  "budget": {
+    "timesteps": 500000,
+    "episodes": 10069,
+    "env_steps": 500000,
+    "wall_time_s": 1752.2
+  },
+  "optimizer_state": "no guardado: los runs no se continúan desde este checkpoint",
+  "evaluation_uri": "artifacts/N3/N3-exp05-ppo-ft-v10-s42-2534cccb/evaluation.json",
+  "evaluation_summary": {
+    "episodes": 100,
+    "success_rate": 0.94,
+    "outcomes": {
+      "success": 94,
+      "obstacle": 1,
+      "pedestrian": 2,
+      "boundary": 0,
+      "timeout": 3
+    },
+    "mean_return": 97.349,
+    "mean_time_s": 9.214,
+    "mean_final_distance_m": 0.786,
+    "mean_final_heading_error_deg": 6.53,
+    "mean_latency_ms": 0.273
+  }
+}

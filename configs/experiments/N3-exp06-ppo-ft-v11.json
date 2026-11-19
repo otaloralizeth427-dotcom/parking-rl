@@ -1,0 +1,19 @@
+{
+  "experiment_id": "N3-exp06-ppo-ft-v11",
+  "level_id": "N3",
+  "agent": "ppo",
+  "hypothesis": "En v10 quedaban atropellos porque el peatón daba un paso contra el auto detenido o giraba de golpe frente a un auto rápido. En parking-v11 (zona de precaución a 4 km/h y peatones que no caminan contra el auto) los modelos de v10 ya tienen 0 atropellos en 300 casos; continuar el mejor (94 % en la suite de v10 con 2 atropellos) 500 000 pasos en v11 baja los tiempos agotados y mantiene 0 atropellos en las 3 semillas.",
+  "change_vs_baseline": "Continúa N3-exp05-ppo-ft-v10-s42-2534cccb en N3 con parking-v11 (safety_brake=2); 500 000 pasos, ent_coef 0.01.",
+  "parent_run_id": "N3-exp05-ppo-ft-v10-s42-2534cccb",
+  "seed": 42,
+  "budget": {
+    "timesteps": 500000
+  },
+  "hyperparameters": {
+    "ent_coef": 0.01
+  },
+  "validation": {
+    "episodes": 20,
+    "every": 25000
+  }
+}

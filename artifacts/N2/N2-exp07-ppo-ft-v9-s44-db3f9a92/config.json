@@ -1,0 +1,42 @@
+{
+  "experiment_id": "N2-exp07-ppo-ft-v9",
+  "level_id": "N2",
+  "agent": "ppo",
+  "hypothesis": "En parking-v9 los conos ya no tapan la zona de giro hacia el cupo (en v3, con un cono a menos de 4.5 m de la entrada el modelo servido solo estacionaba 58 % de las veces; a más de 6 m, 97 %). El modelo servido de v3 baja a 50 % en v9 porque arranca más lejos y el cono bloqueante cambió de lugar; continuarlo 1 500 000 pasos en v9 lleva las 3 semillas por encima del 85 %.",
+  "change_vs_baseline": "Continúa N2-exp06-ppo-curriculo-3m-s44-7f36a120 en N2 con parking-v9 (fair_cones); 1 500 000 pasos, ent_coef 0.01.",
+  "parent_run_id": "N2-exp06-ppo-curriculo-3m-s44-7f36a120",
+  "seed": 44,
+  "budget": {
+    "timesteps": 1500000
+  },
+  "hyperparameters": {
+    "ent_coef": 0.01
+  },
+  "validation": {
+    "seed_start": 200000,
+    "episodes": 20,
+    "every": 75000
+  },
+  "environment_version": "parking-v9",
+  "level": {
+    "level_id": "N2",
+    "name": "Conos en el pasillo",
+    "environment_version": "parking-v9",
+    "difficulty": "hard",
+    "cones": 3,
+    "blocking_cones": 1,
+    "bumper_sensors": 5,
+    "pedestrians": 0,
+    "sensor_noise": 0.0,
+    "description": "Igual que N1, pero con 3 conos sueltos en el pasillo y 1 más en la línea recta hacia el cupo. Desde parking-v9 los conos son «justos»: la zona de giro hacia el cupo queda libre, el cono que bloquea va centrado en el pasillo y se puede rodear por arriba o por abajo, y dos conos a la par siempre dejan un hueco de 3 m. El auto arranca a 6-10 m del cupo y suma 5 sensores de parachoques (alcance 4 m).",
+    "new_decision": "Decidir por dónde rodear los conos (o frenar y corregir) antes de girar hacia el cupo.",
+    "fair_cones": true
+  },
+  "evaluation_suite": {
+    "suite_id": "N2-suite-v1",
+    "level_id": "N2",
+    "seed_start": 100000,
+    "episodes": 100,
+    "deterministic": true
+  }
+}

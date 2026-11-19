@@ -1,0 +1,49 @@
+{
+  "experiment_id": "N6-exp02-ppo-curriculo-grande",
+  "level_id": "N6",
+  "agent": "ppo",
+  "hypothesis": "La maniobra de reversa es más larga que entrar de frente: una red de 128×128 con lotes más grandes (n_steps 4096, batch 256) y menos entropía aprende una política más precisa que exp01 con el mismo currículo.",
+  "change_vs_baseline": "Igual que N6-exp01 con net_arch 128×128, n_steps 4096, batch_size 256 y ent_coef 0.02.",
+  "seed": 42,
+  "budget": {
+    "timesteps": 3000000
+  },
+  "curriculum": [
+    {
+      "name": "práctica: cola en el cupo",
+      "overrides": {
+        "difficulty": "tutorial"
+      },
+      "timesteps": 300000
+    },
+    {
+      "name": "maniobra: ya pasó el cupo",
+      "overrides": {
+        "difficulty": "easy"
+      },
+      "timesteps": 700000
+    },
+    {
+      "name": "nivel completo",
+      "overrides": {},
+      "timesteps": 2000000
+    }
+  ],
+  "hyperparameters": {
+    "learning_rate": 0.0003,
+    "n_steps": 4096,
+    "batch_size": 256,
+    "n_epochs": 10,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "ent_coef": 0.02,
+    "net_arch": [
+      128,
+      128
+    ]
+  },
+  "validation": {
+    "episodes": 20,
+    "every": 100000
+  }
+}

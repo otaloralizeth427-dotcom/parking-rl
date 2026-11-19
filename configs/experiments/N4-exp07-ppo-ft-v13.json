@@ -1,0 +1,19 @@
+{
+  "experiment_id": "N4-exp07-ppo-ft-v13",
+  "level_id": "N4",
+  "agent": "ppo",
+  "hypothesis": "En 300 partidas nuevas el modelo servido de v11 estaciona 86 % y choca un cono en 5 %: N4 conservaba la colocación de conos de v3. Con las reglas de N2 (conos justos, pasillo de 11 m, sin congelarse; parking-v13) y el freno de v11, continuarlo 1 500 000 pasos lleva las 3 semillas a >= 90 % con menos choques con conos y 0 atropellos.",
+  "change_vs_baseline": "Continúa N4-exp06-ppo-ft-v11-s42-4a905c49 en N4 con parking-v13 (fair_cones=2, aisle_width=11, stuck_penalty, safety_brake=2); 1 500 000 pasos, ent_coef 0.01.",
+  "parent_run_id": "N4-exp06-ppo-ft-v11-s42-4a905c49",
+  "seed": 42,
+  "budget": {
+    "timesteps": 1500000
+  },
+  "hyperparameters": {
+    "ent_coef": 0.01
+  },
+  "validation": {
+    "episodes": 20,
+    "every": 75000
+  }
+}

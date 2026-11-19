@@ -10,6 +10,10 @@ from envs.parking_env import SUPPORTED_VERSIONS, ParkingEnv
 LEVELS_DIR = Path(__file__).resolve().parents[1] / "configs" / "levels"
 # Los niveles disponibles son los archivos presentes en configs/levels/
 LEVEL_IDS = tuple(sorted(p.stem for p in LEVELS_DIR.glob("N*.json")))
+# Niveles que muestra la web: los marcados "hidden" (experimentos en curso, como N6) siguen en el repo y se
+# pueden entrenar y evaluar, pero no se publican
+WEB_LEVEL_IDS = tuple(lid for lid in LEVEL_IDS
+                      if not json.loads((LEVELS_DIR / f"{lid}.json").read_text()).get("hidden"))
 
 
 def load_level(level_id: str) -> dict:
@@ -53,4 +57,9 @@ def env_kwargs(level: dict) -> dict:
             **({"pedestrians_yield": True} if level.get("pedestrians_yield") else {}),
             **({"pedestrians_evade": True} if level.get("pedestrians_evade") else {}),
             **({"layout": level["layout"]} if level.get("layout", "aisle") != "aisle" else {}),
-            **({"route_start": level["route_start"]} if "route_start" in level else {})}
+            **({"route_start": level["route_start"]} if "route_start" in level else {}),
+            **({"fair_cones": level["fair_cones"]} if level.get("fair_cones") else {}),
+            **({"aisle_width": level["aisle_width"]} if "aisle_width" in level else {}),
+            **({"stuck_penalty": True} if level.get("stuck_penalty") else {}),
+            **({"reverse_parking": True} if level.get("reverse_parking") else {}),
+            **({"safety_brake": level["safety_brake"]} if level.get("safety_brake") else {})}

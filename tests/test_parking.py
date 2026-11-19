@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -9,6 +10,8 @@ from agents.neural_q_learning import MLP, DQNAgent
 from agents.q_learning import QLearningAgent
 from api.server import SimulationSession, create_app
 from envs.parking_env import BRAKE, FORWARD, LEFT, REVERSE, ParkingEnv, raycast_obbs
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
 
 
 @pytest.fixture
@@ -909,3 +912,211 @@ def test_pipeline_verification_rolls_back_a_broken_promotion(serving_dir, monkey
     # Si la versión servida no es la esperada, el paso 8 revierte solo
     result = flow.verify_served.fn("N5", "N5-otro-run", promoted=True)
     assert result["ok"] is False and served_run("N5") == a
+
+
+# ---------------------------------------------------------------- selector de nivel y métricas (web)
+def test_levels_endpoint_lists_every_level_with_its_served_model():
+    from agents.serving import served_run
+    from envs.levels import LEVEL_IDS
+    levels = TestClient(create_app(SimulationSession("N1"), public=True)).get("/api/levels").json()
+    assert [lv["id"] for lv in levels] == list(LEVEL_IDS)
+    for lv in levels:
+        assert lv["served"] == served_run(lv["id"]) and lv["environment_version"].startswith("parking-v")
+
+
+def test_level_metrics_match_the_versioned_results():
+    client = TestClient(create_app(SimulationSession("N1"), public=True))
+    for level in ("N1", "N5"):
+        m = client.get(f"/api/level-metrics?level={level}").json()
+        run = m["served"]["run_id"]
+        suite = json.loads((ROOT_DIR / "results" / level / "comparison.json").read_text())
+        assert m["suite"]["policies"][run]["success_rate"] == suite["policies"][run]["success_rate"]
+        assert "rule" in m["suite"]["policies"] and "random" in m["suite"]["policies"]
+        assert all("outcomes_by_case" not in p for p in m["final_test"]["policies"].values())
+        assert m["served"]["model_sha256"] and m["has_curves"]
+    assert client.get("/api/level-metrics?level=N9").status_code == 400
+    png = client.get("/api/level-metrics/curves.png?level=N2")
+    assert png.status_code == 200 and png.headers["content-type"] == "image/png"
+
+
+# ---------------------------------------------------------------- conos justos (N2, parking-v9)
+def test_fair_cones_keep_the_turn_into_the_slot_free_and_the_blocking_cone_passable():
+    from envs.levels import make_env
+    from envs.parking_env import FAIR_GAP, FAIR_TURN_DX
+    env = make_env("N2")
+    aisle = env.cfg.lot_height / 2 - env.cfg.slot_depth
+    with_blocking = 0
+    for seed in range(300):
+        env.reset(seed=seed)
+        tc = np.array(env.target["center"])
+        row_sign = 1 if env.target["row"] == 0 else -1
+        cones = [np.array(o["center"]) for o in env.obstacles if o["kind"] == "cone"]
+        assert cones
+        for c in cones:          # zona de giro hacia el cupo libre
+            assert not (abs(c[0] - tc[0]) < FAIR_TURN_DX and row_sign * c[1] > -1.5), (seed, c)
+        lo, hi = sorted([env.pos[0], tc[0]])
+        blocking = [c for c in cones if lo < c[0] < hi and abs(c[1]) <= 1.0 and abs(c[0] - tc[0]) >= FAIR_TURN_DX]
+        for b in blocking:       # rodeable por arriba y por abajo: nadie más a la par
+            with_blocking += 1
+            assert all(c is b or abs(c[0] - b[0]) >= 3.0 for c in cones if abs(c[1]) > 1.0 or c is b), seed
+            assert aisle - (abs(b[1]) + 0.25) >= FAIR_GAP
+        for c in cones:          # sin paredes: siempre queda un hueco de FAIR_GAP
+            ys = sorted(o[1] for o in cones if abs(o[0] - c[0]) < 3.0)
+            edges = [-aisle] + [e for y in ys for e in (y - 0.25, y + 0.25)] + [aisle]
+            assert max(edges[i + 1] - edges[i] for i in range(0, len(edges), 2)) >= FAIR_GAP
+        assert 8.0 <= abs(env.pos[0] - tc[0]) <= 12.5
+        for b in blocking:       # v12: el bloqueante deja espacio para rodearlo sin retroceder
+            assert abs(b[0] - env.pos[0]) >= 4.5 - 1e-9
+    assert with_blocking >= 200        # casi siempre hay un cono que rodear
+
+
+def test_fair_cones_only_change_n2():
+    from envs.levels import load_level, make_env
+    env = make_env("N2")
+    assert env.fair_cones == 2 and load_level("N2")["environment_version"] == "parking-v13" and env.stuck_penalty
+    assert env.cfg.lot_height - 2 * env.cfg.slot_depth == 11.0      # pasillo de 11 m (antes 9 m)
+    assert make_env("N1").cfg.lot_height == 20.0
+    for level in ("N1", "N3"):
+        assert not make_env(level).fair_cones
+    assert make_env("N4").fair_cones == 2 and make_env("N4").stuck_penalty     # N4 usa las mismas reglas de conos
+    with pytest.raises(ValueError):
+        ParkingEnv("hard", layout="garage", fair_cones=True)
+    with pytest.raises(ValueError):
+        ParkingEnv("hard", aisle_width=20.0)
+
+
+# ---------------------------------------------------------------- freno de emergencia (N3 y N4, parking-v10)
+def test_safety_brake_stops_before_a_pedestrian_in_front():
+    from envs.levels import make_env
+    env = make_env("N3")
+    assert env.safety_brake
+    env.reset(seed=0)
+    # Peatón quieto 4 m delante del auto, sobre su línea: acelerar a fondo no debe atropellarlo
+    c, s = np.cos(env.heading), np.sin(env.heading)
+    p = env.pedestrians[0]
+    p.update(x=float(env.pos[0] + 4.0 * c), y=float(env.pos[1] + 4.0 * s), moving=False, speed=0.0)
+    for p2 in env.pedestrians[1:]:
+        p2.update(x=99.0, y=99.0, moving=False, speed=0.0)
+    braked = 0
+    for _ in range(25):
+        _, _, terminated, _, info = env.step(FORWARD)
+        braked += info["safety_brake"]
+        assert info["collision_kind"] != "pedestrian"
+        if terminated:
+            break
+    assert braked > 0
+
+
+def test_safety_brake_only_in_n3_and_n4_and_never_without_pedestrians():
+    from envs.levels import load_level, make_env
+    for level in ("N3", "N4"):
+        assert make_env(level).safety_brake == 2
+    assert load_level("N3")["environment_version"] == "parking-v11"
+    assert load_level("N4")["environment_version"] == "parking-v13"
+    for level in ("N1", "N2", "N5"):
+        assert not make_env(level).safety_brake
+    env = ParkingEnv("hard", safety_brake=True)       # sin peatones el freno nunca interviene
+    env.reset(seed=1)
+    for _ in range(30):
+        _, _, terminated, truncated, info = env.step(FORWARD)
+        assert info["safety_brake"] is False
+        if terminated or truncated:
+            break
+
+
+def test_served_models_never_hit_pedestrians_with_the_brake():
+    from agents.registry import list_manifests, load_policy
+    from envs.levels import make_env
+    from pipelines.scoring import run_case
+    for level in ("N3", "N4"):
+        env = make_env(level)
+        manifest = next(m for m in list_manifests(level) if m["status"] == "completed")   # cualquier modelo del nivel
+        policy = load_policy(manifest)
+        outcomes = [run_case(env, policy, 7000 + i)["outcome"] for i in range(15)]
+        assert "pedestrian" not in outcomes, (level, outcomes)
+
+
+def test_v11_pedestrians_never_walk_into_a_stopped_car():
+    from envs.levels import make_env
+    env = make_env("N3")
+    for seed in range(40):
+        env.reset(seed=seed)
+        for _ in range(80):              # el auto quieto en el pasillo: nadie debe chocarlo
+            _, _, terminated, truncated, info = env.step(BRAKE)
+            assert info["collision_kind"] != "pedestrian", seed
+            if terminated or truncated:
+                break
+
+
+def test_v11_caution_zone_limits_speed_near_pedestrians():
+    from envs.levels import make_env
+    from envs.safety import CAUTION_SPEED, pedestrian_near_ahead
+    env = make_env("N4")
+    checked = 0
+    for seed in range(30):
+        env.reset(seed=seed)
+        for _ in range(60):
+            near_before, speed_before = pedestrian_near_ahead(env), abs(env.speed)
+            _, _, terminated, truncated, info = env.step(FORWARD)
+            if near_before and speed_before > CAUTION_SPEED:     # por encima del límite: siempre frena
+                assert info["safety_brake"] and abs(env.speed) < speed_before, (seed, speed_before, env.speed)
+            checked += near_before
+            assert info["collision_kind"] != "pedestrian"
+            if terminated or truncated:
+                break
+    assert checked > 0
+
+
+def test_v13_stuck_penalty_grows_only_after_two_seconds_still():
+    from envs.parking_env import STUCK_GRACE_STEPS, STUCK_MAX
+    plain, stuck = ParkingEnv("hard", cones=0), ParkingEnv("hard", cones=0, stuck_penalty=True)
+    for env in (plain, stuck):
+        env.reset(seed=4)
+    diffs = []
+    for _ in range(40):
+        _, r1, *_ = plain.step(BRAKE)
+        _, r2, *_ = stuck.step(BRAKE)
+        diffs.append(r1 - r2)
+    assert all(abs(d) < 1e-9 for d in diffs[:STUCK_GRACE_STEPS])          # los primeros 2 s, igual
+    assert all(b >= a - 1e-9 for a, b in zip(diffs[STUCK_GRACE_STEPS:], diffs[STUCK_GRACE_STEPS + 1:]))
+    assert 0 < diffs[-1] <= STUCK_MAX + 1e-9
+
+
+# ---------------------------------------------------------------- N6: estacionar en reversa (parking-v14)
+def test_n6_only_counts_parking_in_reverse():
+    from envs.levels import load_level, make_env
+    env = make_env("N6")
+    assert env.reverse_parking and load_level("N6")["environment_version"] == "parking-v14"
+    assert env.observation_space.shape == (14,) and not env.pedestrians_evade
+    for seed in range(20):
+        env.reset(seed=seed)
+        assert not [o for o in env.obstacles if o["kind"] in ("cone", "pedestrian")]
+        env.pos = np.array(env.target["center"], dtype=float)
+        env.speed = 0.0
+        env.heading = env._reverse_heading() + np.pi            # de frente: no cuenta
+        assert not env._is_parked()
+        env.heading = env._reverse_heading()                    # en reversa: sí
+        assert env._is_parked()
+        assert abs(env.heading_error()) < 1e-9
+
+
+def test_n6_curriculum_starts_are_clean_and_backing_up_parks():
+    from envs.levels import env_kwargs, load_level
+    kw = env_kwargs(load_level("N6"))
+    for difficulty in ("tutorial", "easy", "hard"):
+        env = ParkingEnv(**{**kw, "difficulty": difficulty})
+        for seed in range(150):
+            env.reset(seed=seed)
+            _, _, _, _, info = env.step(BRAKE)
+            assert not info["collision"], (difficulty, seed)
+    env = ParkingEnv(**{**kw, "difficulty": "tutorial"})       # la cola ya entra: retroceder y frenar basta
+    parked = 0
+    for seed in range(60):
+        env.reset(seed=seed)
+        for _ in range(60):
+            go_back = abs(env.pos[1]) < abs(env.target["center"][1]) and env.speed > -0.8
+            _, _, terminated, truncated, info = env.step(REVERSE if go_back else BRAKE)
+            if terminated or truncated:
+                break
+        parked += info["success"]
+    assert parked >= 40

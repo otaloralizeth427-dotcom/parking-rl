@@ -1,0 +1,86 @@
+{
+  "experiment_id": "N2-exp08-ppo-curriculo-v9",
+  "level_id": "N2",
+  "agent": "ppo",
+  "hypothesis": "Con conos justos (parking-v9) la misma receta de exp06 desde cero (currículo, 3 M de pasos) supera el 80 % en las 3 semillas, sin depender de un checkpoint.",
+  "change_vs_baseline": "Igual que N2-exp06-ppo-curriculo-3m, en parking-v9 (fair_cones).",
+  "derived_from": "N2-exp06-ppo-curriculo-3m",
+  "seed": 42,
+  "budget": {
+    "timesteps": 3000000
+  },
+  "curriculum": [
+    {
+      "name": "práctica: nariz en el cupo",
+      "overrides": {
+        "difficulty": "tutorial",
+        "cones": 0,
+        "blocking_cones": 0
+      },
+      "timesteps": 150000
+    },
+    {
+      "name": "fácil: frente al cupo",
+      "overrides": {
+        "difficulty": "easy",
+        "cones": 0,
+        "blocking_cones": 0
+      },
+      "timesteps": 150000
+    },
+    {
+      "name": "pasillo sin conos",
+      "overrides": {
+        "difficulty": "normal",
+        "cones": 0,
+        "blocking_cones": 0
+      },
+      "timesteps": 250000
+    },
+    {
+      "name": "nivel completo",
+      "overrides": {},
+      "timesteps": 2450000
+    }
+  ],
+  "hyperparameters": {
+    "learning_rate": 0.0003,
+    "n_steps": 2048,
+    "batch_size": 64,
+    "n_epochs": 10,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "ent_coef": 0.05,
+    "net_arch": [
+      64,
+      64
+    ]
+  },
+  "validation": {
+    "seed_start": 200000,
+    "episodes": 20,
+    "every": 150000
+  },
+  "environment_version": "parking-v9",
+  "level": {
+    "level_id": "N2",
+    "name": "Conos en el pasillo",
+    "environment_version": "parking-v9",
+    "difficulty": "hard",
+    "cones": 3,
+    "blocking_cones": 1,
+    "bumper_sensors": 5,
+    "pedestrians": 0,
+    "sensor_noise": 0.0,
+    "description": "Igual que N1, pero con 3 conos sueltos en el pasillo y 1 más en la línea recta hacia el cupo. Desde parking-v9 los conos son «justos»: la zona de giro hacia el cupo queda libre, el cono que bloquea va centrado en el pasillo y se puede rodear por arriba o por abajo, y dos conos a la par siempre dejan un hueco de 3 m. El auto arranca a 6-10 m del cupo y suma 5 sensores de parachoques (alcance 4 m).",
+    "new_decision": "Decidir por dónde rodear los conos (o frenar y corregir) antes de girar hacia el cupo.",
+    "fair_cones": true
+  },
+  "evaluation_suite": {
+    "suite_id": "N2-suite-v1",
+    "level_id": "N2",
+    "seed_start": 100000,
+    "episodes": 100,
+    "deterministic": true
+  }
+}

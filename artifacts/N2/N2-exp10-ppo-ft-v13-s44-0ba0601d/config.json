@@ -1,0 +1,44 @@
+{
+  "experiment_id": "N2-exp10-ppo-ft-v13",
+  "level_id": "N2",
+  "agent": "ppo",
+  "hypothesis": "En 300 partidas nuevas el modelo servido de v12 estaciona 89 % y en 4 % queda congelado hasta agotar el tiempo: congelarse 200 pasos costaba ~-40 y chocar un cono -50, así que quedarse quieto era la opción «segura». En parking-v13 el castigo por estar detenido crece tras 2 s (hasta 1.0 por paso); continuar el servido 1 000 000 de pasos en v13 elimina casi todos los congelamientos (< 1 %) sin aumentar los choques con conos.",
+  "change_vs_baseline": "Continúa N2-exp09-ppo-ft-v12-s42-25fea815 en N2 con parking-v13 (stuck_penalty); 1 000 000 de pasos, ent_coef 0.01.",
+  "parent_run_id": "N2-exp09-ppo-ft-v12-s42-25fea815",
+  "seed": 44,
+  "budget": {
+    "timesteps": 1000000
+  },
+  "hyperparameters": {
+    "ent_coef": 0.01
+  },
+  "validation": {
+    "seed_start": 200000,
+    "episodes": 20,
+    "every": 50000
+  },
+  "environment_version": "parking-v13",
+  "level": {
+    "level_id": "N2",
+    "name": "Conos en el pasillo",
+    "environment_version": "parking-v13",
+    "difficulty": "hard",
+    "cones": 3,
+    "blocking_cones": 1,
+    "bumper_sensors": 5,
+    "pedestrians": 0,
+    "sensor_noise": 0.0,
+    "description": "Igual que N1, pero con 3 conos sueltos en el pasillo y 1 más en la línea recta hacia el cupo. Los conos son «justos»: la zona de giro hacia el cupo queda libre, el cono que bloquea va centrado en el pasillo, a 4.5 m o más del auto, y se puede rodear por arriba o por abajo, y dos conos a la par siempre dejan un hueco de 3 m. Desde parking-v12 el pasillo mide 11 m (antes 9 m) y el auto arranca a 9-12.5 m del cupo. Desde parking-v13 quedarse congelado más de 2 s fuera del cupo cuesta cada vez más. 5 sensores de parachoques (alcance 4 m).",
+    "new_decision": "Decidir por dónde rodear los conos (o frenar y corregir) antes de girar hacia el cupo.",
+    "fair_cones": 2,
+    "aisle_width": 11.0,
+    "stuck_penalty": true
+  },
+  "evaluation_suite": {
+    "suite_id": "N2-suite-v1",
+    "level_id": "N2",
+    "seed_start": 100000,
+    "episodes": 100,
+    "deterministic": true
+  }
+}

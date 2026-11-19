@@ -405,3 +405,191 @@ obstáculos sin choque registrado.
   elige el más rápido, 14.4 s; 100 % en el test final).
 - N5 quedó resuelto: el siguiente reto razonable es hacerlo más difícil sin perder justicia (cupo libre que
   cambia durante el recorrido, otros autos circulando o varios cupos libres con distinta preferencia).
+
+
+---
+
+## Mejoras del 19-11-2026: conos justos en N2 y freno de emergencia en N3 y N4
+
+### N2 · conos que no tapen el giro (`parking-v3` → `parking-v9`)
+
+**Diagnóstico.** Se midió sobre los 100 casos de `N2-suite-v1` con el modelo servido de v3. El pasillo nunca
+quedaba bloqueado por completo, pero los conos sí tapaban el giro para entrar al cupo:
+
+| Cono más cercano a la entrada del cupo | Casos | Éxito |
+|---|---|---|
+| a menos de 4.5 m | 24 | 58 % |
+| entre 4.5 y 6 m | 41 | 78 % |
+| a más de 6 m | 35 | 97 % |
+
+Con un cono en la zona de giro el éxito era 68 %; sin él, 95 %.
+
+**Intervención.** `fair_cones` (v9), descrita en la ficha. El modelo de v3 baja a 49–50 % en v9 porque ahora
+arranca más lejos y el cono bloqueante cambia de lugar, así que hay que reentrenar.
+
+| Experimento (commit `9efbc61`) | Hipótesis | Resultado en la suite (s42 / s43 / s44) | Decisión |
+|---|---|---|---|
+| `N2-exp07-ppo-ft-v9` | Continuar el servido de v3 1.5 M de pasos en v9 lleva las 3 semillas por encima del 85 % | 68 / **82** / 81 % | **parcial**: mejor modelo de N2, pero no llega a 85 % en las 3 semillas |
+| `N2-exp08-ppo-curriculo-v9` | La receta de exp06 desde cero (3 M de pasos) en v9 supera el 80 % en las 3 semillas | 11 / 76 / 70 % | **rechazada**: una semilla no aprende |
+
+| Test final `N2-final-v2` (creado antes de entrenar) | Éxito | Choques con conos | Tiempo agotado |
+|---|---|---|---|
+| Regla | 28 % | 70 | 0 |
+| **exp07 · s43** | **82 %** | 6 | 11 |
+| exp08 · s43 | 81 % | 5 | 13 |
+
+**Decisión.** El pipeline promovió `N2-exp07-ppo-ft-v9-s43-ea914db6`: 82 % contra 49 % del modelo anterior
+evaluado en v9. Los fallos que quedan son sobre todo tiempos agotados (10 por cada 100) y algunos roces con
+conos.
+
+### N3 y N4 · freno de emergencia para peatones (`parking-v6` → `v10` → `v11`)
+
+**Diagnóstico.** En los 6 atropellos de N3 (y en los 3 de N4) el modelo veía al peatón a 1–3 m y seguía
+acelerando, hasta 3 m/s. Cuando por fin frenaba ya no alcanzaba a detenerse.
+
+**Intervención 1 (v10, `safety_brake=1`).** Un freno de emergencia tipo AEB.
+- Sin reentrenar ya daba 0 atropellos en la suite, pero el modelo quedaba dudando después de frenar: los tiempos
+  agotados en N3 pasaron de 1 a 7.
+- `N3-exp05` y `N4-exp05` continuaron el servido 500 000 pasos con el freno. Aun así quedaron 2 atropellos en
+  N3 y 1 en N4.
+- Revisándolos paso a paso hubo dos causas:
+  - el peatón daba un paso contra el auto ya detenido, al apartarse sin mirar;
+  - el peatón giraba de golpe frente a un auto a 10 km/h.
+- **Rechazada como versión final.**
+
+**Intervención 2 (v11, `safety_brake=2`).**
+- Zona de precaución: con un peatón cerca adelante, máximo 1.2 m/s.
+- Peatones que nunca caminan contra el auto.
+- Los modelos de v6 y v10 en v11, sin reentrenar: **0 atropellos en 1 500 episodios**.
+
+| Experimento (commit `dd252c3`) | Hipótesis | Resultado en la suite (s42 / s43 / s44) | Atropellos | Decisión |
+|---|---|---|---|---|
+| `N3-exp05-ppo-ft-v10` | Con el freno v10 y 500 000 pasos: 0 atropellos y éxito ≥ v6 | 94 / 94 / 93 % | 2 / 2 / 2 | rechazada (quedan atropellos) |
+| `N4-exp05-ppo-ft-v10` | Ídem en N4 | 92 / 87 / 79 % | 0 / 0 / 1 | rechazada (v10 se reemplaza) |
+| `N3-exp06-ppo-ft-v11` | Continuar el mejor de v10 500 000 pasos en v11: 0 atropellos y menos tiempos agotados | **96** / 93 / 91 % | **0 / 0 / 0** | **aceptada** |
+| `N4-exp06-ppo-ft-v11` | Ídem en N4 | **91** / 87 / 88 % | **0 / 0 / 0** | **aceptada** |
+
+| Test final (creado antes de entrenar en v11) | Regla | Modelo servido | Atropellos del modelo |
+|---|---|---|---|
+| `N3-final-v5` | 43 % | **97 %** (`N3-exp06-ppo-ft-v11-s42-2a9f8d11`) | 0 |
+| `N4-final-v4` | 11 % | **91 %** (`N4-exp06-ppo-ft-v11-s42-4a905c49`) | 0 |
+
+**Decisiones del pipeline (promovidos):**
+- N3: 96 % contra 94 % del servido anterior evaluado en v11.
+- N4: 91 % contra 87 %.
+
+**Sobre los tests finales sin usar.** `N3-final-v4` y `N4-final-v3` se crearon para v10. No se usaron, porque
+v10 se reemplazó antes de elegir un modelo; sus semillas no se reutilizan.
+
+**Limitación.** El freno conoce la posición y velocidad reales del peatón, como un detector perfecto. En un auto
+real dependería de cámaras o radar, con errores.
+
+
+### N2 · pasillo más ancho (`parking-v9` → `parking-v12`)
+
+**Diagnóstico.** Se revisaron los 18 fallos del modelo servido en v9. En 12 de ellos el auto quedaba
+**congelado** (0 m de movimiento en los últimos 60 pasos) frente al cono bloqueante, que estaba a solo 2.5–3 m.
+Con un radio de giro de unos 4 m no alcanzaba a rodearlo sin retroceder.
+
+**Intervención (v12).**
+- Pasillo de 11 m (antes 9 m).
+- Cono bloqueante a 4.5 m o más del arranque.
+- Arranque a 9–12.5 m del cupo.
+
+El modelo servido de v9 pasó de 82 % a 90 % en v12 sin reentrenar.
+
+| Experimento (commit `9c7e793`) | Hipótesis | Resultado en la suite (s42 / s43 / s44) | Decisión |
+|---|---|---|---|
+| `N2-exp09-ppo-ft-v12` | Continuar el servido de v9 1 M de pasos en v12 lleva las 3 semillas a ≥ 90 % | **96** / 84 / 95 % | **aceptada para el modelo**: 2 de 3 semillas superan el 90 % |
+
+| Test final `N2-final-v3` | Éxito | Choques con conos | Tiempo agotado |
+|---|---|---|---|
+| Regla | 15 % | 80 | 0 |
+| **exp09 · s42** | **91 %** | 3 | 6 |
+| exp09 · s44 | 91 % | 1 | 8 |
+
+**Decisión del pipeline.** Se promovió `N2-exp09-ppo-ft-v12-s42-25fea815`: 96 % en la suite contra 89 % del
+servido anterior evaluado en v12. N2 pasa de 80 % (v3) a **96 % en la suite y 91 % en el test final**.
+
+
+### N2 · sin congelarse (`parking-v12` → `parking-v13`)
+
+**Diagnóstico.** En 300 partidas nuevas el modelo de v12 estacionaba **89 %** de las veces, y en 4 % quedaba
+quieto hasta agotar el tiempo. Congelarse 200 pasos costaba ~-40 y chocar un cono -50, así que quedarse quieto era
+la opción «segura».
+
+**Intervención (v13, `stuck_penalty`).** Tras 2 s detenido, cada paso quieto cuesta cada vez más.
+
+| Experimento (commit `9b0d6d1`) | Hipótesis | Resultado en la suite (s42 / s43 / s44) | Decisión |
+|---|---|---|---|
+| `N2-exp10-ppo-ft-v13` | Continuar el servido de v12 1 M de pasos en v13 elimina casi todos los congelamientos sin aumentar los choques | **96** / 95 / 90 % · 0 / 0 / 3 tiempos agotados | **aceptada** |
+
+| 300 partidas nuevas (semillas 5000-5299) | Éxito | Congelado / tiempo agotado | Choques con conos |
+|---|---|---|---|
+| v12 · `N2-exp09-…-s42` | 89.3 % | 14 | 18 |
+| **v13 · `N2-exp10-…-s42`** | **93.0 %** | **2** | 19 |
+
+**Resultados.**
+- Test final `N2-final-v4`: regla 9 %, **exp10 s42 92 %**, exp10 s43 92 %.
+- El pipeline lo promovió: mismo éxito en la suite (96 %) y más rápido (6.8 s contra 7.9 s).
+
+**Pendiente.** Los roces con conos (~6 %) siguen siendo el fallo principal.
+
+
+---
+
+## Nivel 6 · Estacionar en reversa (`configs/levels/N6.json`, `parking-v14`) — experimento en curso
+
+**Qué cambia.** El mismo pasillo de N1, sin conos, sin peatones y sin ruido. Solo cuenta como estacionado si la
+cola queda dentro del cupo y la nariz apunta al pasillo; entrar de frente no vale.
+
+**Verificación del ambiente antes de entrenar.**
+- 0 arranques con choque en 1 000 por etapa.
+- Desde el arranque `tutorial`, retroceder recto y frenar estaciona.
+- El auto de frente dentro del cupo no cuenta como estacionado; en reversa sí (pruebas `test_n6_*`).
+
+| Experimento (commit `590d83d`) | Hipótesis | Resultado | Decisión |
+|---|---|---|---|
+| `N6-exp01-ppo-curriculo` | Currículo de 3 etapas (cola en el cupo → cupo recién pasado → nivel completo; 3 M de pasos) con la receta de N2: las 3 semillas superan a la regla | Ver abajo | **sin conclusión**: detenido |
+| `N6-exp02-ppo-curriculo-grande` | Red 128×128 con lotes más grandes | no se lanzó | pendiente |
+
+**Referencias en `N6-suite-v1`.**
+- Regla: **0 %**. Entra de frente, que no cuenta, y choca (46) o se sale (54).
+- Aleatoria: 0 %.
+
+**Qué pasó con exp01.**
+- Las semillas 42 y 43 **fallaron al arrancar**. Las tres semillas intentaron crear a la vez el experimento
+  `parking-N6` en MLflow y chocaron (restricción de unicidad). No dejaron run ni manifiesto. Corrección: el
+  pipeline ahora usa el experimento si otra semilla ya lo creó.
+- La semilla 44 se **detuvo a mano** a 2.0 M de 3 M de pasos; en MLflow queda como `KILLED` con su diagnóstico.
+  Aprendió la etapa 1 (cola en el cupo: 10 % → 100 %) y en parte la 2 (maniobra corta: 100 % → 62 %). En el
+  nivel completo la validación quedó en **0 %** desde 1.3 M pasos. Se detuvo para liberar el procesador para N4
+  antes de la presentación.
+
+**Siguientes hipótesis.**
+1. Alargar la etapa de la maniobra corta hasta que se sostenga por encima del 80 %, y agregar una etapa
+   intermedia (cupo a 4 m antes de pasarlo) antes del nivel completo.
+2. Probar exp02 (red más grande).
+3. Darle más peso a la alineación por la cola cuando está cerca del cupo.
+
+
+### N4 · conos justos, pasillo de 11 m y sin congelarse (`parking-v11` → `parking-v13`)
+
+**Diagnóstico.** N4 conservaba la colocación de conos de v3. En 300 partidas nuevas el servido de v11 estacionaba
+86 % y chocaba un cono en 5 %.
+
+**Intervención.** Las mismas reglas de N2 (`fair_cones=2`, pasillo de 11 m, `stuck_penalty`), más el freno de
+emergencia de v11. El servido de v11 bajó a 69 % en el nuevo arreglo, así que se reentrenó.
+
+| Experimento (commit `df6cf7f`) | Hipótesis | Resultado en la suite (s42 / s43 / s44) | Decisión |
+|---|---|---|---|
+| `N4-exp07-ppo-ft-v13` | Continuar el servido de v11 1.5 M de pasos en v13 lleva las 3 semillas a ≥ 90 % con menos choques y 0 atropellos | 87 / **95** / 89 % · 0 atropellos | **aceptada para el modelo**: 1 de 3 semillas ≥ 90 % y las 3 por encima de v11 |
+
+| 300 partidas nuevas (semillas 5000-5299, v13) | Éxito | Choques con conos | Tiempo agotado | Atropellos |
+|---|---|---|---|---|
+| servido de v11 · `N4-exp06-…-s42` | 68.7 % | 17 | 76 | 0 |
+| **v13 · `N4-exp07-…-s43`** | **95.0 %** | 5 | 10 | 0 |
+
+**Resultados.**
+- Test final `N4-final-v5`: regla 9 %, **exp07 s43 95 %**, exp07 s44 93 %, 0 atropellos.
+- El pipeline lo promovió: 95 % contra 72 % del anterior en la suite.

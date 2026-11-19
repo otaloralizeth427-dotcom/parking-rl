@@ -128,11 +128,18 @@ episodios (frente a ~0.2 % desde el pasillo).
 | `parking-v6` | Agrega `pedestrians_evade`: los peatones **nunca se quedan quietos**. Si el auto en movimiento está a menos de 0.6 m de su camino y avanzar lo acerca, el peatón da la vuelta y se aleja; si el auto le queda encima, se aparta en la dirección opuesta; si queda arrinconado contra el borde del pasillo, se hace a un lado a lo largo de la fila. Con el auto quieto sigue cruzando. El estado incluye el rumbo del peatón (`heading`) para dibujarlo mirando hacia donde camina. N3 y N4 la usan. |
 | `parking-v7` | Mapa `garage` con pasillos de 6.7 m. Solo lo usaron 4 pilotos de N5; **ya no se reproduce** (v8 cambió la geometría), por eso esos modelos aparecen como «otra versión del nivel». |
 | `parking-v8` | Mapa `garage` (`layout`) con pasillos de 8.5 m, dificultad `roam` y `route_start` (arranques sobre la ruta desde la entrada, a [desde, hasta] m del cupo) para el currículo inverso, potencial por la ruta y castigo por detenerse a medias dentro del cupo. Sin `layout: garage` reproduce v6 exactamente. Solo N5 lo usa. |
+| `parking-v9` | Agrega `fair_cones` (conos «justos»). Ningún cono queda en la zona de giro hacia el cupo (a menos de 4.5 m en x del cupo, en su mitad del pasillo). El cono bloqueante va centrado (\|y\| ≤ 1 m), entre el arranque y el cupo, con más de 3 m libres arriba y abajo y sin otros conos a la par. Dos conos a la par siempre dejan un hueco de 3 m. El arranque es a 6–10 m del cupo. Solo N2 la usa. |
+| `parking-v10` | Agrega `safety_brake=1`: freno de emergencia para peatones (`envs/safety.py`). Si un peatón va a quedar en el recorrido del auto hasta detenerse (proyección de 1.2 s), la acción pasa a FRENAR, y con el auto quieto no lo deja arrancar hacia él. Esperar al peatón no se castiga como «quedarse quieto». La usaron solo los runs `exp05` de N3 y N4: quedaban 2 atropellos y se reemplazó por v11. |
+| `parking-v11` | `safety_brake=2`: además, con un peatón a menos de 4 m adelante el auto no pasa de 1.2 m/s (zona de precaución), y los peatones nunca dan un paso contra el auto (se devuelven o se hacen al otro lado). N3 y N4 la usan. |
+| `parking-v12` | `fair_cones=2` y `aisle_width`. En N2 el pasillo mide 11 m en vez de 9 m (las filas de cupos no cambian), el cono bloqueante queda a 4.5 m o más del arranque (lo que necesita el auto para rodearlo sin retroceder) y el arranque es a 9–12.5 m del cupo. v9 sigue reproducible con `fair_cones=1`. Solo N2 la usa. |
+| `parking-v13` | Agrega `stuck_penalty`. Tras 2 s detenido fuera del cupo, cada paso quieto cuesta 0.05 más, con un tope de 1.0 por paso (esperar a un peatón no cuenta). Solo cambia la recompensa. N2 y N4 la usan; N4 además adopta `fair_cones=2` y el pasillo de 11 m. |
+| `parking-v14` | Agrega `reverse_parking` (N6). Solo cuenta como estacionado con la cola dentro del cupo y la nariz hacia el pasillo. El error de orientación ya no se pliega y va en la observación dividido por π. Arranques de currículo para la reversa: `tutorial` con la cola ya en el cupo y `easy` con el cupo recién pasado. |
 
 ## Simplificaciones
 
 - Movimiento en el plano; sin derrape, inercia lateral ni retardo de actuadores.
 - Acciones discretas: el agente no elige aceleraciones continuas.
-- Los peatones cruzan el pasillo en línea recta y nunca se detienen: si el auto se acerca se alejan o se apartan (v6); los autos estacionados no se mueven.
+- Los peatones cruzan el pasillo en línea recta y nunca se detienen: si el auto se acerca se alejan o se apartan (v6) y no caminan contra el auto (v11); los autos estacionados no se mueven.
+- El freno de emergencia (v10–v11) usa la posición y velocidad reales de los peatones, como si el auto tuviera un detector perfecto; en un auto real dependería de cámaras o radar.
 - Sensores ideales salvo el ruido gaussiano opcional; sin oclusiones parciales ni fallas.
 - La visualización 3D (Three.js) solo representa el estado que entrega Python; no tiene física propia.

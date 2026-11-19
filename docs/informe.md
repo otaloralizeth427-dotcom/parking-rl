@@ -33,10 +33,11 @@ tarea en la vida real:
 | Nivel | Versión del ambiente | Qué agrega |
 |---|---|---|
 | N1 · Misión base | `parking-v2` | Pasillo con dos filas de autos y columnas |
-| N2 · Conos en el pasillo | `parking-v3` | Conos, uno de ellos bloqueando la ruta; 5 sensores de parachoques |
-| N3 · Peatones cruzando | `parking-v6` | Peatones que cruzan y siempre se mueven (ceden o esquivan) |
-| N4 · Todo junto | `parking-v6` | Conos + peatones + ruido en los sensores (σ = 0.1) |
+| N2 · Conos en el pasillo | `parking-v13` | Conos, uno de ellos bloqueando la ruta; 5 sensores de parachoques. Los conos nunca tapan el giro hacia el cupo, el bloqueante se rodea por ambos lados y el pasillo mide 11 m |
+| N3 · Peatones cruzando | `parking-v11` | Peatones que cruzan y siempre se mueven; desde v11, freno de emergencia y zona de precaución |
+| N4 · Todo junto | `parking-v13` | Conos justos + pasillo de 11 m + peatones + ruido en los sensores (σ = 0.1), con el freno de emergencia |
 | N5 · Garaje grande | `parking-v8` | Azotea de 40 × 50 m con 3 filas; hay que rodear el parqueadero para llegar al cupo |
+| N6 · En reversa (en curso) | `parking-v14` | El pasillo de N1, pero solo cuenta si entra con la cola primero |
 
 ## 3. Decisiones clave
 
@@ -55,7 +56,10 @@ tarea en la vida real:
    - **pasillos tan angostos que la maniobra final era casi imposible:** pasillos de 8.5 m (v8).
 6. **Elegir con la suite y confirmar con el test final reservado.** Las semillas del test final no están en
    el repositorio; solo su huella SHA-256. Se crea uno nuevo por cada versión del ambiente.
-7. **Puntero versionado al modelo servido** (`serving/`), con historial, rollback y un pipeline que solo
+7. **Seguridad ante peatones como parte del ambiente (v10–v11).** Un freno de emergencia y una zona de
+   precaución. El aprendizaje por refuerzo bajó los atropellos, pero no los llevaba a cero; con el freno, 0 en
+   los tests finales.
+8. **Puntero versionado al modelo servido** (`serving/`), con historial, rollback y un pipeline que solo
    promueve si el candidato gana en la suite.
 
 ## 4. Resultados
@@ -66,9 +70,9 @@ todos los niveles.
 | Nivel | Regla (suite) | **Modelo servido** (suite) | Test final reservado (regla / modelo) | Modelo servido |
 |---|---|---|---|---|
 | N1 | 49 % | **97 %** · 6.6 s | 53 % / **97 %** (`N1-final-v1`) | `N1-exp03-ppo-s42-64bf7433` |
-| N2 | 18 % | **80 %** · 12.0 s | 13 % / **80 %** (`N2-final-v1`) | `N2-exp06-ppo-curriculo-3m-s44-7f36a120` |
-| N3 | 37 % | **93 %** · 5.9 s | 36 % / **94 %** (`N3-final-v3`) | `N3-exp04-ppo-ft-v6-s43-bd380c76` |
-| N4 | 16 % | **85 %** · 12.0 s | 16 % / **79 %** (`N4-final-v2`) | `N4-exp04-ppo-ft-v6-s43-e098d962` |
+| N2 | 19 % | **96 %** · 6.8 s | 9 % / **92 %** (`N2-final-v4`) | `N2-exp10-ppo-ft-v13-s42-c7bdedfb` |
+| N3 | 43 % | **96 %** · 10.0 s, 0 atropellos | 43 % / **97 %** (`N3-final-v5`) | `N3-exp06-ppo-ft-v11-s42-2a9f8d11` |
+| N4 | 9 % | **95 %** · 11.9 s, 0 atropellos | 9 % / **95 %** (`N4-final-v5`) | `N4-exp07-ppo-ft-v13-s43-a0b9bd2b` |
 | N5 | 30 % | **100 %** · 14.4 s | 21 % / **100 %** (`N5-final-v1`) | `N5-exp05-ppo-inverso-3m-s44-78c82696` |
 
 En total hay **24 configuraciones** de experimento, cada una con hipótesis, y **56 runs completos** en MLflow
@@ -83,13 +87,14 @@ con su manifiesto. Además se conserva **1 run interrumpido** (KILLED), con su d
 | N2 | PPO desde cero con 8 ambientes en paralelo (exp03, exp04) | 0 % en las 6 semillas |
 | N4 | Currículo desde cero | Dejó de ser confiable: 76 % con una semilla y 38 % con otra |
 | N5 | 4 pilotos con pasillos angostos | 10, 0, 7 y 12 %. Diagnóstico: la maniobra final casi no cabía |
+| N6 | Currículo de reversa (exp01) | Aprendió a retroceder con la cola ya en el cupo (100 %), pero en el nivel completo la validación quedó en 0 %; se detuvo y queda en curso |
 
 ## 5. Versionamiento y trazabilidad
 
 - **Código:**
   - ramas `feature/nivel-N` y `fix/...`, unidas a `main` con `--no-ff`;
   - un tag por nivel (`nivel-1-v1.0` … `nivel-5-v1.0`) y un tag de entrega `v1.0`.
-- **Ambiente:** `ENV_VERSION` (`parking-v2` … `parking-v8`). Cada nivel fija su versión en
+- **Ambiente:** `ENV_VERSION` (`parking-v2` … `parking-v14`). Cada nivel fija su versión en
   `configs/levels/NX.json`, y un modelo solo se ofrece en el nivel si coincide (`model_matches_level`).
 - **Configuraciones:**
   - un JSON por experimento, con `hypothesis` y `change_vs_baseline`;
@@ -136,9 +141,10 @@ con su manifiesto. Además se conserva **1 run interrumpido** (KILLED), con su d
 - **Promover o revertir el modelo servido** se hace con commit y push del puntero, que Render vuelve a
   publicar. Desde la web el rollback aplica a la partida del visitante.
 - **N2 y N4 todavía fallan:**
-  - N2: 20 % de los episodios (conos y tiempo agotado);
-  - N4: hasta 21 %, sobre todo por tiempo agotado (10–13 por 100), además de conos y atropellos.
-  - Para un auto real, los atropellos de N3 y N4 (3–6 por 100) siguen siendo inaceptables.
+  - N2: 4–9 % de los episodios (tiempo agotado y algunos roces con conos);
+  - N4: 5 % (tiempo agotado y algunos roces con conos).
+  - Los atropellos de N3 y N4 bajaron a 0 con el freno de emergencia (v11), pero el freno usa la posición real
+    del peatón; un auto real dependería de sensores con errores.
 - **Simplificaciones de la física:** acciones discretas, cinemática sin derrape ni latencia del actuador, y
   peatones con reglas simples. Ver la [ficha](ficha_ambiente.md#simplificaciones).
 - **Entrenamiento y reproducibilidad:** el entrenamiento se hace en un computador del equipo (macOS arm64).
