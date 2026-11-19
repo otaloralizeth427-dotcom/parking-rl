@@ -10,6 +10,9 @@ services:
     autoDeploy: true
     dockerfilePath: ./deploy/Dockerfile
     dockerContext: .
+    # Solo se reconstruye si cambia algo que el servidor usa (no la web ni la documentación)
+    buildFilter:
+      paths: [api/**, agents/**, envs/**, pipelines/**, configs/**, manifests/**, serving/**, artifacts/**, results/**, deploy/Dockerfile, deploy/requirements-serve.txt, render.yaml]
     healthCheckPath: /api/health
     envVars:
       - key: PARKING_PUBLIC
@@ -32,4 +35,6 @@ services:
     autoDeploy: true
     dockerfilePath: ./deploy/mlflow.Dockerfile
     dockerContext: .
+    buildFilter:
+      paths: [registry/**, artifacts/**, deploy/mlflow.Dockerfile, deploy/build_registry.py, render.yaml]
     healthCheckPath: /health

@@ -23,7 +23,7 @@ from starlette.concurrency import run_in_threadpool
 from agents.registry import list_manifests, load_manifest, load_policy
 from agents.rule_based import RuleBasedPolicy
 from agents.serving import load_serving, previous_run, served_run
-from envs.levels import LEVEL_IDS, env_kwargs, load_level, model_matches_level
+from envs.levels import WEB_LEVEL_IDS as LEVEL_IDS, env_kwargs, load_level, model_matches_level
 from envs.parking_env import ACTION_NAMES, ParkingEnv
 
 ROOT = Path(__file__).resolve().parents[1]
