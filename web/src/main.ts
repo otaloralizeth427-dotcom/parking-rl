@@ -8,14 +8,29 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
-import { themeFor } from "./themes.js?v=3";
+import { themeFor } from "./themes";
+import type {
+  CatalogItem, Commands, Config, Frame, Layout, LevelId, Metrics, ResetFrame, Slot, Status, Training,
+} from "./types";
 
-const API_BASE = new URLSearchParams(location.search).get("api") || globalThis.PARKING_API_BASE_URL || "";
-const apiUrl = (path) => `${API_BASE.replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
+// Dirección del servidor de la simulación. En local queda vacía (la web la sirve el mismo servidor);
+// en la versión publicada (Vercel) la fija VITE_API_BASE_URL al construir.
+const API_BASE = (import.meta.env?.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
+// Registro de experimentos (MLflow) publicado; en local, el `mlflow ui` en el puerto 5000
+const MLFLOW_URL = (import.meta.env?.VITE_MLFLOW_URL ?? "http://127.0.0.1:5000").replace(/\/$/, "");
+const MLFLOW_EXPERIMENTS: Record<string, number> = { "parking-N1": 1, "parking-N2": 2, "parking-N3": 3, "parking-N4": 4, "parking-N5": 5 };
+// El nivel va en el link (?level=N3): así cada visitante tiene su partida y la recarga lo conserva
+let currentLevel: LevelId | null = new URLSearchParams(location.search).get("level");
 
-// La paleta inicial se toma del nivel activo; el selector puede cambiar de nivel
-// durante la sesión sin perder el estado de la interfaz.
-const THEME = themeFor(await fetch(apiUrl("api/config")).then((r) => r.json()).then((c) => c.level).catch(() => "N1"));
+// El servidor gratuito se duerme tras un rato sin visitas: si tarda, se avisa en lugar de parecer colgado
+const wakeNotice = setTimeout(() => {
+  const el = document.getElementById("loading");
+  if (el && !el.hidden && el.lastChild) el.lastChild.textContent = "Despertando el servidor… la primera visita puede tardar hasta 1 minuto";
+}, 4000);
+
+// La paleta depende del nivel; al cambiar a un nivel con otra paleta la página se recarga
+const THEME = themeFor(await fetch(`${API_BASE}/api/config${currentLevel ? `?level=${currentLevel}` : ""}`)
+  .then((r) => r.json() as Promise<Config>).then((c) => (currentLevel = c.level)).catch(() => currentLevel ?? "N1"));
 document.documentElement.dataset.theme = THEME.id;
 
 // ============================================================ constantes
@@ -26,39 +41,48 @@ const PALETTE = {
   sensor: 0x38bdf8,
   parked: THEME.parked,
 };
-const STATUS_LABELS = {
+const STATUS_LABELS: Record<Status, string> = {
   idle: "En espera", running: "En curso", paused: "Pausado",
   success: "Estacionado", collision: "Colisión", timeout: "Tiempo agotado",
 };
-const TITLE_LABELS = {
+const TITLE_LABELS: Record<Status, string> = {
   idle: "Parquea el auto", running: "Parquea el auto", paused: "En pausa",
   success: "¡Estacionado!", collision: "¡Choque!", timeout: "Tiempo agotado",
 };
-const COLLISION_LABELS = {
+const COLLISION_LABELS: Record<string, string> = {
   pedestrian: "¡Atropellaste a un peatón!", obstacle: "¡Choque con un obstáculo!", boundary: "¡Te saliste del parqueadero!",
 };
-const COLLISION_CAUSES = { pedestrian: "peatón", obstacle: "obstáculo", boundary: "salida del área" };
+const COLLISION_CAUSES: Record<string, string> = { pedestrian: "peatón", obstacle: "obstáculo", boundary: "salida del área" };
 const BASE_STEP_MS = 200;      // dt del ambiente a velocidad 1×
 const AUTO_RESET_MS = 1800;
 const BRAKE_ACTION = 4;
 const CEILING_H = 5.6;
 
-const $ = (id) => document.getElementById(id);
-const THEMES_DIFFER = (level) => themeFor(level).id !== THEME.id;
+/** Elemento de la página por id (la interfaz se arma en index.html: si falta, es un error de programación). */
+function $<T extends HTMLElement = HTMLElement>(id: string): T {
+  const el = document.getElementById(id);
+  if (!el) throw new Error(`Falta el elemento #${id} en index.html`);
+  return el as T;
+}
+const THEMES_DIFFER = (level: LevelId) => themeFor(level).id !== THEME.id;
 
 // ============================================================ conexión
+type Pending = { resolve: (value: unknown) => void; reject: (err: Error) => void };
+
 class Connection {
-  constructor(onStatus) {
-    this.onStatus = onStatus;
-    this.pending = [];
+  private ws!: WebSocket;
+  private ready!: Promise<void>;
+  private pending: Pending[] = [];
+
+  constructor(private onStatus: (ok: boolean) => void) {
     this.connect();
   }
 
   connect() {
-    const target = new URL(apiUrl("ws"), location.href);
-    target.protocol = target.protocol === "https:" ? "wss:" : "ws:";
-    this.ws = new WebSocket(target.href);
-    this.ready = new Promise((resolve) => (this.ws.onopen = () => { this.onStatus(true); resolve(); }));
+    const base = API_BASE ? new URL(API_BASE) : location;
+    const proto = base.protocol === "https:" ? "wss" : "ws";
+    this.ws = new WebSocket(`${proto}://${base.host}/ws${currentLevel ? `?level=${currentLevel}` : ""}`);
+    this.ready = new Promise<void>((resolve) => (this.ws.onopen = () => { this.onStatus(true); resolve(); }));
     this.ws.onmessage = (event) => {
       const message = JSON.parse(event.data);
       const pending = this.pending.shift();
@@ -73,10 +97,11 @@ class Connection {
   }
 
   // El servidor responde en orden, así que cada respuesta corresponde a la petición más antigua.
-  async send(cmd, payload = {}) {
+  async send<K extends keyof Commands>(cmd: K, payload: Commands[K]["payload"] = {} as Commands[K]["payload"]):
+    Promise<Commands[K]["response"]> {
     await this.ready;
     return new Promise((resolve, reject) => {
-      this.pending.push({ resolve, reject });
+      this.pending.push({ resolve: resolve as (value: unknown) => void, reject });
       this.ws.send(JSON.stringify({ cmd, payload }));
     });
   }
@@ -122,30 +147,31 @@ keyLight.shadow.normalBias = 0.03;
 scene.add(keyLight);
 
 // env (x, y) del simulador → (x, 0, -y) en Three.js; el rumbo θ es rotation.y
-const toWorld = (x, y, h = 0) => new THREE.Vector3(x, h, -y);
+const toWorld = (x: number, y: number, h = 0) => new THREE.Vector3(x, h, -y);
 
-function std(params) {
+function std(params: THREE.MeshStandardMaterialParameters) {
   return new THREE.MeshStandardMaterial({ envMapIntensity: 0.35, ...params });
 }
 
 // Material que supera el umbral del bloom (neón, lámparas, ventanas)
-function glow(color, intensity = 1, params = {}) {
+function glow(color: THREE.ColorRepresentation, intensity = 1, params: THREE.MeshBasicMaterialParameters = {}) {
   const material = new THREE.MeshBasicMaterial({ color, toneMapped: false, ...params });
   material.color.multiplyScalar(intensity);
   return material;
 }
 
-function shadowed(mesh, cast = true, receive = true) {
+function shadowed<T extends THREE.Object3D>(mesh: T, cast = true, receive = true): T {
   mesh.castShadow = cast;
   mesh.receiveShadow = receive;
   return mesh;
 }
 
-function canvasTexture(width, height, draw) {
+function canvasTexture(width: number, height: number,
+                       draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void) {
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
-  draw(canvas.getContext("2d"), width, height);
+  draw(canvas.getContext("2d")!, width, height);
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 8;
@@ -179,7 +205,7 @@ function floorTexture() {
   return texture;
 }
 
-function hazardTexture(repeat) {
+function hazardTexture(repeat: number) {
   const texture = canvasTexture(128, 64, (ctx, w, h) => {
     ctx.fillStyle = "#f5c518";
     ctx.fillRect(0, 0, w, h);
@@ -198,7 +224,7 @@ function hazardTexture(repeat) {
 function pillarTexture() {
   return canvasTexture(128, 512, (ctx, w, h) => {
     const [a, b] = THEME.pillarBands;
-    const bands = [[0, 0.3, a], [0.3, 0.5, b], [0.5, 0.82, a], [0.82, 1, b]];
+    const bands: [number, number, string][] = [[0, 0.3, a], [0.3, 0.5, b], [0.5, 0.82, a], [0.82, 1, b]];
     for (const [a, b, color] of bands) {
       ctx.fillStyle = color;
       ctx.fillRect(0, a * h, w, (b - a) * h + 1);
@@ -269,7 +295,7 @@ function neonTexture() {
   });
 }
 
-function targetTexture(aspect) {
+function targetTexture(aspect: number) {
   const W = 256, H = Math.round(256 * aspect);
   return canvasTexture(W, H, (ctx, w, h) => {
     ctx.strokeStyle = "#ffffff";
@@ -286,7 +312,7 @@ function targetTexture(aspect) {
   });
 }
 
-function labelTexture(text, color = THEME.label) {
+function labelTexture(text: string, color: string = THEME.label) {
   return canvasTexture(256, 128, (ctx, w, h) => {
     ctx.fillStyle = color;
     ctx.font = "600 72px Fredoka, sans-serif";
@@ -296,7 +322,7 @@ function labelTexture(text, color = THEME.label) {
   });
 }
 
-function flatPlane(width, depth, material, x, y, height = 0.01) {
+function flatPlane(width: number, depth: number, material: THREE.Material, x: number, y: number, height = 0.01) {
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(width, depth), material);
   mesh.rotation.x = -Math.PI / 2;
   mesh.position.copy(toWorld(x, y, height));
@@ -304,7 +330,8 @@ function flatPlane(width, depth, material, x, y, height = 0.01) {
   return mesh;
 }
 
-function boxPart(material, size, position, geometry = unitBox) {
+type Vec3 = [number, number, number];
+function boxPart(material: THREE.Material, size: Vec3, position: Vec3, geometry: THREE.BufferGeometry = unitBox) {
   const mesh = shadowed(new THREE.Mesh(geometry, material));
   mesh.scale.set(...size);
   mesh.position.set(...position);
@@ -322,14 +349,14 @@ const pillarMaterials = (() => {
 const ceilingGroup = new THREE.Group();
 let garageBuilt = false;
 
-function addPillar(group, x, y, size = 0.8) {
+function addPillar(group: THREE.Group, x: number, y: number, size = 0.8) {
   const pillar = shadowed(new THREE.Mesh(unitBox, pillarMaterials));
   pillar.scale.set(size, CEILING_H, size);
   pillar.position.copy(toWorld(x, y, CEILING_H / 2));
   group.add(pillar);
 }
 
-function addPlanter(group, x, y) {
+function addPlanter(group: THREE.Group, x: number, y: number) {
   const pot = std({ color: 0xf4f1fb, roughness: 0.4 });
   const leaf = std({ color: 0x3f9b5c, roughness: 0.6, side: THREE.DoubleSide });
   const leafDark = std({ color: 0x2d7a47, roughness: 0.6, side: THREE.DoubleSide });
@@ -352,7 +379,7 @@ function addPlanter(group, x, y) {
   group.add(planter);
 }
 
-function buildGarage(layout) {
+function buildGarage(layout: Layout) {
   const { width: W, height: H } = layout.lot;
   const GX = W / 2 + 3.2, GY = H / 2 + 1.3;    // paredes del edificio
   const group = new THREE.Group();
@@ -436,7 +463,7 @@ function buildGarage(layout) {
   }
 
   // Bordillos con franjas de peligro
-  const addCurb = (x, y, length, alongX) => {
+  const addCurb = (x: number, y: number, length: number, alongX: boolean) => {
     const curb = shadowed(new THREE.Mesh(unitBox, std({ map: hazardTexture(length / 1.2), roughness: 0.6 })));
     curb.scale.set(length, 0.22, 0.34);
     curb.position.copy(toWorld(x, y, 0.11));
@@ -505,7 +532,7 @@ function buildGarage(layout) {
 
 // ============================================================ garaje grande (N5): azotea de noche
 // Mapa abierto con 3 filas, pasillos laterales y entrada abajo. Sin techo, sobre un fondo morado de noche.
-function addLampPost(group, x, y, light = true) {
+function addLampPost(group: THREE.Group, x: number, y: number, light = true) {
   const pole = std({ color: 0x2a2440, roughness: 0.5, metalness: 0.6 });
   group.add(boxPart(pole, [0.14, 4.2, 0.14], [x, 2.1, -y]));
   group.add(boxPart(pole, [0.5, 0.12, 0.5], [x, 0.06, -y]));
@@ -519,7 +546,7 @@ function addLampPost(group, x, y, light = true) {
   }
 }
 
-function addTree(group, x, y, scale = 1) {
+function addTree(group: THREE.Group, x: number, y: number, scale = 1) {
   const trunk = std({ color: 0x5b4636, roughness: 0.9 });
   const leaves = [std({ color: 0x2f8f57, roughness: 0.7 }), std({ color: 0x23704a, roughness: 0.7 })];
   const tree = new THREE.Group();
@@ -538,7 +565,7 @@ function addTree(group, x, y, scale = 1) {
   group.add(tree);
 }
 
-function addGate(group, x, y, side) {
+function addGate(group: THREE.Group, x: number, y: number, side: number) {
   // Caseta con talanquera levantada a cada lado de la entrada
   const booth = std({ color: 0x2c2547, roughness: 0.5, metalness: 0.3 });
   group.add(boxPart(booth, [0.7, 1.5, 0.7], [x, 0.75, -y]));
@@ -557,7 +584,7 @@ function addGate(group, x, y, side) {
   group.add(pivot);
 }
 
-function buildRooftop(layout) {
+function buildRooftop(layout: Layout) {
   const { width: W, height: H } = layout.lot;
   const M = 4;                                         // franja alrededor del área de maniobra
   const group = new THREE.Group();
@@ -579,7 +606,7 @@ function buildRooftop(layout) {
   const wallMat = std({ color: THEME.wall, roughness: 0.6 });
   const capMat = glow(THEME.neon.stroke, 1.6);
   const gx = W / 2 + 0.25, gy = H / 2 + 0.25;
-  const parapet = (x, y, lx, ly) => {
+  const parapet = (x: number, y: number, lx: number, ly: number) => {
     group.add(boxPart(wallMat, [lx, 1.0, ly], [x, 0.5, -y]));
     group.add(boxPart(capMat, [lx + 0.04, 0.06, ly + 0.04], [x, 1.03, -y]));
   };
@@ -649,7 +676,7 @@ function buildRooftop(layout) {
   arrowShape.lineTo(1.1, 0); arrowShape.lineTo(0.2, 0.55); arrowShape.lineTo(0.2, 0.2);
   arrowShape.lineTo(-1.0, 0.2); arrowShape.closePath();
   const arrowGeo = new THREE.ShapeGeometry(arrowShape);
-  const arrow = (x, y, dir) => {
+  const arrow = (x: number, y: number, dir: number) => {
     const a = new THREE.Mesh(arrowGeo, paint);
     a.rotation.set(-Math.PI / 2, 0, dir);
     a.position.copy(toWorld(x, y, 0.013));
@@ -657,7 +684,7 @@ function buildRooftop(layout) {
   };
   // Centro de cada pasillo: entre el frente de su fila y lo que haya debajo (bordillo o fila siguiente)
   const aisleYs = rowIds.map((r) => {
-    const slot = layout.slots.find((s) => s.row === r);
+    const slot = layout.slots.find((s) => s.row === r)!;     // rowIds sale de los mismos cupos
     return slot.y + slot.opening * slot.depth / 2 + slot.opening * 4.25;
   });
   for (const y of [-14, 0, 14]) { arrow(16, y, Math.PI / 2); arrow(-16, y, -Math.PI / 2); }
@@ -693,7 +720,7 @@ const WHEEL_RADIUS = MODEL_WHEEL_RADIUS * CAR_SCALE;
 const HIDDEN_PARTS = ["steering_wheel", "carpet", "leather"];   // interior no visible tras el vidrio
 const WHEEL_NAMES = ["wheel_fl", "wheel_fr", "wheel_rl", "wheel_rr"];
 const INTERIOR_MATERIALS = ["Interior_light", "Interior_dark", "Leather", "Leather_red", "Carpet"];
-let carTemplate = null;
+let carTemplate: THREE.Group | null = null;
 
 const arrowGeometry = (() => {
   const shape = new THREE.Shape();
@@ -710,14 +737,14 @@ const sharedMats = {
   head: new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xf4f0ff, emissiveIntensity: 0.35 }),
   tail: new THREE.MeshStandardMaterial({ color: 0x8a1020, emissive: 0xff2a3a, emissiveIntensity: 0.35 }),
 };
-const paintCache = new Map();
-function paintMaterial(color) {
+const paintCache = new Map<number, THREE.MeshPhysicalMaterial>();
+function paintMaterial(color: number): THREE.MeshPhysicalMaterial {
   if (!paintCache.has(color)) {
     paintCache.set(color, new THREE.MeshPhysicalMaterial({
       color, metalness: 0.6, roughness: 0.25, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 1.1,
     }));
   }
-  return paintCache.get(color);
+  return paintCache.get(color)!;
 }
 
 async function loadCarModel() {
@@ -726,11 +753,13 @@ async function loadCarModel() {
   const model = gltf.scene;
   HIDDEN_PARTS.forEach((name) => model.getObjectByName(name)?.removeFromParent());
   model.traverse((o) => {
-    if (!o.isMesh) return;
-    o.castShadow = o.receiveShadow = true;
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    mesh.castShadow = mesh.receiveShadow = true;
     // Acentos amarillos originales de la marca → gris oscuro; interior oscuro como vidrio polarizado
-    if (o.material.name === "Ferrari_Yellow") o.material = sharedMats.details;
-    else if (INTERIOR_MATERIALS.includes(o.material.name)) o.material = sharedMats.interior;
+    const name = (mesh.material as THREE.Material).name;
+    if (name === "Ferrari_Yellow") mesh.material = sharedMats.details;
+    else if (INTERIOR_MATERIALS.includes(name)) mesh.material = sharedMats.interior;
   });
   for (const name of WHEEL_NAMES) {
     if (!model.getObjectByName(name)) throw new Error(`El modelo no tiene la rueda ${name}`);
@@ -744,7 +773,15 @@ async function loadCarModel() {
   carTemplate = model;
 }
 
-function makeCar({ color, ego = false }) {
+interface CarParts {
+  group: THREE.Group;
+  bodyMat: THREE.MeshPhysicalMaterial;
+  tailMat: THREE.MeshStandardMaterial;
+  wheels: THREE.Object3D[];
+  steerPivots: THREE.Group[];
+}
+
+function makeCar({ color, ego = false }: { color: number; ego?: boolean }): CarParts {
   if (!carTemplate) throw new Error("El modelo del auto aún no se ha cargado");
   const group = new THREE.Group();
   const model = carTemplate.clone(true);
@@ -756,8 +793,8 @@ function makeCar({ color, ego = false }) {
     tailMat.emissiveIntensity = 1.2;
     headMat.emissiveIntensity = 2.4;
   }
-  const setMaterial = (name, material) => {
-    model.getObjectByName(name)?.traverse((o) => { if (o.isMesh) o.material = material; });
+  const setMaterial = (name: string, material: THREE.Material) => {
+    model.getObjectByName(name)?.traverse((o) => { if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).material = material; });
   };
   setMaterial("body", bodyMat);
   setMaterial("glass", sharedMats.glass);
@@ -768,14 +805,14 @@ function makeCar({ color, ego = false }) {
   ["rim_fl", "rim_fr", "rim_rl", "rim_rr"].forEach((name) => setMaterial(name, sharedMats.details));
 
   // Las ruedas delanteras se montan en un pivote para poder girar la dirección
-  const wheels = [], steerPivots = [];
+  const wheels: THREE.Object3D[] = [], steerPivots: THREE.Group[] = [];
   for (const name of WHEEL_NAMES) {
-    const wheel = model.getObjectByName(name);
+    const wheel = model.getObjectByName(name)!;          // loadCarModel ya comprobó que existen
     wheels.push(wheel);
     if (name.startsWith("wheel_f")) {
       const pivot = new THREE.Group();
       pivot.position.copy(wheel.position);
-      wheel.parent.add(pivot);
+      wheel.parent!.add(pivot);
       wheel.position.set(0, 0, 0);
       pivot.add(wheel);
       steerPivots.push(pivot);
@@ -786,7 +823,7 @@ function makeCar({ color, ego = false }) {
 
 // ============================================================ vehículo controlado
 // El grupo existe desde el inicio; la carrocería se agrega cuando termina de cargar el modelo
-const ego = {
+const ego: CarParts = {
   group: new THREE.Group(), wheels: [], steerPivots: [],
   bodyMat: paintMaterial(PALETTE.ego).clone(), tailMat: sharedMats.tail.clone(),
 };
@@ -831,9 +868,9 @@ sensorGroup.position.y = 0.55;
 ego.group.add(sensorGroup);
 const beamGeo = new THREE.BoxGeometry(1, 0.035, 0.035).translate(0.5, 0, 0);
 const hitGeo = new THREE.SphereGeometry(0.11, 12, 8);
-const sensors = [];
+const sensors: { beam: THREE.Mesh; hit: THREE.Mesh; material: THREE.MeshBasicMaterial }[] = [];
 const dangerColor = new THREE.Color(PALETTE.collision);
-function ensureSensors(count) {
+function ensureSensors(count: number) {
   while (sensors.length < count) {
     const material = new THREE.MeshBasicMaterial({ color: PALETTE.sensor, transparent: true, opacity: 0.8, depthWrite: false, toneMapped: false });
     const beam = new THREE.Mesh(beamGeo, material);
@@ -856,7 +893,7 @@ targetMark.position.y = 0.02;
 target.add(targetGlow, targetMark);
 scene.add(target);
 
-function placeTarget(info, slot) {
+function placeTarget(info: { x: number; y: number }, slot: Slot) {
   const w = slot.width - 0.35, d = slot.depth - 0.35;
   target.position.copy(toWorld(info.x, info.y));
   target.rotation.y = (slot.opening ?? (info.y > 0 ? -1 : 1)) < 0 ? 0 : Math.PI;   // la "P" se lee desde el pasillo
@@ -873,12 +910,12 @@ const coneBandMat = std({ color: 0xffffff, roughness: 0.3, emissive: 0x333333 })
 const coneGeo = new THREE.ConeGeometry(0.2, 0.72, 24);
 const coneBandGeo = new THREE.CylinderGeometry(0.115, 0.14, 0.12, 24);
 
-function buildObstacles(layout) {
+function buildObstacles(layout: Layout) {
   obstacleGroup.clear();
   for (const o of layout.obstacles) {
     if (o.kind === "car") {
       // Los autos estacionados miran hacia el pasillo
-      const car = makeCar({ color: PALETTE.parked[o.color % PALETTE.parked.length] });
+      const car = makeCar({ color: PALETTE.parked[(o.color ?? 0) % PALETTE.parked.length] });
       car.group.position.copy(toWorld(o.x, o.y));
       const facing = o.facing ?? (o.y > 0 ? -1 : 1);   // hacia dónde abre su cupo
       car.group.rotation.y = o.angle + (facing > 0 ? Math.PI / 2 : -Math.PI / 2);
@@ -911,9 +948,10 @@ const PERSON = {
   head: new THREE.SphereGeometry(0.13, 16, 12),
   hairCap: new THREE.SphereGeometry(0.135, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2),
 };
-const pedestrianMeshes = [];
+interface PedestrianMesh { group: THREE.Group; limbs: THREE.Group[]; phase: number; last: { x: number; y: number } | null }
+const pedestrianMeshes: PedestrianMesh[] = [];
 
-function capsule(material, radius, length, y) {
+function capsule(material: THREE.Material, radius: number, length: number, y: number) {
   const mesh = shadowed(new THREE.Mesh(PERSON.limb, material), true, false);
   mesh.scale.set(radius, length / 2, radius);
   mesh.position.y = y;
@@ -921,7 +959,7 @@ function capsule(material, radius, length, y) {
 }
 
 // Persona estilizada que mira hacia +x; piernas y brazos giran desde cadera y hombro
-function makePedestrian(index) {
+function makePedestrian(index: number): PedestrianMesh {
   const group = new THREE.Group();
   const shirt = PERSON.shirts[index % PERSON.shirts.length];
   const skin = PERSON.skin[index % PERSON.skin.length];
@@ -931,11 +969,12 @@ function makePedestrian(index) {
   const hair = new THREE.Mesh(PERSON.hairCap, PERSON.hair);
   hair.position.y = 1.68;
   group.add(head, hair);
-  const limbs = [];
-  for (const [y, z, material, radius, length] of [
+  const limbs: THREE.Group[] = [];
+  const parts: [number, number, THREE.Material, number, number][] = [
     [0.92, 0.09, PERSON.pants, 0.075, 0.72], [0.92, -0.09, PERSON.pants, 0.075, 0.72],
     [1.44, 0.24, skin, 0.05, 0.5], [1.44, -0.24, skin, 0.05, 0.5],
-  ]) {
+  ];
+  for (const [y, z, material, radius, length] of parts) {
     const pivot = new THREE.Group();
     pivot.position.set(0, y, z);
     pivot.add(capsule(material, radius, length, -length / 2 - radius));
@@ -946,7 +985,7 @@ function makePedestrian(index) {
   return { group, limbs, phase: 0, last: null };
 }
 
-function ensurePedestrians(count) {
+function ensurePedestrians(count: number) {
   while (pedestrianMeshes.length < count) pedestrianMeshes.push(makePedestrian(pedestrianMeshes.length));
   pedestrianMeshes.forEach((p, i) => {
     p.group.visible = i < count;
@@ -978,7 +1017,7 @@ function renderPedestrians() {
 
 // ============================================================ trayectoria
 const TRAIL_MAX = 800;
-const trailPoints = [];
+const trailPoints: { x: number; y: number }[] = [];
 const trailMesh = new THREE.Mesh(new THREE.BufferGeometry(),
   new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.9, depthWrite: false, toneMapped: false }));
 trailMesh.position.y = 0.024;
@@ -987,7 +1026,7 @@ scene.add(trailMesh);
 function rebuildTrail() {
   const n = trailPoints.length;
   if (n < 2) { trailMesh.geometry.setDrawRange(0, 0); return; }
-  const positions = new Float32Array(n * 6), colors = new Float32Array(n * 6), indices = [];
+  const positions = new Float32Array(n * 6), colors = new Float32Array(n * 6), indices: number[] = [];
   const color = new THREE.Color(), dim = new THREE.Color(THEME.trail[0]), bright = new THREE.Color(THEME.trail[1]);
   for (let i = 0; i < n; i++) {
     const a = trailPoints[Math.max(0, i - 1)], b = trailPoints[Math.min(n - 1, i + 1)];
@@ -1008,7 +1047,7 @@ function rebuildTrail() {
   geo.computeBoundingSphere();
 }
 
-function pushTrail(x, y) {
+function pushTrail(x: number, y: number) {
   const last = trailPoints[trailPoints.length - 1];
   if (last && Math.hypot(last.x - x, last.y - y) < 0.12) return;
   trailPoints.push({ x, y });
@@ -1017,22 +1056,43 @@ function pushTrail(x, y) {
 }
 
 // ============================================================ estado de la simulación
-const sim = {
+interface Pose {
+  x: number; y: number; heading: number; steer: number; sensors: number[];
+  peds: { x: number; y: number }[];
+}
+
+interface Sim {
+  running: boolean; inFlight: boolean; lastStepAt: number; episodeOver: boolean; autoResetAt: number;
+  speed: number; camera: CameraMode; showSensors: boolean; showTrail: boolean; level: LevelId;
+  frame: Frame | null; carHalf: [number, number];
+  from: Pose | null; to: Pose | null; animStart: number; animDuration: number;
+  pose: Pose; statusAt: number;
+  agent: string | null; held: number | null;
+  queue: Frame[]; fetching: boolean; epoch: number; serverDone: boolean;
+  garage: boolean; canTrain: boolean; catalog: CatalogItem[]; serving: Config["serving"];
+}
+
+const sim: Sim = {
   running: false, inFlight: false, lastStepAt: 0, episodeOver: false, autoResetAt: 0,
   speed: 1, camera: "orbit", showSensors: true, showTrail: true, level: "N2",
   frame: null, carHalf: [2.1, 0.9],
   from: null, to: null, animStart: 0, animDuration: BASE_STEP_MS,
-  pose: { x: 0, y: 0, heading: 0, steer: 0, sensors: [] },
+  pose: { x: 0, y: 0, heading: 0, steer: 0, sensors: [], peds: [] },
   statusAt: 0,
   agent: null, held: null,   // held: acción que el usuario mantiene presionada en modo manual
+  // Pasos del agente pedidos por adelantado: el servidor calcula varios por petición y aquí se
+  // reproducen uno a uno, así la demora de internet no frena la animación.
+  queue: [], fetching: false, epoch: 0, serverDone: false,
+  garage: false, canTrain: false, catalog: [], serving: null,
 };
 const stepInterval = () => BASE_STEP_MS / sim.speed;
+const batchSize = () => Math.min(64, Math.max(4, Math.ceil(1000 / stepInterval())));   // ~1 s de juego
 
-function lerpAngle(a, b, t) {
+function lerpAngle(a: number, b: number, t: number) {
   return a + Math.atan2(Math.sin(b - a), Math.cos(b - a)) * t;
 }
 
-function poseFromFrame(frame) {
+function poseFromFrame(frame: Frame): Pose {
   return {
     x: frame.car.x, y: frame.car.y, heading: frame.car.heading, steer: frame.car.steer,
     sensors: frame.sensors.map((s) => s.distance),
@@ -1040,12 +1100,14 @@ function poseFromFrame(frame) {
   };
 }
 
-function applyReset(frame) {
+function applyReset(frame: ResetFrame) {
   sim.garage = frame.layout.kind === "garage";
   if (!garageBuilt) (sim.garage ? buildRooftop : buildGarage)(frame.layout);
   sim.carHalf = [frame.car.length / 2, frame.car.width / 2];
   buildObstacles(frame.layout);
-  placeTarget(frame.target, frame.layout.slots.find((s) => s.id === frame.target.id));
+  const targetSlot = frame.layout.slots.find((s) => s.id === frame.target.id);
+  if (!targetSlot) throw new Error(`El cupo objetivo ${frame.target.id} no está en el mapa`);
+  placeTarget(frame.target, targetSlot);
   ensureSensors(frame.sensors.length);
   ensurePedestrians(frame.pedestrians.length);
   sim.pose = poseFromFrame(frame);
@@ -1057,7 +1119,7 @@ function applyReset(frame) {
   applyFrame(frame, false);
 }
 
-function applyFrame(frame, animate = true) {
+function applyFrame(frame: Frame, animate = true) {
   sim.frame = frame;
   if (animate) {
     sim.from = { ...sim.pose, sensors: [...sim.pose.sensors], peds: sim.pose.peds.map((p) => ({ ...p })) };
@@ -1077,8 +1139,8 @@ function applyFrame(frame, animate = true) {
   updateTraining(frame.training);
 }
 
-function updatePose(now) {
-  if (!sim.to) return;
+function updatePose(now: number) {
+  if (!sim.to || !sim.from) return;
   const t = Math.min(1, (now - sim.animStart) / sim.animDuration);
   const { from, to } = sim;
   sim.pose = {
@@ -1097,7 +1159,7 @@ function updatePose(now) {
 // ============================================================ render por frame
 const prevPos = new THREE.Vector2();
 
-function renderCar(now) {
+function renderCar(now: number) {
   const { pose } = sim;
   ego.group.position.copy(toWorld(pose.x, pose.y));
   ego.group.rotation.y = pose.heading;
@@ -1126,7 +1188,7 @@ function renderCar(now) {
   sensorGroup.visible = sim.showSensors;
   sim.frame?.sensors.forEach((s, i) => {
     const sensor = sensors[i];
-    const range = s.range ?? sim.frame.sensor_range ?? 8;
+    const range = s.range ?? sim.frame?.sensor_range ?? 8;
     const c = Math.cos(s.angle), sn = Math.sin(s.angle);
     const dist = Math.max(pose.sensors[i] ?? s.distance, 0.02);
     // Rayos radiales: salen del borde de la carrocería. Parachoques: desde su punto (adelante, izquierda)
@@ -1150,14 +1212,15 @@ function renderCar(now) {
 
 const cameraTween = { active: false, start: 0, fromPos: new THREE.Vector3(), fromTarget: new THREE.Vector3(),
   toPos: new THREE.Vector3(), toTarget: new THREE.Vector3() };
-const CAMERA_PRESETS = {
+type CameraMode = "orbit" | "top" | "follow";
+const CAMERA_PRESETS: Record<Exclude<CameraMode, "follow">, { pos: Vec3; target: Vec3 }> = {
   orbit: { pos: [0, 10, 15.5], target: [0, 0, -0.5] },
   top: { pos: [0, 40, 0.01], target: [0, 0, 0] },
 };
 
-function setCamera(mode) {
+function setCamera(mode: CameraMode) {
   sim.camera = mode;
-  document.querySelectorAll("#camera-select button").forEach((b) => b.classList.toggle("active", b.dataset.camera === mode));
+  document.querySelectorAll<HTMLElement>("#camera-select button").forEach((b) => b.classList.toggle("active", b.dataset.camera === mode));
   controls.enabled = false;
   if (mode === "follow") return;
   Object.assign(cameraTween, { active: true, start: performance.now() });
@@ -1167,7 +1230,7 @@ function setCamera(mode) {
   cameraTween.toTarget.set(...CAMERA_PRESETS[mode].target);
 }
 
-function updateCamera(dt) {
+function updateCamera(dt: number) {
   if (sim.camera === "follow") {
     const { x, y, heading } = sim.pose;
     const back = toWorld(x - Math.cos(heading) * 7, y - Math.sin(heading) * 7, 3.2);
@@ -1204,15 +1267,21 @@ function resize() {
 new ResizeObserver(resize).observe(viewport);
 
 let lastFrameTime = performance.now();
-function tick(now) {
+function tick(now: number) {
   const dt = Math.min(0.1, (now - lastFrameTime) / 1000);
   lastFrameTime = now;
   if (sim.running && !sim.inFlight) {
     if (sim.episodeOver && now >= sim.autoResetAt) doReset();
-    else if (!sim.episodeOver && now - sim.lastStepAt >= stepInterval()) {
+    else if (!sim.episodeOver && sim.agent !== "manual") {
+      if (!sim.fetching && !sim.serverDone && sim.queue.length <= batchSize() / 2) fetchSteps();
+      const next = sim.queue.length && now - sim.lastStepAt >= stepInterval() ? sim.queue.shift() : undefined;
+      if (next) {
+        applyFrame(next);
+        sim.lastStepAt = now;
+      }
+    } else if (!sim.episodeOver && sim.held !== null && now - sim.lastStepAt >= stepInterval()) {
       // En modo manual el tiempo solo avanza mientras se mantiene presionada una acción
-      if (sim.agent !== "manual") doStep();
-      else if (sim.held !== null) doStep(sim.held);
+      doStep(sim.held);
     }
   }
   updatePose(now);
@@ -1224,37 +1293,44 @@ function tick(now) {
 }
 
 // ============================================================ HUD y panel
-const connection = new Connection((ok) => {
-  if (!ok) $("loading").lastChild.textContent = "Sin conexión con el servidor. Reintentando…";
-});
-
-function showError(err) {
-  const el = $("error");
-  el.textContent = err.message ?? String(err);
-  el.hidden = false;
-  $("panel").classList.add("open");
-  clearTimeout(showError.timer);
-  showError.timer = setTimeout(() => (el.hidden = true), 5000);
+function loadingText(text: string) {
+  const el = $("loading");
+  if (el.lastChild) el.lastChild.textContent = text;
 }
 
-function showBanner(status, collisionKind) {
+let noticeTimer: ReturnType<typeof setTimeout> | undefined;
+const connection = new Connection((ok) => {
+  if (!ok) loadingText("Sin conexión con el servidor. Reintentando…");
+});
+
+function showError(err: unknown) {
+  const el = $("error");
+  el.textContent = err instanceof Error ? err.message : String(err);
+  el.hidden = false;
+  $("panel").classList.add("open");
+  clearTimeout(noticeTimer);
+  noticeTimer = setTimeout(() => (el.hidden = true), 5000);
+}
+
+function showBanner(status: Frame["status"], collisionKind: Frame["collision_kind"]) {
   const el = $("banner");
   el.textContent = status === "collision"
-    ? COLLISION_LABELS[collisionKind] ?? "¡Choque!"
-    : { success: "¡Estacionado correctamente!", timeout: "Tiempo agotado" }[status];
+    ? COLLISION_LABELS[collisionKind ?? ""] ?? "¡Choque!"
+    : status === "success" ? "¡Estacionado correctamente!" : "Tiempo agotado";
   el.className = `banner ${status}`;
   el.hidden = false;
   const flash = $("flash");
-  flash.style.setProperty("--flash", { success: "rgba(34,197,94,0.55)", collision: "rgba(239,68,68,0.65)", timeout: "rgba(245,158,11,0.45)" }[status]);
+  const FLASH: Record<string, string> = { success: "rgba(34,197,94,0.55)", collision: "rgba(239,68,68,0.65)", timeout: "rgba(245,158,11,0.45)" };
+  flash.style.setProperty("--flash", FLASH[status] ?? FLASH.timeout);
   flash.classList.add("on");
   setTimeout(() => flash.classList.remove("on"), 700);
 }
 
-const setText = (id, text) => ($(id).textContent = text);
-const degrees = (rad) => `${Math.round((rad * 180) / Math.PI)}°`;
+const setText = (id: string, text: string | number) => ($(id).textContent = String(text));
+const degrees = (rad: number) => `${Math.round((rad * 180) / Math.PI)}°`;
 
-function updateHud(frame) {
-  let status = frame.status;
+function updateHud(frame: Frame) {
+  let status: Status = frame.status;
   if (status === "running" && !sim.running) status = frame.steps === 0 ? "idle" : "paused";
   $("hud-title").dataset.state = status;
   setText("hud-title-text", sim.garage && ["idle", "running"].includes(status) ? "Encuentra el espacio libre" : TITLE_LABELS[status]);
@@ -1283,12 +1359,16 @@ function updateHud(frame) {
   setText("m-trained", m
     ? `Ambiente ${frame.environment_version} · commit ${m.git_commit?.slice(0, 7) ?? "?"} · semilla ${m.seed} · sha256 ${m.model_sha256?.slice(0, 10)}…`
     : `Ambiente ${frame.environment_version} · ${frame.mode}`);
-  $("agent-select").value = frame.agent;
-  $("btn-train").disabled = frame.training.running || !sim.canTrain;
+  const link = $<HTMLAnchorElement>("m-mlflow");
+  const exp = m?.mlflow_experiment ? MLFLOW_EXPERIMENTS[m.mlflow_experiment] : undefined;
+  link.hidden = !(m?.mlflow_run_id && exp);
+  if (m?.mlflow_run_id && exp) link.href = `${MLFLOW_URL}/#/experiments/${exp}/runs/${m.mlflow_run_id}`;
+  $<HTMLSelectElement>("agent-select").value = frame.agent;
+  $<HTMLButtonElement>("btn-train").disabled = frame.training.running || !sim.canTrain;
 }
 
 let wasTraining = false;
-function updateTraining(training) {
+function updateTraining(training: Training) {
   if (training.running || training.total) {
     $("train-bar").style.width = `${(100 * training.episode) / Math.max(1, training.total)}%`;
     setText("train-label", training.running
@@ -1302,17 +1382,17 @@ function updateTraining(training) {
   wasTraining = training.running;
 }
 
-function drawSparkline(values) {
-  const canvas = $("sparkline");
+function drawSparkline(values: number[]) {
+  const canvas = $<HTMLCanvasElement>("sparkline");
   const ratio = devicePixelRatio || 1;
   const w = canvas.clientWidth, h = canvas.clientHeight;
   canvas.width = w * ratio;
   canvas.height = h * ratio;
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d")!;
   ctx.scale(ratio, ratio);
   if (values.length < 2) return;
   const min = Math.min(...values), max = Math.max(...values), span = max - min || 1;
-  const y = (v) => h - 4 - ((v - min) / span) * (h - 8);
+  const y = (v: number) => h - 4 - ((v - min) / span) * (h - 8);
   if (min < 0 && max > 0) {
     ctx.strokeStyle = THEME.sparkAxis;
     ctx.setLineDash([3, 3]);
@@ -1335,7 +1415,7 @@ function drawSparkline(values) {
 async function refreshConfig() {
   const config = await connection.send("config");
   // Catálogo del nivel: referencias y modelos registrados (los fallidos aparecen deshabilitados)
-  $("agent-select").replaceChildren(...config.agents.map((a) => {
+  $<HTMLSelectElement>("agent-select").replaceChildren(...config.agents.map((a) => {
     const option = document.createElement("option");
     option.value = a.id;
     const rate = a.test_success_rate == null ? "" : ` · éxito ${Math.round(a.test_success_rate * 100)}%`;
@@ -1344,16 +1424,10 @@ async function refreshConfig() {
     option.disabled = !a.available;
     return option;
   }));
-  $("agent-select").value = config.agent;
-  $("compare-select").replaceChildren(...config.agents.filter((a) => a.available && !["random", "rule", "manual"].includes(a.id)).map((a) => {
-    const option = document.createElement("option");
-    option.value = a.id;
-    option.textContent = `${a.label} · ${a.test_success_rate == null ? "—" : Math.round(a.test_success_rate * 100) + "%"}`;
-    return option;
-  }));
+  $<HTMLSelectElement>("agent-select").value = config.agent;
   renderModelCard(config.agents.find((a) => a.id === config.agent));
   setManual(config.agent === "manual");
-  $("difficulty").replaceChildren(...config.levels.map((l) => {
+  $<HTMLSelectElement>("difficulty").replaceChildren(...config.levels.map((l) => {
     const option = document.createElement("option");
     option.value = l.id;
     option.textContent = `${l.id} · ${l.name}`;
@@ -1361,46 +1435,200 @@ async function refreshConfig() {
   }));
   sim.level = config.level;
   sim.canTrain = config.can_train;
-  $("difficulty").value = config.level;
+  $<HTMLSelectElement>("difficulty").value = config.level;
+  $("train-section").hidden = !config.can_train;      // en la versión publicada se entrena en local
+  sim.catalog = config.agents;
+  sim.serving = config.serving;
+  renderServing();
+  renderEvalChoices();
   return config;
 }
 
-function renderModelCard(item) {
+// ============================================================ modelo servido y rollback
+const shortRun = (id: string | null | undefined) => id?.replace(/-[0-9a-f]{8}$/, "") ?? "—";
+
+function renderServing() {
+  const s = sim.serving;
+  $<HTMLButtonElement>("btn-rollback").disabled = !s?.previous;
+  $<HTMLButtonElement>("btn-use-served").disabled = !s;
+  if (!s) {
+    setText("srv-current", "Este nivel no tiene puntero de modelo servido: se usa el de mayor éxito en la suite.");
+    $("srv-history").replaceChildren();
+    return;
+  }
+  const c = s.current;
+  const rate = c.test_success_rate == null ? "" : ` · éxito en la suite ${Math.round(c.test_success_rate * 100)}%`;
+  setText("srv-current", `${shortRun(c.run_id)}${rate} · ${c.environment_version} · sha256 ${c.model_sha256.slice(0, 10)}…`);
+  const ACTIONS = { promote: "Promovido", rollback: "Rollback" };
+  $("srv-history").replaceChildren(...[...s.history].reverse().map((h) => {
+    const li = document.createElement("li");
+    const b = document.createElement("b");
+    b.textContent = `${ACTIONS[h.action] ?? h.action} · ${shortRun(h.run_id)}`;
+    li.append(b, ` — ${h.at.slice(0, 10)} · ${h.reason}`);
+    return li;
+  }));
+}
+
+async function useAgent(id: string, note?: string) {
+  try {
+    await connection.send("agent", { agent: id });
+    $<HTMLSelectElement>("agent-select").value = id;
+    renderModelCard(sim.catalog.find((a) => a.id === id));
+    setManual(false);
+    await doReset();
+    setText("eval-note", "");
+    if (note) showNotice(note);
+  } catch (err) { showError(err); }
+}
+
+$<HTMLButtonElement>("btn-use-served").onclick = () => sim.serving && useAgent(sim.serving.current.run_id,
+  `Maneja el modelo servido: ${shortRun(sim.serving.current.run_id)}`);
+$<HTMLButtonElement>("btn-rollback").onclick = () => sim.serving?.previous && useAgent(sim.serving.previous,
+  `Rollback en esta partida: ahora maneja ${shortRun(sim.serving.previous)} (versión anterior). ` +
+  "El rollback oficial queda en git con «python -m agents.serving rollback».");
+
+function showNotice(text: string) {
+  const el = $("error");
+  el.textContent = text;
+  el.classList.add("info");
+  el.hidden = false;
+  clearTimeout(noticeTimer);
+  noticeTimer = setTimeout(() => { el.hidden = true; el.classList.remove("info"); }, 7000);
+}
+
+// ============================================================ ficha del modelo elegido
+// Hipótesis del experimento y métricas guardadas en su manifiesto (suite fija). «Activar esta versión»
+// cambia el modelo solo en la partida de este visitante.
+const BASELINE_IDS = ["random", "rule", "manual"];
+
+function renderModelCard(item: CatalogItem | undefined) {
   const card = $("model-card");
-  if (!item || ["random", "rule", "manual"].includes(item.id)) {
+  if (!item || BASELINE_IDS.includes(item.id)) {
     card.hidden = true;
     return;
   }
   card.hidden = false;
-  setText("model-card-title", `${item.label} · ${item.status}`);
+  setText("model-card-title", `${item.label} · ${item.status ?? ""}`);
   setText("model-card-hypothesis", item.hypothesis || "Sin hipótesis registrada.");
-  const summary = item.outcomes || {};
-  $("model-card-metrics").replaceChildren(...[
-    ["Éxito", item.test_success_rate == null ? "—" : `${Math.round(item.test_success_rate * 100)}%`],
-    ["Retorno", item.mean_return == null ? "—" : Number(item.mean_return).toFixed(1)],
-    ["Tiempo", item.test_mean_time_s == null ? "—" : `${Number(item.test_mean_time_s).toFixed(1)} s`],
-    ["Choques", summary.obstacle ?? 0], ["Atropellos", summary.pedestrian ?? 0],
-    ["Timeout", summary.timeout ?? 0],
-  ].map(([label, value]) => { const el = document.createElement("span"); el.textContent = `${label}: ${value}`; return el; }));
-  const button = $("btn-model-evaluation");
-  button.hidden = !item.evaluation_suite_id;
-  button.onclick = async () => {
+  const outcomes = item.outcomes ?? {};
+  $("model-card-metrics").replaceChildren(...([
+    ["Éxito", item.test_success_rate == null ? "—" : pct(item.test_success_rate)],
+    ["Retorno", item.mean_return == null ? "—" : item.mean_return.toFixed(1)],
+    ["Tiempo", item.test_mean_time_s == null ? "—" : `${item.test_mean_time_s.toFixed(1)} s`],
+    ["Choques", outcomes.obstacle ?? 0], ["Atropellos", outcomes.pedestrian ?? 0], ["Timeout", outcomes.timeout ?? 0],
+  ] as [string, string | number][]).map(([label, value]) => {
+    const el = document.createElement("span");
+    el.textContent = `${label}: ${value}`;
+    return el;
+  }));
+  const evaluation = $<HTMLButtonElement>("btn-model-evaluation");
+  evaluation.hidden = !item.evaluation_suite_id;
+  evaluation.onclick = async () => {
     try {
-      const result = await fetch(apiUrl(`api/model/${encodeURIComponent(item.id)}/evaluation`)).then((r) => r.json());
-      if (result.evaluation) showBanner("success", `Evaluación ${result.evaluation.summary?.success_rate == null ? "cargada" : `${Math.round(result.evaluation.summary.success_rate * 100)}% de éxito`}`);
+      const res = await fetch(`${API_BASE}/api/model/${encodeURIComponent(item.id)}/evaluation`);
+      if (!res.ok) throw new Error(`Evaluación guardada: el servidor respondió ${res.status}`);
+      const { evaluation: ev } = await res.json() as { evaluation: { suite_id: string; summary: { success_rate: number; episodes: number } } };
+      showNotice(`Evaluación guardada de ${shortRun(item.id)} en ${ev.suite_id}: ` +
+        `${pct(ev.summary.success_rate)} de éxito en ${ev.summary.episodes} episodios`);
     } catch (err) { showError(err); }
   };
-  const rollback = $("btn-model-rollback");
-  rollback.hidden = !item.available;
-  rollback.onclick = async () => {
-    try {
-      const result = await fetch(apiUrl("api/rollback"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ run_id: item.id }) }).then((r) => r.json());
-      if (result.type === "rollback") { await refreshConfig(); applyReset(result.reset); showBanner("success", "Versión histórica activada"); }
-    } catch (err) { showError(err); }
-  };
+  const activate = $<HTMLButtonElement>("btn-model-rollback");
+  activate.hidden = !item.available || item.id === sim.agent;
+  activate.onclick = () => useAgent(item.id, `Versión activada en esta partida: ${shortRun(item.id)}`);
 }
 
-async function doStep(action) {
+// ============================================================ evaluar y comparar
+function renderEvalChoices() {
+  const defaults = new Set([sim.serving?.current.run_id, sim.serving?.previous, "rule"].filter(Boolean));
+  $("eval-agents").replaceChildren(...sim.catalog.filter((a) => a.available && a.id !== "manual").map((a) => {
+    const label = document.createElement("label");
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.value = a.id;
+    box.checked = defaults.has(a.id);
+    const rate = a.test_success_rate == null ? "" : ` · ${Math.round(a.test_success_rate * 100)}%`;
+    label.append(box, `${a.label}${rate}`);
+    return label;
+  }));
+}
+
+const OUTCOME_SHORT: Record<string, string> = { success: "Éxito", obstacle: "Obstáculo", pedestrian: "Peatón", boundary: "Salida", timeout: "Tiempo" };
+const pct = (x: number) => `${Math.round(x * 100)}%`;
+
+$<HTMLButtonElement>("btn-eval").onclick = async () => {
+  const agents = [...$("eval-agents").querySelectorAll<HTMLInputElement>("input:checked")].map((i) => i.value);
+  const episodes = Number($<HTMLInputElement>("eval-episodes").value);
+  if (!agents.length || agents.length > 4) return showError(new Error("Elige de 1 a 4 agentes para comparar"));
+  if (!Number.isInteger(episodes) || episodes < 1 || episodes > 30) return showError(new Error("Los casos deben ser de 1 a 30"));
+  $<HTMLButtonElement>("btn-eval").disabled = true;
+  setText("eval-note", "Evaluando en el servidor…");
+  try {
+    const res = await connection.send("evaluate", { agents, episodes });
+    const best = Math.max(...res.results.map((r) => r.summary.success_rate));
+    const head = document.createElement("tr");
+    head.innerHTML = "<th>Agente</th><th>Éxito</th><th>Tiempo</th><th>Fallos</th>";
+    $("eval-table").replaceChildren(head, ...res.results.map((r) => {
+      const tr = document.createElement("tr");
+      tr.className = r.summary.success_rate === best ? "best" : "";
+      const fails = Object.entries(r.summary.outcomes).filter(([o, n]) => o !== "success" && n)
+        .map(([o, n]) => `${OUTCOME_SHORT[o]} ${n}`).join(", ") || "—";
+      for (const [text, cls] of [[shortRun(r.label.replace(/^[A-Z]+ · /, "")), ""], [pct(r.summary.success_rate), "num"],
+                                 [`${r.summary.mean_time_s.toFixed(1)} s`, "num"], [fails, ""]]) {
+        const td = document.createElement("td");
+        td.textContent = text;
+        td.className = cls;
+        tr.append(td);
+      }
+      tr.title = r.model_sha256 ? `${r.agent}\nsha256 ${r.model_sha256}\ncommit ${r.git_commit}` : r.agent;
+      return tr;
+    }));
+    $("eval-table").hidden = false;
+    setText("eval-note", `${res.suite_id} · semillas ${res.seed_start}–${res.seed_start + res.episodes - 1} · ${res.level}`);
+  } catch (err) {
+    showError(err);
+    setText("eval-note", "");
+  } finally {
+    $<HTMLButtonElement>("btn-eval").disabled = false;
+  }
+};
+
+// ============================================================ monitoreo
+async function refreshMetrics() {
+  if (!$("panel").classList.contains("open")) return;
+  try {
+    const m = await fetch(`${API_BASE}/api/metrics`).then((r) => {
+      if (!r.ok) throw new Error(`Monitoreo: el servidor respondió ${r.status}`);
+      return r.json();
+    });
+    setText("mon-sessions", m.live_sessions);
+    setText("mon-latency", `${m.step_latency_ms.p95.toFixed(1)} ms`);
+    setText("mon-commit", m.git_commit?.slice(0, 7) ?? "local");
+    const head = document.createElement("tr");
+    head.innerHTML = "<th>Nivel</th><th>Episodios</th><th>Éxito</th><th>Fallos</th><th>Servido</th>";
+    const rows = Object.keys(m.served).map((lid) => {
+      const lv = m.levels[lid];
+      const tr = document.createElement("tr");
+      const fails = lv ? Object.entries(lv.outcomes).filter(([o, n]) => o !== "success" && n)
+        .map(([o, n]) => `${OUTCOME_SHORT[o]} ${n}`).join(", ") || "—" : "—";
+      for (const [text, cls] of [[lid, ""], [lv?.episodes ?? 0, "num"], [lv ? pct(lv.success_rate) : "—", "num"],
+                                 [fails, ""], [shortRun(m.served[lid]), ""]]) {
+        const td = document.createElement("td");
+        td.textContent = text;
+        td.className = cls;
+        tr.append(td);
+      }
+      return tr;
+    });
+    $("mon-table").replaceChildren(head, ...rows);
+    setText("mon-note", `Desde que arrancó el servidor (${Math.round(m.uptime_s / 60)} min) · ${m.steps} pasos · latencia media ${m.step_latency_ms.mean.toFixed(2)} ms por paso`);
+  } catch (err) {
+    setText("mon-note", `Sin datos de monitoreo: ${err instanceof Error ? err.message : err}`);
+  }
+}
+setInterval(refreshMetrics, 5000);
+$("btn-panel").addEventListener("click", () => setTimeout(refreshMetrics, 50));
+
+async function doStep(action?: number) {
   sim.inFlight = true;
   try {
     applyFrame(await connection.send("step", action === undefined ? {} : { action }));
@@ -1413,7 +1641,29 @@ async function doStep(action) {
   }
 }
 
+async function fetchSteps() {
+  const epoch = sim.epoch;
+  sim.fetching = true;
+  try {
+    const { frames } = await connection.send("steps", { n: batchSize() });
+    if (epoch !== sim.epoch) return;              // llegó tarde: ya se reinició o se cambió de agente
+    sim.queue.push(...frames);
+    sim.serverDone = frames[frames.length - 1].status !== "running";
+  } catch (err) {
+    if (epoch === sim.epoch) { showError(err); setRunning(false); }
+  } finally {
+    sim.fetching = false;
+  }
+}
+
+function dropQueue() {
+  sim.epoch += 1;
+  sim.queue = [];
+  sim.serverDone = false;
+}
+
 async function doReset(payload = {}) {
+  dropQueue();
   sim.inFlight = true;
   try {
     applyReset(await connection.send("reset", payload));
@@ -1425,18 +1675,18 @@ async function doReset(payload = {}) {
   }
 }
 
-function setRunning(running) {
+function setRunning(running: boolean) {
   sim.running = running;
   $("btn-play").classList.toggle("playing", running);
   if (sim.frame) updateHud(sim.frame);
 }
 
-function setOverlays(sensorsOn, trailOn) {
+function setOverlays(sensorsOn: boolean, trailOn: boolean) {
   sim.showSensors = sensorsOn;
   sim.showTrail = trailOn;
   trailMesh.visible = trailOn;
-  $("tg-sensors").checked = sensorsOn;
-  $("tg-trail").checked = trailOn;
+  $<HTMLInputElement>("tg-sensors").checked = sensorsOn;
+  $<HTMLInputElement>("tg-trail").checked = trailOn;
   $("btn-hint").classList.toggle("on", sensorsOn || trailOn);
 }
 
@@ -1450,48 +1700,45 @@ $("btn-hint").onclick = () => {
   const on = !(sim.showSensors || sim.showTrail);
   setOverlays(on, on);
 };
-$("btn-camera").onclick = () => setCamera({ orbit: "top", top: "follow", follow: "orbit" }[sim.camera]);
+const NEXT_CAMERA: Record<CameraMode, CameraMode> = { orbit: "top", top: "follow", follow: "orbit" };
+$("btn-camera").onclick = () => setCamera(NEXT_CAMERA[sim.camera]);
 $("btn-panel").onclick = () => $("panel").classList.toggle("open");
 $("btn-panel-close").onclick = () => $("panel").classList.remove("open");
 
-$("agent-select").onchange = async (e) => {
+$<HTMLSelectElement>("agent-select").onchange = async (e) => {
+  const value = (e.target as HTMLSelectElement).value;
   try {
-    await connection.send("agent", { agent: e.target.value });
-    setManual(e.target.value === "manual");
-    const config = await refreshConfig();
+    await connection.send("agent", { agent: value });
+    setManual(value === "manual");
+    renderModelCard(sim.catalog.find((a) => a.id === value));
     await doReset();
   } catch (err) {
     showError(err);
     await refreshConfig();
   }
 };
-$("btn-compare").onclick = async () => {
-  const ids = [...$("compare-select").selectedOptions].map((option) => option.value);
-  if (ids.length < 2) return showError(new Error("Selecciona al menos dos modelos"));
-  try {
-    const result = await fetch(apiUrl(`api/compare?run_ids=${encodeURIComponent(ids.join(","))}`)).then((r) => r.json());
-    const rows = result.items.map((item) => `<tr><td>${item.label}</td><td>${item.test_success_rate == null ? "—" : Math.round(item.test_success_rate * 100) + "%"}</td><td>${item.mean_return == null ? "—" : Number(item.mean_return).toFixed(1)}</td><td>${item.test_mean_time_s == null ? "—" : Number(item.test_mean_time_s).toFixed(1) + " s"}</td></tr>`).join("");
-    $("compare-result").innerHTML = `<table><thead><tr><th>Modelo</th><th>Éxito</th><th>Retorno</th><th>Tiempo</th></tr></thead><tbody>${rows}</tbody></table>`;
-    $("compare-result").hidden = false;
-  } catch (err) { showError(err); }
-};
-document.querySelectorAll("#camera-select button").forEach((b) => (b.onclick = () => setCamera(b.dataset.camera)));
+document.querySelectorAll<HTMLElement>("#camera-select button").forEach((b) => (b.onclick = () => setCamera(b.dataset.camera as CameraMode)));
 
-$("speed").oninput = (e) => {
-  sim.speed = Number(e.target.value);
+$<HTMLInputElement>("speed").oninput = (e) => {
+  sim.speed = Number((e.target as HTMLInputElement).value);
   setText("speed-label", `${sim.speed}×`);
 };
-$("difficulty").onchange = async (e) => {
-  sim.level = e.target.value;
-  await doReset({ level: e.target.value });
+$<HTMLSelectElement>("difficulty").onchange = async (e) => {
+  const level: LevelId = (e.target as HTMLSelectElement).value;
+  sim.level = currentLevel = level;
+  const url = new URL(location.href);
+  url.searchParams.set("level", currentLevel);
+  history.replaceState(null, "", url);
+  await doReset({ level });
+  if (THEMES_DIFFER(level)) return location.reload();
   await refreshConfig();
 };
-$("tg-sensors").onchange = (e) => setOverlays(e.target.checked, sim.showTrail);
-$("tg-trail").onchange = (e) => setOverlays(sim.showSensors, e.target.checked);
-$("tg-noise").onchange = (e) => doReset({ sensor_noise: e.target.checked ? 0.1 : 0 });
+$<HTMLInputElement>("tg-sensors").onchange = (e) => setOverlays((e.target as HTMLInputElement).checked, sim.showTrail);
+$<HTMLInputElement>("tg-trail").onchange = (e) => setOverlays(sim.showSensors, (e.target as HTMLInputElement).checked);
+$<HTMLInputElement>("tg-noise").onchange = (e) => doReset({ sensor_noise: (e.target as HTMLInputElement).checked ? 0.1 : 0 });
 
-$("btn-train").onclick = async () => {
-  const episodes = Number($("train-episodes").value);
+$<HTMLButtonElement>("btn-train").onclick = async () => {
+  const episodes = Number($<HTMLInputElement>("train-episodes").value);
   if (!Number.isInteger(episodes) || episodes < 1 || episodes > 50000) {
     showError(new Error("Los episodios deben ser un entero entre 1 y 50000"));
     return;
@@ -1499,7 +1746,7 @@ $("btn-train").onclick = async () => {
   try {
     const res = await connection.send("train", { episodes });
     updateTraining(res.training);
-    $("btn-train").disabled = true;
+    $<HTMLButtonElement>("btn-train").disabled = true;
   } catch (err) { showError(err); }
 };
 
@@ -1515,21 +1762,21 @@ setInterval(async () => {
 
 // ============================================================ control manual
 const MANUAL_KEYS = Object.fromEntries(
-  [...document.querySelectorAll("#dpad [data-action]")].map((b) => [b.dataset.key, Number(b.dataset.action)]));
+  [...document.querySelectorAll<HTMLElement>("#dpad [data-action]")].map((b) => [b.dataset.key, Number(b.dataset.action)]));
 
-function setManual(on) {
-  sim.agent = on ? "manual" : $("agent-select").value;
+function setManual(on: boolean) {
+  sim.agent = on ? "manual" : $<HTMLSelectElement>("agent-select").value;
   $("dpad").hidden = !on;
   hold(null);
 }
 
-function hold(action) {
+function hold(action: number | null) {
   sim.held = action;
-  document.querySelectorAll("#dpad [data-action]").forEach((b) => b.classList.toggle("held", Number(b.dataset.action) === action));
+  document.querySelectorAll<HTMLElement>("#dpad [data-action]").forEach((b) => b.classList.toggle("held", Number(b.dataset.action) === action));
   if (action !== null && !sim.running) $("btn-play").click();   // al primer movimiento arranca el episodio
 }
 
-document.querySelectorAll("#dpad [data-action]").forEach((b) => {
+document.querySelectorAll<HTMLElement>("#dpad [data-action]").forEach((b) => {
   b.onpointerdown = (e) => { e.preventDefault(); b.setPointerCapture(e.pointerId); hold(Number(b.dataset.action)); };
   b.onpointerup = b.onpointercancel = () => hold(null);
 });
@@ -1540,7 +1787,7 @@ window.addEventListener("keyup", (e) => {
 window.addEventListener("blur", () => hold(null));
 
 window.addEventListener("keydown", (e) => {
-  if (["INPUT", "SELECT", "TEXTAREA"].includes(document.activeElement?.tagName)) return;
+  if (["INPUT", "SELECT", "TEXTAREA"].includes(document.activeElement?.tagName ?? "")) return;
   const manualKey = e.key.length === 1 ? e.key.toLowerCase() : e.key;
   if (sim.agent === "manual" && manualKey in MANUAL_KEYS) {
     e.preventDefault();
@@ -1564,14 +1811,15 @@ window.addEventListener("keydown", (e) => {
   setOverlays(true, true);
   setCamera("orbit");
   try {
-    $("loading").lastChild.textContent = "Cargando los autos…";
+    loadingText("Cargando los autos…");
     await loadCarModel();
     mountEgoCar();
     requestAnimationFrame(tick);
-    $("loading").lastChild.textContent = "Conectando con el simulador…";
+    loadingText("Conectando con el simulador…");
     await refreshConfig();
     await doReset();
     $("loading").hidden = true;
+    clearTimeout(wakeNotice);
     if (sim.agent !== "manual") setRunning(true);   // arranca solo: el auto empieza a andar al abrir
   } catch (err) {
     showError(err);

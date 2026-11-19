@@ -1,0 +1,62 @@
+{
+  "level_id": "N5",
+  "at": "20261119T002035Z",
+  "mode": "load",
+  "candidate": "N5-exp06-ppo-inverso-3m-g995-s42-c8fe1d42",
+  "served_before": "N5-exp05-ppo-inverso-3m-s44-78c82696",
+  "served_after": "N5-exp05-ppo-inverso-3m-s44-78c82696",
+  "outcome": "rechazado",
+  "decision": {
+    "promote": false,
+    "reason": "No supera al servido: éxito 100% contra 100%, tiempo 14.91 s contra 14.446 s"
+  },
+  "evaluations": {
+    "candidate": {
+      "run_id": "N5-exp06-ppo-inverso-3m-g995-s42-c8fe1d42",
+      "episodes": 100,
+      "success_rate": 1.0,
+      "outcomes": {
+        "success": 100,
+        "obstacle": 0,
+        "pedestrian": 0,
+        "boundary": 0,
+        "timeout": 0
+      },
+      "mean_return": 140.633,
+      "mean_time_s": 14.91,
+      "mean_final_distance_m": 0.53,
+      "mean_final_heading_error_deg": 1.797,
+      "mean_latency_ms": 0.075
+    },
+    "served": {
+      "run_id": "N5-exp05-ppo-inverso-3m-s44-78c82696",
+      "episodes": 100,
+      "success_rate": 1.0,
+      "outcomes": {
+        "success": 100,
+        "obstacle": 0,
+        "pedestrian": 0,
+        "boundary": 0,
+        "timeout": 0
+      },
+      "mean_return": 140.687,
+      "mean_time_s": 14.446,
+      "mean_final_distance_m": 0.457,
+      "mean_final_heading_error_deg": 3.012,
+      "mean_latency_ms": 0.075
+    }
+  },
+  "registration": {
+    "model_sha256": "864178d07b1bdd5c1848059388e0e38c0910fad3c376f6dd74498653fede9ba4",
+    "config_sha256": "381049c0a8682e55fff146c237e19a0f865f2c3e6e65d4082f0355016012a56d",
+    "mlflow_run": "c8fe1d422e304380923dddbcbcf06cd0"
+  },
+  "tests": "20 passed, 45 deselected in 8.69s",
+  "verification": {
+    "ok": true,
+    "served": "N5-exp05-ppo-inverso-3m-s44-78c82696"
+  },
+  "suite_id": "N5-suite-v1",
+  "environment_version": "parking-v8",
+  "dry_run": false
+}

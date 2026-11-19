@@ -1,0 +1,41 @@
+{
+  "level_id": "N5",
+  "history": [
+    {
+      "run_id": "N5-exp05-ppo-inverso-3m-s44-78c82696",
+      "action": "promote",
+      "reason": "Puntero inicial: el modelo con mayor éxito en la suite N5-suite-v1 (100%, 14.446 s promedio)",
+      "environment_version": "parking-v8",
+      "model_sha256": "68902bb90c646cec4b9c9dcab5a3651b193883cf02cf25db8705846e0f77436d",
+      "test_success_rate": 1.0,
+      "at": "2026-11-19T00:11:33Z"
+    },
+    {
+      "run_id": "N5-exp06-ppo-inverso-3m-g995-s43-bb22f4d9",
+      "action": "promote",
+      "reason": "Simulacro de rollback, paso 1: se promueve el candidato N5-exp06-ppo-inverso-3m-g995-s43 (100% en la suite, 14.992 s promedio)",
+      "environment_version": "parking-v8",
+      "model_sha256": "03583f45401e0fde2bfa872e08036ff6b0df713d1b2b4b4c7f52e841b1d01182",
+      "test_success_rate": 1.0,
+      "at": "2026-11-19T00:16:45Z"
+    },
+    {
+      "run_id": "N5-exp05-ppo-inverso-3m-s44-78c82696",
+      "action": "rollback",
+      "reason": "Simulacro de rollback, paso 2: se vuelve a N5-exp05-ppo-inverso-3m-s44; el candidato empata en éxito pero tarda más en la suite (14.992 s contra 14.446 s)",
+      "environment_version": "parking-v8",
+      "model_sha256": "68902bb90c646cec4b9c9dcab5a3651b193883cf02cf25db8705846e0f77436d",
+      "test_success_rate": 1.0,
+      "at": "2026-11-19T00:16:47Z"
+    }
+  ],
+  "current": {
+    "run_id": "N5-exp05-ppo-inverso-3m-s44-78c82696",
+    "action": "rollback",
+    "reason": "Simulacro de rollback, paso 2: se vuelve a N5-exp05-ppo-inverso-3m-s44; el candidato empata en éxito pero tarda más en la suite (14.992 s contra 14.446 s)",
+    "environment_version": "parking-v8",
+    "model_sha256": "68902bb90c646cec4b9c9dcab5a3651b193883cf02cf25db8705846e0f77436d",
+    "test_success_rate": 1.0,
+    "at": "2026-11-19T00:16:47Z"
+  }
+}

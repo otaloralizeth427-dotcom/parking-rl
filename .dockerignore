@@ -1,0 +1,14 @@
+# Lo que nunca entra a la imagen del servidor (el Dockerfile además copia solo carpetas concretas)
+.git
+.venv
+**/__pycache__
+**/*.pyc
+mlartifacts
+mlflow.db
+models
+results
+web
+build
+docs
+tests
+.github

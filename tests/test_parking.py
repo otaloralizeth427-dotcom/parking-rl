@@ -339,6 +339,84 @@ def test_websocket_commands(client):
         assert json.loads(ws.receive_text())["type"] == "error"
 
 
+def _ws(ws, cmd, payload=None):
+    import json
+    ws.send_text(json.dumps({"cmd": cmd, "payload": payload or {}}))
+    return json.loads(ws.receive_text())
+
+
+def test_each_websocket_has_its_own_game(client):
+    # Dos visitantes a la vez: lo que hace uno no mueve el auto del otro
+    with client.websocket_connect("/ws?level=N2") as a, client.websocket_connect("/ws?level=N1") as b:
+        assert _ws(a, "reset", {"seed": 5})["level"] == "N2"
+        assert _ws(b, "reset", {"seed": 5})["level"] == "N1"
+        _ws(a, "agent", {"agent": "rule"})
+        for _ in range(3):
+            _ws(a, "step")
+        assert _ws(a, "state")["steps"] == 3
+        assert _ws(b, "state")["steps"] == 0
+    assert client.get("/api/state").json()["steps"] == 0      # la partida REST tampoco se movió
+
+
+def test_websocket_rejects_unknown_level(client):
+    from starlette.websockets import WebSocketDisconnect
+    with pytest.raises(WebSocketDisconnect), client.websocket_connect("/ws?level=N9") as ws:
+        ws.receive_text()
+
+
+def test_steps_batch_matches_single_steps(client):
+    # Pedir 20 pasos de una vez da exactamente lo mismo que pedirlos de a uno (la red no cambia la física)
+    with client.websocket_connect("/ws?level=N1") as a, client.websocket_connect("/ws?level=N1") as b:
+        for ws in (a, b):
+            _ws(ws, "agent", {"agent": "rule"})
+            _ws(ws, "reset", {"seed": 11})
+        batch = _ws(a, "steps", {"n": 20})["frames"]
+        singles = [_ws(b, "step") for _ in range(len(batch))]
+        assert [f["car"] for f in batch] == [f["car"] for f in singles]
+        assert len(batch) == 20 or batch[-1]["status"] != "running"
+        assert _ws(a, "steps", {"n": 0})["type"] == "error"
+        assert _ws(a, "steps", {"n": 65})["type"] == "error"
+
+
+def test_steps_batch_stops_when_the_episode_ends(client):
+    with client.websocket_connect("/ws?level=N1") as ws:
+        _ws(ws, "agent", {"agent": "rule"})
+        _ws(ws, "reset", {"seed": 0})
+        frames = []
+        while not frames or frames[-1]["status"] == "running":
+            frames += _ws(ws, "steps", {"n": 64})["frames"]
+        assert all(f["status"] == "running" for f in frames[:-1])
+        assert _ws(ws, "steps", {"n": 5})["type"] == "error"      # terminado: hay que reiniciar
+
+
+def test_public_server_blocks_training_and_reports_identity():
+    client = TestClient(create_app(public=True, allowed_origins=["https://parking.example"]))
+    config = client.get("/api/config").json()
+    assert config["can_train"] is False
+    assert client.post("/api/train", json={"episodes": 10}).status_code == 400
+    health = client.get("/api/health").json()
+    assert health["status"] == "ok" and health["public"] is True and "N5" in health["levels"]
+    assert client.get("/api/config?level=N3").json()["level"] == "N3"
+    assert client.get("/api/config?level=N9").status_code == 400
+    cors = client.get("/api/health", headers={"Origin": "https://parking.example"})
+    assert cors.headers["access-control-allow-origin"] == "https://parking.example"
+    other = client.get("/api/health", headers={"Origin": "https://otro.example"})
+    assert "access-control-allow-origin" not in other.headers
+
+
+def test_public_server_checks_origin_of_websockets_and_vercel_previews():
+    from starlette.websockets import WebSocketDisconnect
+    client = TestClient(create_app(public=True, allowed_origins=["https://parking.example"],
+                                   allowed_origin_regex=r"^https://parking-rl[a-z0-9-]*\.vercel\.app$"))
+    preview = client.get("/api/health", headers={"Origin": "https://parking-rl-git-main-equipo.vercel.app"})
+    assert preview.headers["access-control-allow-origin"] == "https://parking-rl-git-main-equipo.vercel.app"
+    with client.websocket_connect("/ws?level=N1", headers={"Origin": "https://parking.example"}) as ws:
+        assert _ws(ws, "state")["level"] == "N1"
+    with pytest.raises(WebSocketDisconnect), \
+            client.websocket_connect("/ws?level=N1", headers={"Origin": "https://malo.example"}) as ws:
+        ws.receive_text()
+
+
 # ---------------------------------------------------------------- niveles
 def test_levels_match_environment_version():
     from envs.levels import LEVEL_IDS, load_level, make_env
@@ -714,3 +792,120 @@ def test_old_manifests_still_match_their_level():
     assert model_matches_level(old, "N1")
     assert not model_matches_level({**old, "environment_kwargs": {**old["environment_kwargs"], "cones": 3}}, "N1")
     assert not model_matches_level({**old, "environment_version": "parking-v7"}, "N1")
+
+
+# ---------------------------------------------------------------- modelo servido, rollback y monitoreo
+@pytest.fixture
+def serving_dir(tmp_path, monkeypatch):
+    import agents.serving as serving
+    monkeypatch.setattr(serving, "SERVING_DIR", tmp_path)
+    return tmp_path
+
+
+def _completed_runs(level_id):
+    from agents.registry import list_manifests
+    from envs.levels import model_matches_level
+    return [m["run_id"] for m in list_manifests(level_id)
+            if m["status"] == "completed" and model_matches_level(m, level_id)]
+
+
+def test_promote_and_rollback_keep_an_append_only_history(serving_dir):
+    from agents.serving import load_serving, previous_run, promote, rollback, served_run
+    a, b = _completed_runs("N5")[:2]
+    with pytest.raises(ValueError):
+        rollback("N5", "sin historial")
+    promote("N5", a, "inicial")
+    promote("N5", b, "candidato")
+    assert served_run("N5") == b and previous_run("N5") == a
+    rollback("N5", "degradación")
+    assert served_run("N5") == a
+    history = load_serving("N5")["history"]
+    assert [h["action"] for h in history] == ["promote", "promote", "rollback"]
+    assert [h["run_id"] for h in history] == [a, b, a]
+    assert all(h["model_sha256"] and h["environment_version"] == "parking-v8" for h in history)
+
+
+def test_promote_rejects_incompatible_or_unknown_runs(serving_dir):
+    from agents.serving import promote
+    with pytest.raises(ValueError):
+        promote("N1", _completed_runs("N5")[0], "otro nivel")
+    with pytest.raises(FileNotFoundError):
+        promote("N5", "N5-no-existe", "x")
+
+
+def test_server_serves_the_pointer_and_rollback_changes_it(serving_dir):
+    from agents.serving import promote, rollback
+    a, b = _completed_runs("N5")[:2]
+    promote("N5", a, "inicial")
+    promote("N5", b, "candidato")
+    client = TestClient(create_app(SimulationSession("N5"), public=True))
+    with client.websocket_connect("/ws?level=N5") as ws:
+        config = _ws(ws, "config")
+        assert config["agent"] == b and config["serving"]["previous"] == a
+    assert client.get("/api/health").json()["served"]["N5"] == b
+    rollback("N5", "prueba")
+    with client.websocket_connect("/ws?level=N5") as ws:
+        assert _ws(ws, "config")["agent"] == a                   # las partidas nuevas ya usan la versión anterior
+    assert client.get("/api/serving?level=N5").json()["current"]["run_id"] == a
+
+
+def test_evaluate_from_the_web_matches_the_pipeline(client):
+    from agents.rule_based import RuleBasedPolicy
+    from pipelines.scoring import evaluate, suite_for_level
+    with client.websocket_connect("/ws?level=N1") as ws:
+        res = _ws(ws, "evaluate", {"agents": ["rule", "random"], "episodes": 5})
+        assert res["type"] == "evaluation" and [r["agent"] for r in res["results"]] == ["rule", "random"]
+        expected = evaluate(RuleBasedPolicy(), {**suite_for_level("N1"), "episodes": 5})
+        assert res["results"][0]["outcomes_by_case"] == [c["outcome"] for c in expected["cases"]]
+        assert _ws(ws, "evaluate", {"agents": ["manual"], "episodes": 5})["type"] == "error"
+        assert _ws(ws, "evaluate", {"agents": ["rule"], "episodes": 31})["type"] == "error"
+
+
+def test_metrics_count_finished_episodes_and_latency(client):
+    before = client.get("/api/metrics").json()
+    with client.websocket_connect("/ws?level=N1") as ws:
+        _ws(ws, "agent", {"agent": "rule"})
+        _ws(ws, "reset", {"seed": 0})
+        frames = []
+        while not frames or frames[-1]["status"] == "running":
+            frames += _ws(ws, "steps", {"n": 64})["frames"]
+    after = client.get("/api/metrics").json()
+    assert after["steps"] >= before["steps"] + len(frames)
+    level = after["levels"]["N1"]
+    assert level["agents"]["rule"]["episodes"] >= 1
+    assert after["step_latency_ms"]["p95"] >= 0 and "N5" in after["served"]
+
+
+# ---------------------------------------------------------------- pipeline (Prefect)
+def test_pipeline_selection_criterion():
+    from pipelines.flow import select
+    served = {"run_id": "A", "success_rate": 0.9, "mean_time_s": 10.0}
+    assert select.fn({"candidate": {"run_id": "B", "success_rate": 0.95, "mean_time_s": 20.0}, "served": served})["promote"]
+    assert select.fn({"candidate": {"run_id": "B", "success_rate": 0.9, "mean_time_s": 9.5}, "served": served})["promote"]
+    assert not select.fn({"candidate": {"run_id": "B", "success_rate": 0.9, "mean_time_s": 9.9}, "served": served})["promote"]
+    assert not select.fn({"candidate": {"run_id": "B", "success_rate": 0.8, "mean_time_s": 5.0}, "served": served})["promote"]
+    assert not select.fn({"candidate": {"run_id": "A", "success_rate": 0.9, "mean_time_s": 10.0}, "served": served})["promote"]
+    assert select.fn({"candidate": {"run_id": "B", "success_rate": 0.1, "mean_time_s": 50.0}})["promote"]
+
+
+def test_pipeline_validation_rejects_bad_requests():
+    from pipelines.flow import validate
+    with pytest.raises(ValueError):
+        validate.fn("N9", None, "x", None)
+    with pytest.raises(ValueError):
+        validate.fn("N5", None, None, None)                              # ni experimento ni checkpoint
+    with pytest.raises(ValueError):
+        validate.fn("N1", None, _completed_runs("N5")[0], None)          # checkpoint de otro nivel
+    plan = validate.fn("N5", None, _completed_runs("N5")[0], None)
+    assert plan["mode"] == "load" and plan["suite_id"] == "N5-suite-v1"
+
+
+def test_pipeline_verification_rolls_back_a_broken_promotion(serving_dir, monkeypatch):
+    from agents.serving import promote, served_run
+    from pipelines import flow
+    a, b = _completed_runs("N5")[:2]
+    promote("N5", a, "inicial")
+    promote("N5", b, "candidato")
+    # Si la versión servida no es la esperada, el paso 8 revierte solo
+    result = flow.verify_served.fn("N5", "N5-otro-run", promoted=True)
+    assert result["ok"] is False and served_run("N5") == a

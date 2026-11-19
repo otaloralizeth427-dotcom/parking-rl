@@ -1,0 +1,5 @@
+# Vercel solo construye la web (Root Directory: web); el resto del repositorio no se sube
+/*
+!/web
+/web/node_modules
+/web/dist

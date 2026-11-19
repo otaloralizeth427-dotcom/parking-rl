@@ -6,3 +6,14 @@ __pycache__/
 /models/
 mlflow.db
 mlartifacts/
+web/node_modules/
+web/dist/
+web/.env
+web/.vercel/
+.vercel/
+build/
+.vercel
+.env*
+!.env.example
+!web/.env.example
+runs/

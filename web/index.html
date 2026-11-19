@@ -7,15 +7,7 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='9' fill='%236d3fd1'/><text x='16' y='23' font-size='20' font-family='sans-serif' font-weight='700' fill='white' text-anchor='middle'>P</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=7">
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-      }
-    }
-  </script>
+  <link rel="stylesheet" href="/src/styles.css">
 </head>
 <body>
   <main class="game" id="viewport">
@@ -100,6 +92,7 @@
           <div class="cell"><label>Éxitos</label><b id="m-successes" class="good">0</b></div>
         </div>
         <p class="note" id="m-trained"></p>
+        <a class="note link" id="m-mlflow" target="_blank" rel="noopener" hidden>Ver este run en MLflow ↗</a>
       </section>
 
       <section>
@@ -113,13 +106,6 @@
           <div class="model-metrics" id="model-card-metrics"></div>
           <button class="secondary" id="btn-model-evaluation" type="button" hidden>Ver evaluación guardada</button>
           <button class="secondary" id="btn-model-rollback" type="button" hidden>Activar esta versión</button>
-        </div>
-        <div class="compare-box">
-          <label class="field">Comparar modelos
-            <select id="compare-select" multiple size="4" aria-label="Modelos a comparar"></select>
-          </label>
-          <button class="secondary" id="btn-compare" type="button">Comparar seleccionados</button>
-          <div id="compare-result" class="compare-result" hidden></div>
         </div>
         <label class="field">Velocidad <span id="speed-label">1×</span>
           <input type="range" id="speed" min="0.25" max="10" step="0.25" value="1">
@@ -140,6 +126,42 @@
       </section>
 
       <section>
+        <h3>Modelo servido</h3>
+        <p class="note" id="srv-current">—</p>
+        <div class="btn-row">
+          <button id="btn-use-served">Usar el servido</button>
+          <button id="btn-rollback" class="primary">Volver a la versión anterior</button>
+        </div>
+        <details class="history">
+          <summary>Historial de versiones</summary>
+          <ol id="srv-history"></ol>
+        </details>
+      </section>
+
+      <section>
+        <h3>Evaluar y comparar</h3>
+        <p class="note">Mismos casos de la suite fija del nivel para todos (hasta 4 agentes).</p>
+        <div class="checklist" id="eval-agents"></div>
+        <div class="train-row">
+          <input type="number" id="eval-episodes" min="1" max="30" value="10" aria-label="Casos">
+          <button id="btn-eval" class="primary">Evaluar</button>
+        </div>
+        <div class="table-wrap"><table class="table" id="eval-table" hidden></table></div>
+        <p class="note" id="eval-note"></p>
+      </section>
+
+      <section>
+        <h3>Monitoreo del servidor</h3>
+        <div class="grid">
+          <div class="cell"><label>Partidas</label><b id="mon-sessions">—</b></div>
+          <div class="cell"><label>Latencia p95</label><b id="mon-latency">—</b></div>
+          <div class="cell"><label>Commit</label><b id="mon-commit">—</b></div>
+        </div>
+        <div class="table-wrap"><table class="table" id="mon-table"></table></div>
+        <p class="note" id="mon-note"></p>
+      </section>
+
+      <section id="train-section">
         <h3>Entrenamiento</h3>
         <div class="train-row">
           <input type="number" id="train-episodes" min="1" max="50000" value="1000" aria-label="Episodios">
@@ -161,6 +183,6 @@
     window.addEventListener("error", (e) => showLoadError(e.message || "Error al cargar un recurso"));
     window.addEventListener("unhandledrejection", (e) => showLoadError(String(e.reason)));
   </script>
-  <script type="module" src="app.js?v=23"></script>
+  <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

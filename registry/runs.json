@@ -1,0 +1,618 @@
+{
+ "3ce2f0ec46b446e4a6a20cd24b53fcd7": {
+  "run_id": "N1-exp01-dqn-s42-3ce2f0ec",
+  "artifacts": "artifacts/N1/N1-exp01-dqn-s42-3ce2f0ec",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.npz"
+  ]
+ },
+ "c37b531af9de458d95d83a43d8317c9c": {
+  "run_id": "N1-exp01-dqn-s43-c37b531a",
+  "artifacts": "artifacts/N1/N1-exp01-dqn-s43-c37b531a",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.npz"
+  ]
+ },
+ "efdbe0605ef24393a07ea57d5452dc02": {
+  "run_id": "N1-exp01-dqn-s44-efdbe060",
+  "artifacts": "artifacts/N1/N1-exp01-dqn-s44-efdbe060",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.npz"
+  ]
+ },
+ "52969c85df674cd1af1b4096e3b65390": {
+  "run_id": "N1-exp02-ppo-s42-52969c85",
+  "artifacts": "artifacts/N1/N1-exp02-ppo-s42-52969c85",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "64bf74330c634ab48799e7fb69394039": {
+  "run_id": "N1-exp03-ppo-s42-64bf7433",
+  "artifacts": "artifacts/N1/N1-exp03-ppo-s42-64bf7433",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "422ab16e52e7480a9a8017b33baa96b0": {
+  "run_id": "N1-exp03-ppo-s43-422ab16e",
+  "artifacts": "artifacts/N1/N1-exp03-ppo-s43-422ab16e",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "aade6f7dbebf4a42947eba11eaa21cfd": {
+  "run_id": "N1-exp03-ppo-s44-aade6f7d",
+  "artifacts": "artifacts/N1/N1-exp03-ppo-s44-aade6f7d",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "2216c0231406427eb0d8d745551e7670": {
+  "run_id": "N1-exp04-dqn-s42-2216c023",
+  "artifacts": "artifacts/N1/N1-exp04-dqn-s42-2216c023",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.npz"
+  ]
+ },
+ "6bdc7ae602c24db7be3fcd02ce86781e": {
+  "run_id": "N2-exp01-ppo-s42-6bdc7ae6",
+  "artifacts": "artifacts/N2/N2-exp01-ppo-s42-6bdc7ae6",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "9ac24e762b004fdb9e0e61b4ba15a4db": {
+  "run_id": "N2-exp02-ppo-ft-s42-9ac24e76",
+  "artifacts": "artifacts/N2/N2-exp02-ppo-ft-s42-9ac24e76",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "e9a87a7dd4d14b67824e940a344cd465": {
+  "run_id": "N2-exp03-ppo-s42-e9a87a7d",
+  "artifacts": "artifacts/N2/N2-exp03-ppo-s42-e9a87a7d",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "d1942f9e32f747599fb6a1157651ea68": {
+  "run_id": "N2-exp03-ppo-s43-d1942f9e",
+  "artifacts": "artifacts/N2/N2-exp03-ppo-s43-d1942f9e",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "ed2a13765ee34038a23cc88b5583d31e": {
+  "run_id": "N2-exp03-ppo-s44-ed2a1376",
+  "artifacts": "artifacts/N2/N2-exp03-ppo-s44-ed2a1376",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "77a671dc1e1d4f0e8a3cdebb394bd88e": {
+  "run_id": "N2-exp04-ppo-8env-s42-77a671dc",
+  "artifacts": "artifacts/N2/N2-exp04-ppo-8env-s42-77a671dc",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "aa113dc52cf24403ad6b503c5a0fe645": {
+  "run_id": "N2-exp04-ppo-8env-s43-aa113dc5",
+  "artifacts": "artifacts/N2/N2-exp04-ppo-8env-s43-aa113dc5",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "53e4f67958fb4639a19c8d6ed5a9cf9e": {
+  "run_id": "N2-exp04-ppo-8env-s44-53e4f679",
+  "artifacts": "artifacts/N2/N2-exp04-ppo-8env-s44-53e4f679",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "90d5388bfd454e949d3a53b8eeab91d4": {
+  "run_id": "N2-exp05-ppo-curriculo-s42-90d5388b",
+  "artifacts": "artifacts/N2/N2-exp05-ppo-curriculo-s42-90d5388b",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "d9ad3198492a484d9fd8f0d460667279": {
+  "run_id": "N2-exp05-ppo-curriculo-s43-d9ad3198",
+  "artifacts": "artifacts/N2/N2-exp05-ppo-curriculo-s43-d9ad3198",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "70fca5917b0d4bb6a866988ca8225da4": {
+  "run_id": "N2-exp05-ppo-curriculo-s44-70fca591",
+  "artifacts": "artifacts/N2/N2-exp05-ppo-curriculo-s44-70fca591",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "e08b96af320c4daf857279151c5ac909": {
+  "run_id": "N2-exp06-ppo-curriculo-3m-s42-e08b96af",
+  "artifacts": "artifacts/N2/N2-exp06-ppo-curriculo-3m-s42-e08b96af",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "fbd504dd8ac84d368cfeda1fe3f13e8f": {
+  "run_id": "N2-exp06-ppo-curriculo-3m-s43-fbd504dd",
+  "artifacts": "artifacts/N2/N2-exp06-ppo-curriculo-3m-s43-fbd504dd",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "7f36a1201f3c4d5f9cd5f314b59f509f": {
+  "run_id": "N2-exp06-ppo-curriculo-3m-s44-7f36a120",
+  "artifacts": "artifacts/N2/N2-exp06-ppo-curriculo-3m-s44-7f36a120",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "5513c039ece24b7ea9a809c394d40da4": {
+  "run_id": "N3-exp01-ppo-ft-s42-5513c039",
+  "artifacts": "artifacts/N3/N3-exp01-ppo-ft-s42-5513c039",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "49e186ce2bb8430aad2a31194aabc634": {
+  "run_id": "N3-exp01-ppo-ft-s43-49e186ce",
+  "artifacts": "artifacts/N3/N3-exp01-ppo-ft-s43-49e186ce",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "01a5ac38300f432ebc25c6bd465dfcb2": {
+  "run_id": "N3-exp01-ppo-ft-s44-01a5ac38",
+  "artifacts": "artifacts/N3/N3-exp01-ppo-ft-s44-01a5ac38",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "c59d3cd9f8ad4609a79cd20b3fbd278e": {
+  "run_id": "N3-exp02-ppo-curriculo-3m-s42-c59d3cd9",
+  "artifacts": "artifacts/N3/N3-exp02-ppo-curriculo-3m-s42-c59d3cd9",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "92d19fe6c7cb4571b319d0ce3b9b61be": {
+  "run_id": "N3-exp02-ppo-curriculo-3m-s43-92d19fe6",
+  "artifacts": "artifacts/N3/N3-exp02-ppo-curriculo-3m-s43-92d19fe6",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "e740c3fbd19e42f5b0c31f2bdcc7759a": {
+  "run_id": "N3-exp02-ppo-curriculo-3m-s44-e740c3fb",
+  "artifacts": "artifacts/N3/N3-exp02-ppo-curriculo-3m-s44-e740c3fb",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "0ed8b2269cf54e0cb8969be1e4f43097": {
+  "run_id": "N3-exp03-ppo-ft-v4-s42-0ed8b226",
+  "artifacts": "artifacts/N3/N3-exp03-ppo-ft-v4-s42-0ed8b226",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "d35e07f1dc274b3ca73b403509a5292c": {
+  "run_id": "N3-exp03-ppo-ft-v4-s43-d35e07f1",
+  "artifacts": "artifacts/N3/N3-exp03-ppo-ft-v4-s43-d35e07f1",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "cb42cc7c7ed04fda9af18b4a81861cca": {
+  "run_id": "N3-exp03-ppo-ft-v4-s44-cb42cc7c",
+  "artifacts": "artifacts/N3/N3-exp03-ppo-ft-v4-s44-cb42cc7c",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "dc73894a54974f0f938d852d451235f6": {
+  "run_id": "N3-exp04-ppo-ft-v6-s42-dc73894a",
+  "artifacts": "artifacts/N3/N3-exp04-ppo-ft-v6-s42-dc73894a",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "bd380c769e5d4d8baa995cb4262f4a17": {
+  "run_id": "N3-exp04-ppo-ft-v6-s43-bd380c76",
+  "artifacts": "artifacts/N3/N3-exp04-ppo-ft-v6-s43-bd380c76",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "fda197d2874a4a53bcfde4cdeee6b9dd": {
+  "run_id": "N3-exp04-ppo-ft-v6-s44-fda197d2",
+  "artifacts": "artifacts/N3/N3-exp04-ppo-ft-v6-s44-fda197d2",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "bbdb888ed63242c7859f75e336a31035": {
+  "run_id": "N4-exp01-ppo-ft-n2-s42-bbdb888e",
+  "artifacts": "artifacts/N4/N4-exp01-ppo-ft-n2-s42-bbdb888e",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "0ca615dc831e4200a507fbc49ec3dab7": {
+  "run_id": "N4-exp01-ppo-ft-n2-s43-0ca615dc",
+  "artifacts": "artifacts/N4/N4-exp01-ppo-ft-n2-s43-0ca615dc",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "d7bcb153910e467789e458097b6a9ae4": {
+  "run_id": "N4-exp01-ppo-ft-n2-s44-d7bcb153",
+  "artifacts": "artifacts/N4/N4-exp01-ppo-ft-n2-s44-d7bcb153",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "c4f136ab44274af6b6ab06a6680e3f51": {
+  "run_id": "N4-exp02-ppo-ft-n3-s42-c4f136ab",
+  "artifacts": "artifacts/N4/N4-exp02-ppo-ft-n3-s42-c4f136ab",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "c9f056f52d9244bdac2982e6de12cae0": {
+  "run_id": "N4-exp02-ppo-ft-n3-s43-c9f056f5",
+  "artifacts": "artifacts/N4/N4-exp02-ppo-ft-n3-s43-c9f056f5",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "fe0f3c4348fa4260961c790305d5a6c8": {
+  "run_id": "N4-exp02-ppo-ft-n3-s44-fe0f3c43",
+  "artifacts": "artifacts/N4/N4-exp02-ppo-ft-n3-s44-fe0f3c43",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "0f08c9da599046c79aa98de55fc7138d": {
+  "run_id": "N4-exp03-ppo-curriculo-3m-s42-0f08c9da",
+  "artifacts": "artifacts/N4/N4-exp03-ppo-curriculo-3m-s42-0f08c9da",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "521b05cc6302477389c49315eca416fe": {
+  "run_id": "N4-exp03-ppo-curriculo-3m-s43-521b05cc",
+  "artifacts": "artifacts/N4/N4-exp03-ppo-curriculo-3m-s43-521b05cc",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "44c037a48b1f4e10a38635aa83da444d": {
+  "run_id": "N4-exp03-ppo-curriculo-3m-s44-44c037a4",
+  "artifacts": "artifacts/N4/N4-exp03-ppo-curriculo-3m-s44-44c037a4",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "f22ce74bc6a544ecacced61f0458a795": {
+  "run_id": "N4-exp04-ppo-ft-v6-s42-f22ce74b",
+  "artifacts": "artifacts/N4/N4-exp04-ppo-ft-v6-s42-f22ce74b",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "e098d96283894313b742ef29a38855e5": {
+  "run_id": "N4-exp04-ppo-ft-v6-s43-e098d962",
+  "artifacts": "artifacts/N4/N4-exp04-ppo-ft-v6-s43-e098d962",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "e2882e0ebf3447b69f4e8361ce36eada": {
+  "run_id": "N4-exp04-ppo-ft-v6-s44-e2882e0e",
+  "artifacts": "artifacts/N4/N4-exp04-ppo-ft-v6-s44-e2882e0e",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "1078fcbbcaef4f39b633b31a29358d9e": {
+  "run_id": "N5-exp01-ppo-piloto-64-s42-1078fcbb",
+  "artifacts": "artifacts/N5/N5-exp01-ppo-piloto-64-s42-1078fcbb",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "d1853368e13143c8acf43c368698a48f": {
+  "run_id": "N5-exp02-ppo-piloto-256-s42-d1853368",
+  "artifacts": "artifacts/N5/N5-exp02-ppo-piloto-256-s42-d1853368",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "0b8eecfa1613477e978f22f9f4f0cabb": {
+  "run_id": "N5-exp03-ppo-inverso-64-s42-0b8eecfa",
+  "artifacts": "artifacts/N5/N5-exp03-ppo-inverso-64-s42-0b8eecfa",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "f425ab51fefd43409f79c55467617d8e": {
+  "run_id": "N5-exp04-ppo-inverso-128-s42-f425ab51",
+  "artifacts": "artifacts/N5/N5-exp04-ppo-inverso-128-s42-f425ab51",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "f42474aba1f44b5e97a1e73d4c293e40": {
+  "run_id": "N5-exp05-ppo-inverso-3m-s42-f42474ab",
+  "artifacts": "artifacts/N5/N5-exp05-ppo-inverso-3m-s42-f42474ab",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "ad193e80b258445991f46be6ef6438ec": {
+  "run_id": "N5-exp05-ppo-inverso-3m-s43-ad193e80",
+  "artifacts": "artifacts/N5/N5-exp05-ppo-inverso-3m-s43-ad193e80",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "78c82696b3a8485ea4369d46bf8ea4cf": {
+  "run_id": "N5-exp05-ppo-inverso-3m-s44-78c82696",
+  "artifacts": "artifacts/N5/N5-exp05-ppo-inverso-3m-s44-78c82696",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "c8fe1d422e304380923dddbcbcf06cd0": {
+  "run_id": "N5-exp06-ppo-inverso-3m-g995-s42-c8fe1d42",
+  "artifacts": "artifacts/N5/N5-exp06-ppo-inverso-3m-g995-s42-c8fe1d42",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "bb22f4d975a845ecb725de9da5d7a20d": {
+  "run_id": "N5-exp06-ppo-inverso-3m-g995-s43-bb22f4d9",
+  "artifacts": "artifacts/N5/N5-exp06-ppo-inverso-3m-g995-s43-bb22f4d9",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ },
+ "9f98ff2a991343c58256de823acede1a": {
+  "run_id": "N5-exp06-ppo-inverso-3m-g995-s44-9f98ff2a",
+  "artifacts": "artifacts/N5/N5-exp06-ppo-inverso-3m-g995-s44-9f98ff2a",
+  "files": [
+   "config.json",
+   "curves.json",
+   "evaluation.json",
+   "manifest.json",
+   "model.zip"
+  ]
+ }
+}
