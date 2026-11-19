@@ -11,7 +11,7 @@ import threading
 from pathlib import Path
 
 import numpy as np
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -299,6 +299,31 @@ def create_app(session: SimulationSession | None = None) -> FastAPI:
         if not path.exists():
             raise HTTPException(status_code=404, detail="Falta el artefacto de evaluación")
         return {"run_id": run_id, "manifest": manifest, "evaluation": json.loads(path.read_text())}
+
+    @app.post("/api/rollback")
+    def rollback(payload: dict):
+        """Activa un modelo histórico compatible y reinicia el episodio.
+
+        El cambio es reversible: se conserva el catálogo y cualquier modelo
+        anterior puede volver a activarse por su run_id.
+        """
+        run_id = payload.get("run_id") if isinstance(payload, dict) else None
+        if not run_id:
+            raise HTTPException(status_code=400, detail="run_id es obligatorio")
+        config = call("agent", {"agent": run_id})
+        reset = call("reset", {})
+        return {"type": "rollback", "run_id": run_id, "config": config, "reset": reset}
+
+    @app.get("/api/compare")
+    def compare(run_ids: str = Query(..., description="run_id separados por coma")):
+        wanted = [value.strip() for value in run_ids.split(",") if value.strip()]
+        if not 2 <= len(wanted) <= 8:
+            raise HTTPException(status_code=400, detail="Selecciona entre 2 y 8 modelos")
+        by_id = {item["id"]: item for item in app.state.session.catalog()}
+        missing = [run_id for run_id in wanted if run_id not in by_id or not by_id[run_id]["available"]]
+        if missing:
+            raise HTTPException(status_code=409, detail=f"Modelos no compatibles: {', '.join(missing)}")
+        return {"level": app.state.session.level_id, "items": [by_id[run_id] for run_id in wanted]}
 
     @app.get("/api/state")
     def get_state():

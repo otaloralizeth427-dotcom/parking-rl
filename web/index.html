@@ -112,6 +112,14 @@
           <span id="model-card-hypothesis"></span>
           <div class="model-metrics" id="model-card-metrics"></div>
           <button class="secondary" id="btn-model-evaluation" type="button" hidden>Ver evaluación guardada</button>
+          <button class="secondary" id="btn-model-rollback" type="button" hidden>Activar esta versión</button>
+        </div>
+        <div class="compare-box">
+          <label class="field">Comparar modelos
+            <select id="compare-select" multiple size="4" aria-label="Modelos a comparar"></select>
+          </label>
+          <button class="secondary" id="btn-compare" type="button">Comparar seleccionados</button>
+          <div id="compare-result" class="compare-result" hidden></div>
         </div>
         <label class="field">Velocidad <span id="speed-label">1×</span>
           <input type="range" id="speed" min="0.25" max="10" step="0.25" value="1">

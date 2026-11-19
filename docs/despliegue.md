@@ -38,6 +38,11 @@ agente en la interfaz equivale a recuperar un modelo histórico compatible; ante
 cargarlo se valida el SHA-256 del manifiesto. El modelo recomendado se calcula por
 mayor éxito en la suite fija, sin usar el test final reservado.
 
+La comparación se consulta en `GET /api/compare?run_ids=<id1>,<id2>` y el rollback
+controlado en `POST /api/rollback` con `{ "run_id": "..." }`. Ambas operaciones solo
+aceptan modelos compatibles con el nivel activo. El rollback conserva los manifiestos:
+activar otra versión no sobrescribe ni elimina la versión anterior.
+
 ## MLflow
 
 El entrenamiento usa `sqlite:///mlflow.db` y `mlartifacts/` localmente. Para la

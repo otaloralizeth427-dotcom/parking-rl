@@ -1345,6 +1345,12 @@ async function refreshConfig() {
     return option;
   }));
   $("agent-select").value = config.agent;
+  $("compare-select").replaceChildren(...config.agents.filter((a) => a.available && !["random", "rule", "manual"].includes(a.id)).map((a) => {
+    const option = document.createElement("option");
+    option.value = a.id;
+    option.textContent = `${a.label} · ${a.test_success_rate == null ? "—" : Math.round(a.test_success_rate * 100) + "%"}`;
+    return option;
+  }));
   renderModelCard(config.agents.find((a) => a.id === config.agent));
   setManual(config.agent === "manual");
   $("difficulty").replaceChildren(...config.levels.map((l) => {
@@ -1382,6 +1388,14 @@ function renderModelCard(item) {
     try {
       const result = await fetch(apiUrl(`api/model/${encodeURIComponent(item.id)}/evaluation`)).then((r) => r.json());
       if (result.evaluation) showBanner("success", `Evaluación ${result.evaluation.summary?.success_rate == null ? "cargada" : `${Math.round(result.evaluation.summary.success_rate * 100)}% de éxito`}`);
+    } catch (err) { showError(err); }
+  };
+  const rollback = $("btn-model-rollback");
+  rollback.hidden = !item.available;
+  rollback.onclick = async () => {
+    try {
+      const result = await fetch(apiUrl("api/rollback"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ run_id: item.id }) }).then((r) => r.json());
+      if (result.type === "rollback") { await refreshConfig(); applyReset(result.reset); showBanner("success", "Versión histórica activada"); }
     } catch (err) { showError(err); }
   };
 }
@@ -1450,6 +1464,16 @@ $("agent-select").onchange = async (e) => {
     showError(err);
     await refreshConfig();
   }
+};
+$("btn-compare").onclick = async () => {
+  const ids = [...$("compare-select").selectedOptions].map((option) => option.value);
+  if (ids.length < 2) return showError(new Error("Selecciona al menos dos modelos"));
+  try {
+    const result = await fetch(apiUrl(`api/compare?run_ids=${encodeURIComponent(ids.join(","))}`)).then((r) => r.json());
+    const rows = result.items.map((item) => `<tr><td>${item.label}</td><td>${item.test_success_rate == null ? "—" : Math.round(item.test_success_rate * 100) + "%"}</td><td>${item.mean_return == null ? "—" : Number(item.mean_return).toFixed(1)}</td><td>${item.test_mean_time_s == null ? "—" : Number(item.test_mean_time_s).toFixed(1) + " s"}</td></tr>`).join("");
+    $("compare-result").innerHTML = `<table><thead><tr><th>Modelo</th><th>Éxito</th><th>Retorno</th><th>Tiempo</th></tr></thead><tbody>${rows}</tbody></table>`;
+    $("compare-result").hidden = false;
+  } catch (err) { showError(err); }
 };
 document.querySelectorAll("#camera-select button").forEach((b) => (b.onclick = () => setCamera(b.dataset.camera)));
 
