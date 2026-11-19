@@ -21,11 +21,14 @@ ACTION_NAMES = ["Avanzar", "Retroceder", "Izquierda", "Derecha", "Frenar"]
 DIFFICULTIES = ("tutorial", "easy", "normal", "roam", "hard")   # tutorial y roam: solo para etapas de currículo
 LAYOUTS = ("aisle", "garage")
 FAIR_TURN_DX = 4.5   # v9: zona de giro hacia el cupo sin conos (m en x desde el centro del cupo)
+STUCK_GRACE_STEPS = 10   # v13: 2 s detenido sin castigo extra
+STUCK_RATE = 0.05        # castigo extra que crece por cada paso más detenido
+STUCK_MAX = 1.0          # tope del castigo extra por paso
 FAIR_GAP = 3.0       # v9: hueco vertical mínimo entre conos a la par (auto de 1.8 m + margen para girar)   # aisle: pasillo con 2 filas (N1-N4); garage: azotea con 3 filas (N5)
 
 # Cambia cuando cambian observaciones, acciones, dinámica o recompensa:
 # un modelo solo es compatible con la versión con que fue entrenado.
-ENV_VERSION = "parking-v12"  # v3: cono bloqueante, peatón que cruza y parachoques; v4: peatones que no se congelan;
+ENV_VERSION = "parking-v13"  # v3: cono bloqueante, peatón que cruza y parachoques; v4: peatones que no se congelan;
                               # v5: con cono bloqueante y peatón que cruza a la vez, el peatón no atraviesa el cono;
                               # v6: los peatones nunca se quedan quietos: si el auto se acerca, se alejan o se apartan;
                               # v7: mapa «garage» (N5) con pasillos de 6.7 m (solo pilotos; ya no se reproduce);
@@ -38,9 +41,11 @@ ENV_VERSION = "parking-v12"  # v3: cono bloqueante, peatón que cruza y parachoq
                               # v11: freno 2 (safety_brake=2): además, con un peatón cerca adelante el auto no pasa
                               #     de 1.2 m/s, y los peatones nunca dan un paso contra el auto;
                               # v12: conos justos 2 (fair_cones=2) y pasillo de ancho configurable (aisle_width, N2:
-                              #     11 m): el cono bloqueante queda a >= 4.5 m del arranque para poder rodearlo
+                              #     11 m): el cono bloqueante queda a >= 4.5 m del arranque para poder rodearlo;
+                              # v13: castigo creciente por quedarse congelado (stuck_penalty, N2): tras 2 s detenido
+                              #     fuera del cupo, cada paso quieto cuesta más (hasta 1.0 por paso)
 # Versiones que este código reproduce: con sus valores por defecto, v3 se comporta exactamente como v2
-SUPPORTED_VERSIONS = ("parking-v2", "parking-v3", "parking-v4", "parking-v5", "parking-v6", "parking-v8", "parking-v9", "parking-v10", "parking-v11", "parking-v12")
+SUPPORTED_VERSIONS = ("parking-v2", "parking-v3", "parking-v4", "parking-v5", "parking-v6", "parking-v8", "parking-v9", "parking-v10", "parking-v11", "parking-v12", "parking-v13")
 
 
 @dataclass(frozen=True)
@@ -171,7 +176,7 @@ class ParkingEnv(gym.Env):
                  blocking_cones: int = 0, bumper_sensors: int = 0, crossing_pedestrians: int = 0,
                  pedestrians_yield: bool = False, pedestrians_evade: bool = False, layout: str = "aisle",
                  route_start: tuple | list | None = None, fair_cones: int | bool = 0,
-                 aisle_width: float | None = None,
+                 aisle_width: float | None = None, stuck_penalty: bool = False,
                  safety_brake: int | bool = 0):
         if difficulty not in DIFFICULTIES:
             raise ValueError(f"difficulty debe ser uno de {DIFFICULTIES}, no {difficulty!r}")
@@ -224,6 +229,8 @@ class ParkingEnv(gym.Env):
         if aisle_width is not None:   # v12: pasillo más ancho (las filas de cupos no cambian)
             self.cfg = replace(self.cfg, lot_height=float(aisle_width) + 2 * self.cfg.slot_depth)
         self.aisle_width = aisle_width
+        self.stuck_penalty = bool(stuck_penalty)   # v13: congelarse sale cada vez más caro
+        self._idle_steps = 0
 
         # El mapa garage agrega la posición en el mapa: auto (x, y, cos θ, sin θ) y cupo libre (x, y).
         # No recibe la ruta: tiene que aprender a rodear las filas.
@@ -463,6 +470,7 @@ class ParkingEnv(gym.Env):
         self.speed = 0.0
         self.steer = 0.0
         self.steps = 0
+        self._idle_steps = 0
         self.trajectory = [self.pos.copy()]
         self._state_ready = True
         self._sensors = self._read_sensors()
@@ -520,6 +528,13 @@ class ParkingEnv(gym.Env):
                 reward += cfg.r_idle
         elif abs(self.speed) < cfg.idle_speed and not braked:   # esperar a un peatón no se castiga
             reward += cfg.r_idle
+            self._idle_steps += 1
+            if self.stuck_penalty and self._idle_steps > STUCK_GRACE_STEPS:
+                # v13: tras 2 s quieto fuera del cupo, cada paso más cuesta un poco más (máx. 1.0 por paso):
+                # congelarse deja de ser más barato que intentar rodear el obstáculo
+                reward -= min(STUCK_MAX, STUCK_RATE * (self._idle_steps - STUCK_GRACE_STEPS))
+        if abs(self.speed) >= cfg.idle_speed:
+            self._idle_steps = 0
         if collision:
             reward += cfg.r_collision
         if success:

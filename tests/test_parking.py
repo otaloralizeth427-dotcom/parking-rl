@@ -973,7 +973,7 @@ def test_fair_cones_keep_the_turn_into_the_slot_free_and_the_blocking_cone_passa
 def test_fair_cones_only_change_n2():
     from envs.levels import load_level, make_env
     env = make_env("N2")
-    assert env.fair_cones == 2 and load_level("N2")["environment_version"] == "parking-v12"
+    assert env.fair_cones == 2 and load_level("N2")["environment_version"] == "parking-v13" and env.stuck_penalty
     assert env.cfg.lot_height - 2 * env.cfg.slot_depth == 11.0      # pasillo de 11 m (antes 9 m)
     assert make_env("N1").cfg.lot_height == 20.0
     for level in ("N1", "N3", "N4"):
@@ -1062,3 +1062,18 @@ def test_v11_caution_zone_limits_speed_near_pedestrians():
             if terminated or truncated:
                 break
     assert checked > 0
+
+
+def test_v13_stuck_penalty_grows_only_after_two_seconds_still():
+    from envs.parking_env import STUCK_GRACE_STEPS, STUCK_MAX
+    plain, stuck = ParkingEnv("hard", cones=0), ParkingEnv("hard", cones=0, stuck_penalty=True)
+    for env in (plain, stuck):
+        env.reset(seed=4)
+    diffs = []
+    for _ in range(40):
+        _, r1, *_ = plain.step(BRAKE)
+        _, r2, *_ = stuck.step(BRAKE)
+        diffs.append(r1 - r2)
+    assert all(abs(d) < 1e-9 for d in diffs[:STUCK_GRACE_STEPS])          # los primeros 2 s, igual
+    assert all(b >= a - 1e-9 for a, b in zip(diffs[STUCK_GRACE_STEPS:], diffs[STUCK_GRACE_STEPS + 1:]))
+    assert 0 < diffs[-1] <= STUCK_MAX + 1e-9

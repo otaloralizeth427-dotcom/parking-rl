@@ -1,0 +1,19 @@
+{
+  "experiment_id": "N2-exp10-ppo-ft-v13",
+  "level_id": "N2",
+  "agent": "ppo",
+  "hypothesis": "En 300 partidas nuevas el modelo servido de v12 estaciona 89 % y en 4 % queda congelado hasta agotar el tiempo: congelarse 200 pasos costaba ~-40 y chocar un cono -50, así que quedarse quieto era la opción «segura». En parking-v13 el castigo por estar detenido crece tras 2 s (hasta 1.0 por paso); continuar el servido 1 000 000 de pasos en v13 elimina casi todos los congelamientos (< 1 %) sin aumentar los choques con conos.",
+  "change_vs_baseline": "Continúa N2-exp09-ppo-ft-v12-s42-25fea815 en N2 con parking-v13 (stuck_penalty); 1 000 000 de pasos, ent_coef 0.01.",
+  "parent_run_id": "N2-exp09-ppo-ft-v12-s42-25fea815",
+  "seed": 42,
+  "budget": {
+    "timesteps": 1000000
+  },
+  "hyperparameters": {
+    "ent_coef": 0.01
+  },
+  "validation": {
+    "episodes": 20,
+    "every": 50000
+  }
+}

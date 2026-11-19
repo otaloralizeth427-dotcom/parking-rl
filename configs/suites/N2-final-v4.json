@@ -1,0 +1,10 @@
+{
+  "suite_id": "N2-final-v4",
+  "level_id": "N2",
+  "environment_version": "parking-v13",
+  "episodes": 100,
+  "deterministic": true,
+  "reserved": true,
+  "seed_commitment": "9ae335f34a6fe7d81d104aaa838bdcae6769525613e91d46b2b827475ed254dd",
+  "description": "Test final reservado: las semillas no est\u00e1n en el repo; aqu\u00ed solo su huella SHA-256."
+}
