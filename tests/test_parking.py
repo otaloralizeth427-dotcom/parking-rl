@@ -976,8 +976,9 @@ def test_fair_cones_only_change_n2():
     assert env.fair_cones == 2 and load_level("N2")["environment_version"] == "parking-v13" and env.stuck_penalty
     assert env.cfg.lot_height - 2 * env.cfg.slot_depth == 11.0      # pasillo de 11 m (antes 9 m)
     assert make_env("N1").cfg.lot_height == 20.0
-    for level in ("N1", "N3", "N4"):
+    for level in ("N1", "N3"):
         assert not make_env(level).fair_cones
+    assert make_env("N4").fair_cones == 2 and make_env("N4").stuck_penalty     # N4 usa las mismas reglas de conos
     with pytest.raises(ValueError):
         ParkingEnv("hard", layout="garage", fair_cones=True)
     with pytest.raises(ValueError):
@@ -1009,7 +1010,9 @@ def test_safety_brake_stops_before_a_pedestrian_in_front():
 def test_safety_brake_only_in_n3_and_n4_and_never_without_pedestrians():
     from envs.levels import load_level, make_env
     for level in ("N3", "N4"):
-        assert make_env(level).safety_brake == 2 and load_level(level)["environment_version"] == "parking-v11"
+        assert make_env(level).safety_brake == 2
+    assert load_level("N3")["environment_version"] == "parking-v11"
+    assert load_level("N4")["environment_version"] == "parking-v13"
     for level in ("N1", "N2", "N5"):
         assert not make_env(level).safety_brake
     env = ParkingEnv("hard", safety_brake=True)       # sin peatones el freno nunca interviene
