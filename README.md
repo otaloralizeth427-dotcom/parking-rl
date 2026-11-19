@@ -1,5 +1,12 @@
 # AutoPark RL — Estacionamiento autónomo con aprendizaje por refuerzo
 
+**Versión publicada:**
+- **Web:** https://parking-rl.vercel.app (el nivel va en el link: `?level=N3`)
+- **API:** https://parking-rl-api.onrender.com/api/health
+- **Registro de experimentos (MLflow):** https://parking-rl-mlflow.onrender.com/#/experiments/5/runs?workflowType=machine_learning
+
+La primera visita puede tardar hasta un minuto si el servidor gratuito estaba dormido.
+
 Proyecto final de MLOps (escenario **Autonomous Parking**). Un vehículo aprende a estacionarse en un
 cupo de un parqueadero, evitando autos estacionados, columnas y bordillos. Incluye:
 
