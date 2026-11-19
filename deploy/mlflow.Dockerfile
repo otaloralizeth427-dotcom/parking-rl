@@ -22,6 +22,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PORT=10000 \
     _MLFLOW_SERVER_ARTIFACT_ROOT=mlflow-artifacts:/ \
     _MLFLOW_SERVER_SERVE_ARTIFACTS=true \
     _MLFLOW_SERVER_ARTIFACT_DESTINATION=/home/app/registry/mlartifacts \
-    MLFLOW_SERVER_X_FRAME_OPTIONS=SAMEORIGIN _MLFLOW_SGI_NAME=uvicorn
+    MLFLOW_SERVER_X_FRAME_OPTIONS=SAMEORIGIN _MLFLOW_SGI_NAME=uvicorn \
+    MLFLOW_SERVER_ALLOWED_HOSTS=parking-rl-mlflow.onrender.com,localhost,127.0.0.1
 EXPOSE 10000
 CMD ["sh", "-c", "exec python -m uvicorn mlflow.server.fastapi_app:app --host 0.0.0.0 --port ${PORT} --proxy-headers --forwarded-allow-ips='*'"]
