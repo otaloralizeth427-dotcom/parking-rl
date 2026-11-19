@@ -1,6 +1,5 @@
 # Blueprint de Render: servidor de la simulación (plan gratuito, se actualiza con cada push a main).
-# Render → New → Blueprint → este repositorio. Después de publicar la web, definir
-# PARKING_ALLOWED_ORIGINS con la URL de Vercel (por ejemplo https://parking-rl.vercel.app).
+# Render → New → Blueprint → este repositorio. La web publicada está en https://parking-rl.vercel.app.
 services:
   - type: web
     name: parking-rl-api
@@ -18,9 +17,10 @@ services:
       - key: PARKING_LEVEL
         value: N5
       - key: PARKING_ALLOWED_ORIGINS
-        sync: false
+        value: https://parking-rl.vercel.app
+      # Vistas previas de Vercel del mismo proyecto (equipo visua4)
       - key: PARKING_ALLOWED_ORIGIN_REGEX
-        value: ^https://parking-rl[a-z0-9-]*\.vercel\.app$
+        value: ^https://parking-(rl|[a-z0-9]+-visua4)[a-z0-9-]*\.vercel\.app$
 
   # Registro de experimentos (MLflow) de solo consulta: copia versionada en registry/ + artifacts/
   - type: web

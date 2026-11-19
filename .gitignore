@@ -12,3 +12,7 @@ web/.env
 web/.vercel/
 .vercel/
 build/
+.vercel
+.env*
+!.env.example
+!web/.env.example
