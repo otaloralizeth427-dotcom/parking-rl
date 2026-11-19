@@ -10,6 +10,8 @@ import os
 import re
 import subprocess
 import threading
+import time
+from collections import Counter, deque
 from pathlib import Path
 
 import numpy as np
@@ -20,6 +22,7 @@ from starlette.concurrency import run_in_threadpool
 
 from agents.registry import list_manifests, load_manifest, load_policy
 from agents.rule_based import RuleBasedPolicy
+from agents.serving import load_serving, previous_run, served_run
 from envs.levels import LEVEL_IDS, env_kwargs, load_level, model_matches_level
 from envs.parking_env import ACTION_NAMES, ParkingEnv
 
@@ -34,6 +37,51 @@ BASELINES = {
     "manual": {"label": "Manual (teclado)", "mode": "Manual"},
 }
 
+
+MAX_EVAL_EPISODES = 30   # evaluación desde la web: primeros casos de la suite fija del nivel
+MAX_EVAL_AGENTS = 4
+
+
+class Metrics:
+    """Monitoreo del servidor: resultados por nivel y agente, causas de fallo y latencia por paso."""
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self.started_at = time.time()
+        self.episodes: dict[tuple[str, str], Counter] = {}
+        self.latency_ms: deque[float] = deque(maxlen=5000)
+        self.steps = 0
+
+    def step(self, ms: float):
+        with self._lock:
+            self.steps += 1
+            self.latency_ms.append(ms)
+
+    def episode(self, level_id: str, agent: str, outcome: str):
+        with self._lock:
+            self.episodes.setdefault((level_id, agent), Counter())[outcome] += 1
+
+    def snapshot(self) -> dict:
+        with self._lock:
+            lat = np.array(self.latency_ms) if self.latency_ms else np.zeros(1)
+            by_level: dict[str, dict] = {}
+            for (level_id, agent), counts in self.episodes.items():
+                level = by_level.setdefault(level_id, {"episodes": 0, "outcomes": Counter(), "agents": {}})
+                n = sum(counts.values())
+                level["episodes"] += n
+                level["outcomes"].update(counts)
+                level["agents"][agent] = {"episodes": n, "success_rate": round(counts["success"] / n, 4),
+                                          "outcomes": dict(counts)}
+            for level in by_level.values():
+                level["success_rate"] = round(level["outcomes"]["success"] / level["episodes"], 4)
+                level["outcomes"] = dict(level["outcomes"])
+            return {"uptime_s": round(time.time() - self.started_at), "steps": self.steps,
+                    "step_latency_ms": {"mean": round(float(lat.mean()), 3), "p95": round(float(np.percentile(lat, 95)), 3),
+                                        "window": len(self.latency_ms)},
+                    "levels": by_level}
+
+
+METRICS = Metrics()
 
 # Los modelos son de solo lectura: todas las partidas comparten la misma copia en memoria
 _POLICIES: dict[str, object] = {}
@@ -73,6 +121,7 @@ class SimulationSession:
                                         payload.get("sensor_noise")),
             "step": lambda: self.step(payload.get("action")),
             "steps": lambda: self.steps(payload.get("n")),
+            "evaluate": lambda: self.evaluate(payload.get("agents"), payload.get("episodes", 10)),
             "state": self.state,
             "agent": lambda: self.set_agent(payload.get("agent")),
             "train": lambda: self.start_training(payload.get("episodes", 1000)),
@@ -86,7 +135,7 @@ class SimulationSession:
         return {"type": "config", "actions": ACTION_NAMES, "environment_version": self.environment_version,
                 "levels": [{"id": lid, "name": load_level(lid)["name"]} for lid in LEVEL_IDS],
                 "level": self.level_id, "sensor_noise": self.sensor_noise,
-                "agent": self.agent_name, "agents": self.catalog(refresh=True),
+                "agent": self.agent_name, "agents": self.catalog(refresh=True), "serving": self.serving(),
                 "can_train": not self.public and (EXPERIMENTS_DIR / f"{self.level_id}-exp01-dqn.json").exists()}
 
     def catalog(self, refresh: bool = False) -> list[dict]:
@@ -112,6 +161,41 @@ class SimulationSession:
             })
         self._catalog = (self.level_id, items)
         return items
+
+    def serving(self) -> dict | None:
+        """Modelo servido del nivel (puntero versionado) y el anterior, para el rollback desde la web."""
+        serving = load_serving(self.level_id)
+        if not serving:
+            return None
+        return {"current": serving["current"], "previous": previous_run(self.level_id),
+                "history": serving["history"][-10:]}
+
+    def evaluate(self, agents, episodes) -> dict:
+        """Evalúa uno o varios agentes con los mismos primeros casos de la suite fija del nivel.
+
+        Mismo código que el pipeline (pipelines/scoring.py), así lo que se ve en la web es comparable.
+        """
+        from pipelines.scoring import run_case, suite_for_level, summarize
+
+        if not isinstance(agents, list) or not 1 <= len(agents) <= MAX_EVAL_AGENTS:
+            raise ValueError(f"agents debe ser una lista de 1 a {MAX_EVAL_AGENTS} agentes")
+        if not isinstance(episodes, int) or not 1 <= episodes <= MAX_EVAL_EPISODES:
+            raise ValueError(f"episodes debe ser un entero entre 1 y {MAX_EVAL_EPISODES}")
+        available = {a["id"]: a for a in self.catalog() if a["available"] and a["id"] != "manual"}
+        unknown = [a for a in agents if a not in available]
+        if unknown:
+            raise ValueError(f"No se pueden evaluar en {self.level_id}: {unknown}")
+        suite = suite_for_level(self.level_id)
+        env = ParkingEnv(**env_kwargs(load_level(self.level_id)))      # sin el ruido extra del botón
+        results = []
+        for name in agents:
+            cases = [run_case(env, self._policy(name), suite["seed_start"] + i) for i in range(episodes)]
+            info = available[name]
+            results.append({"agent": name, "label": info["label"], "environment_version": self.environment_version,
+                            "model_sha256": info.get("model_sha256"), "git_commit": info.get("git_commit"),
+                            "summary": summarize(cases), "outcomes_by_case": [c["outcome"] for c in cases]})
+        return {"type": "evaluation", "level": self.level_id, "suite_id": suite["suite_id"],
+                "seed_start": suite["seed_start"], "episodes": episodes, "results": results}
 
     def reset(self, seed=None, level=None, sensor_noise=None) -> dict:
         if seed is not None and (not isinstance(seed, int) or seed < 0):
@@ -145,7 +229,9 @@ class SimulationSession:
                 raise ValueError(f"Acción inválida: {action!r}. Usa 0-{self.env.action_space.n - 1}")
             else:
                 self.manual = True
+            started = time.perf_counter()
             self.obs, reward, terminated, truncated, info = self.env.step(action)
+            METRICS.step((time.perf_counter() - started) * 1000)
             self.last_action = int(action)
             self.last_reward = reward
             self.total_reward += reward
@@ -158,6 +244,9 @@ class SimulationSession:
                 self.successes += 1
             elif truncated:
                 self.status = "timeout"
+            if self.status != "running" and not self.manual:
+                METRICS.episode(self.level_id, self.agent_name,
+                                "success" if self.status == "success" else self.collision_kind or "timeout")
             return {"type": "state", **self._frame()}
 
     def steps(self, n) -> dict:
@@ -232,8 +321,12 @@ class SimulationSession:
         self.status = "idle"
 
     def _default_agent(self) -> str:
-        """El modelo con mayor éxito en la suite del nivel (a igual éxito, el más rápido); si no hay, la regla."""
+        """El modelo servido del nivel (serving/<nivel>.json). Si no hay puntero: el de mayor éxito en la
+        suite (a igual éxito, el más rápido); si no hay modelos, la regla."""
         models = [a for a in self.catalog() if a["available"] and a["id"] not in BASELINES]
+        served = served_run(self.level_id)
+        if served in {a["id"] for a in models}:
+            return served
         best = lambda a: (a["test_success_rate"] or 0, -(a["test_mean_time_s"] or float("inf")))  # noqa: E731
         return max(models, key=best)["id"] if models else "rule"
 
@@ -332,7 +425,19 @@ def create_app(session: SimulationSession | None = None, *, public: bool | None 
     def health():
         """Identidad de lo que está servido: commit del código y nivel por defecto."""
         return {"status": "ok", "git_commit": commit, "public": public, "default_level": app.state.default_level,
-                "levels": list(LEVEL_IDS), "live_sessions": app.state.live_sessions}
+                "levels": list(LEVEL_IDS), "live_sessions": app.state.live_sessions,
+                "served": {lid: served_run(lid) for lid in LEVEL_IDS}}
+
+    @app.get("/api/serving")
+    def get_serving(level: str | None = None):
+        level = check_level(level)
+        return load_serving(level) or {"level_id": level, "current": None, "history": []}
+
+    @app.get("/api/metrics")
+    def get_metrics():
+        """Monitoreo: éxito y causas de fallo por nivel/agente, latencia por paso y versión servida."""
+        return {**METRICS.snapshot(), "git_commit": commit, "live_sessions": app.state.live_sessions,
+                "served": {lid: served_run(lid) for lid in LEVEL_IDS}}
 
     @app.get("/api/config")
     def get_config(level: str | None = None):

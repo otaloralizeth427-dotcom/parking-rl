@@ -18,7 +18,6 @@ import json
 import os
 import secrets
 import time
-from collections import Counter
 from pathlib import Path
 
 import matplotlib
@@ -27,29 +26,18 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 
-from envs.levels import LEVEL_IDS, make_env  # noqa: E402
+from envs.levels import LEVEL_IDS  # noqa: E402
+from pipelines.scoring import (  # noqa: E402,F401  (se reexportan para quien ya los importaba de aquí)
+    OUTCOME_LABELS, OUTCOMES, evaluate, run_case, suite_for_level, summarize,
+)
+from pipelines import scoring  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-SUITES_DIR = ROOT / "configs" / "suites"
+from pipelines.scoring import SUITES_DIR  # noqa: E402
 RESULTS_DIR = ROOT / "results"
 SECRET_DIR = Path(os.environ.get("PARKING_SECRET_DIR", Path.home() / ".parking-rl"))
-OUTCOMES = ("success", "obstacle", "pedestrian", "boundary", "timeout")
-OUTCOME_LABELS = {"success": "Éxito", "obstacle": "Choque con obstáculo", "pedestrian": "Atropello",
-                  "boundary": "Salida del área", "timeout": "Tiempo agotado"}
-
-
 def load_suite(suite_id: str) -> dict:
-    path = SUITES_DIR / f"{suite_id}.json"
-    if not path.exists():
-        raise FileNotFoundError(f"No existe la suite {suite_id} ({path})")
-    suite = json.loads(path.read_text())
-    if suite["episodes"] <= 0:
-        raise ValueError("La suite debe tener al menos un episodio")
-    return suite
-
-
-def suite_for_level(level_id: str) -> dict:
-    return load_suite(f"{level_id}-suite-v1")
+    return scoring.load_suite(suite_id, SUITES_DIR)      # SUITES_DIR de este módulo (las pruebas lo cambian)
 
 
 # ------------------------------------------------------------------ test final reservado
@@ -125,54 +113,6 @@ def run_final(level_id: str, run_ids: list[str]) -> dict:
     out.write_text(json.dumps(report, indent=2))
     print_table(report["policies"])
     return report
-
-
-# ------------------------------------------------------------------ episodios
-def run_case(env, policy, seed: int) -> dict:
-    """Un episodio con un modelo congelado; policy=None es la política aleatoria."""
-    obs, info = env.reset(seed=seed)
-    env.action_space.seed(seed)
-    total, latencies = 0.0, []
-    while True:
-        start = time.perf_counter()
-        action = int(env.action_space.sample()) if policy is None else policy.act(obs, greedy=True)
-        latencies.append((time.perf_counter() - start) * 1000)
-        obs, reward, terminated, truncated, info = env.step(action)
-        total += reward
-        if terminated or truncated:
-            break
-    outcome = "success" if info["success"] else info["collision_kind"] or "timeout"
-    return {
-        "seed": seed, "outcome": outcome, "success": info["success"],
-        "terminated": terminated, "truncated": truncated,
-        "steps": info["steps"], "time_s": round(info["steps"] * env.cfg.dt, 2),
-        "return": round(total, 3), "final_distance_m": round(info["distance"], 3),
-        "final_heading_error_deg": round(float(np.degrees(abs(info["heading_error"]))), 2),
-        "latency_ms": round(float(np.mean(latencies)), 4),
-    }
-
-
-def evaluate(policy, suite: dict) -> dict:
-    env = make_env(suite["level_id"])
-    cases = [run_case(env, policy, suite["seed_start"] + i) for i in range(suite["episodes"])]
-    return {"suite_id": suite["suite_id"], "level_id": suite["level_id"],
-            "summary": summarize(cases), "cases": cases}
-
-
-def summarize(cases: list[dict]) -> dict:
-    counts = Counter(c["outcome"] for c in cases)
-    n = len(cases)
-    mean = lambda key: round(float(np.mean([c[key] for c in cases])), 3)  # noqa: E731
-    return {
-        "episodes": n,
-        "success_rate": round(counts["success"] / n, 4),
-        "outcomes": {o: counts.get(o, 0) for o in OUTCOMES},
-        "mean_return": mean("return"),
-        "mean_time_s": mean("time_s"),
-        "mean_final_distance_m": mean("final_distance_m"),
-        "mean_final_heading_error_deg": mean("final_heading_error_deg"),
-        "mean_latency_ms": mean("latency_ms"),
-    }
 
 
 # ------------------------------------------------------------------ comparación por nivel

@@ -1373,8 +1373,156 @@ async function refreshConfig() {
   sim.level = config.level;
   sim.canTrain = config.can_train;
   $("difficulty").value = config.level;
+  $("train-section").hidden = !config.can_train;      // en la versión publicada se entrena en local
+  sim.catalog = config.agents;
+  sim.serving = config.serving;
+  renderServing();
+  renderEvalChoices();
   return config;
 }
+
+// ============================================================ modelo servido y rollback
+const agentLabel = (id) => sim.catalog?.find((a) => a.id === id)?.label ?? id;
+const shortRun = (id) => id?.replace(/-[0-9a-f]{8}$/, "") ?? "—";
+
+function renderServing() {
+  const s = sim.serving;
+  $("btn-rollback").disabled = !s?.previous;
+  $("btn-use-served").disabled = !s;
+  if (!s) {
+    setText("srv-current", "Este nivel no tiene puntero de modelo servido: se usa el de mayor éxito en la suite.");
+    $("srv-history").replaceChildren();
+    return;
+  }
+  const c = s.current;
+  const rate = c.test_success_rate == null ? "" : ` · éxito en la suite ${Math.round(c.test_success_rate * 100)}%`;
+  setText("srv-current", `${shortRun(c.run_id)}${rate} · ${c.environment_version} · sha256 ${c.model_sha256.slice(0, 10)}…`);
+  const ACTIONS = { promote: "Promovido", rollback: "Rollback" };
+  $("srv-history").replaceChildren(...[...s.history].reverse().map((h) => {
+    const li = document.createElement("li");
+    const b = document.createElement("b");
+    b.textContent = `${ACTIONS[h.action] ?? h.action} · ${shortRun(h.run_id)}`;
+    li.append(b, ` — ${h.at.slice(0, 10)} · ${h.reason}`);
+    return li;
+  }));
+}
+
+async function useAgent(id, note) {
+  try {
+    await connection.send("agent", { agent: id });
+    $("agent-select").value = id;
+    setManual(false);
+    await doReset();
+    setText("eval-note", "");
+    if (note) showNotice(note);
+  } catch (err) { showError(err); }
+}
+
+$("btn-use-served").onclick = () => sim.serving && useAgent(sim.serving.current.run_id,
+  `Maneja el modelo servido: ${shortRun(sim.serving.current.run_id)}`);
+$("btn-rollback").onclick = () => sim.serving?.previous && useAgent(sim.serving.previous,
+  `Rollback en esta partida: ahora maneja ${shortRun(sim.serving.previous)} (versión anterior). ` +
+  "El rollback oficial queda en git con «python -m agents.serving rollback».");
+
+function showNotice(text) {
+  const el = $("error");
+  el.textContent = text;
+  el.classList.add("info");
+  el.hidden = false;
+  clearTimeout(showError.timer);
+  showError.timer = setTimeout(() => { el.hidden = true; el.classList.remove("info"); }, 7000);
+}
+
+// ============================================================ evaluar y comparar
+function renderEvalChoices() {
+  const defaults = new Set([sim.serving?.current.run_id, sim.serving?.previous, "rule"].filter(Boolean));
+  $("eval-agents").replaceChildren(...sim.catalog.filter((a) => a.available && a.id !== "manual").map((a) => {
+    const label = document.createElement("label");
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.value = a.id;
+    box.checked = defaults.has(a.id);
+    const rate = a.test_success_rate == null ? "" : ` · ${Math.round(a.test_success_rate * 100)}%`;
+    label.append(box, `${a.label}${rate}`);
+    return label;
+  }));
+}
+
+const OUTCOME_SHORT = { success: "Éxito", obstacle: "Obstáculo", pedestrian: "Peatón", boundary: "Salida", timeout: "Tiempo" };
+const pct = (x) => `${Math.round(x * 100)}%`;
+
+$("btn-eval").onclick = async () => {
+  const agents = [...$("eval-agents").querySelectorAll("input:checked")].map((i) => i.value);
+  const episodes = Number($("eval-episodes").value);
+  if (!agents.length || agents.length > 4) return showError(new Error("Elige de 1 a 4 agentes para comparar"));
+  if (!Number.isInteger(episodes) || episodes < 1 || episodes > 30) return showError(new Error("Los casos deben ser de 1 a 30"));
+  $("btn-eval").disabled = true;
+  setText("eval-note", "Evaluando en el servidor…");
+  try {
+    const res = await connection.send("evaluate", { agents, episodes });
+    const best = Math.max(...res.results.map((r) => r.summary.success_rate));
+    const head = document.createElement("tr");
+    head.innerHTML = "<th>Agente</th><th>Éxito</th><th>Tiempo</th><th>Fallos</th>";
+    $("eval-table").replaceChildren(head, ...res.results.map((r) => {
+      const tr = document.createElement("tr");
+      tr.className = r.summary.success_rate === best ? "best" : "";
+      const fails = Object.entries(r.summary.outcomes).filter(([o, n]) => o !== "success" && n)
+        .map(([o, n]) => `${OUTCOME_SHORT[o]} ${n}`).join(", ") || "—";
+      for (const [text, cls] of [[shortRun(r.label.replace(/^[A-Z]+ · /, "")), ""], [pct(r.summary.success_rate), "num"],
+                                 [`${r.summary.mean_time_s.toFixed(1)} s`, "num"], [fails, ""]]) {
+        const td = document.createElement("td");
+        td.textContent = text;
+        td.className = cls;
+        tr.append(td);
+      }
+      tr.title = r.model_sha256 ? `${r.agent}\nsha256 ${r.model_sha256}\ncommit ${r.git_commit}` : r.agent;
+      return tr;
+    }));
+    $("eval-table").hidden = false;
+    setText("eval-note", `${res.suite_id} · semillas ${res.seed_start}–${res.seed_start + res.episodes - 1} · ${res.level}`);
+  } catch (err) {
+    showError(err);
+    setText("eval-note", "");
+  } finally {
+    $("btn-eval").disabled = false;
+  }
+};
+
+// ============================================================ monitoreo
+async function refreshMetrics() {
+  if (!$("panel").classList.contains("open")) return;
+  try {
+    const m = await fetch(`${API_BASE}/api/metrics`).then((r) => {
+      if (!r.ok) throw new Error(`Monitoreo: el servidor respondió ${r.status}`);
+      return r.json();
+    });
+    setText("mon-sessions", m.live_sessions);
+    setText("mon-latency", `${m.step_latency_ms.p95.toFixed(1)} ms`);
+    setText("mon-commit", m.git_commit?.slice(0, 7) ?? "local");
+    const head = document.createElement("tr");
+    head.innerHTML = "<th>Nivel</th><th>Episodios</th><th>Éxito</th><th>Fallos</th><th>Servido</th>";
+    const rows = Object.keys(m.served).map((lid) => {
+      const lv = m.levels[lid];
+      const tr = document.createElement("tr");
+      const fails = lv ? Object.entries(lv.outcomes).filter(([o, n]) => o !== "success" && n)
+        .map(([o, n]) => `${OUTCOME_SHORT[o]} ${n}`).join(", ") || "—" : "—";
+      for (const [text, cls] of [[lid, ""], [lv?.episodes ?? 0, "num"], [lv ? pct(lv.success_rate) : "—", "num"],
+                                 [fails, ""], [shortRun(m.served[lid]), ""]]) {
+        const td = document.createElement("td");
+        td.textContent = text;
+        td.className = cls;
+        tr.append(td);
+      }
+      return tr;
+    });
+    $("mon-table").replaceChildren(head, ...rows);
+    setText("mon-note", `Desde que arrancó el servidor (${Math.round(m.uptime_s / 60)} min) · ${m.steps} pasos · latencia media ${m.step_latency_ms.mean.toFixed(2)} ms por paso`);
+  } catch (err) {
+    setText("mon-note", `Sin datos de monitoreo: ${err.message}`);
+  }
+}
+setInterval(refreshMetrics, 5000);
+$("btn-panel").addEventListener("click", () => setTimeout(refreshMetrics, 50));
 
 async function doStep(action) {
   sim.inFlight = true;

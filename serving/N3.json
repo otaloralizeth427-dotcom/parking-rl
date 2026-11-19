@@ -1,0 +1,23 @@
+{
+  "level_id": "N3",
+  "history": [
+    {
+      "run_id": "N3-exp04-ppo-ft-v6-s43-bd380c76",
+      "action": "promote",
+      "reason": "Puntero inicial: el modelo con mayor éxito en la suite N3-suite-v1 (93%, 5.862 s promedio)",
+      "environment_version": "parking-v6",
+      "model_sha256": "c04ab92696f2390a559dd64b286f5925997620ed1d157c2791d45b1af3b8e9a0",
+      "test_success_rate": 0.93,
+      "at": "2026-11-19T00:11:33Z"
+    }
+  ],
+  "current": {
+    "run_id": "N3-exp04-ppo-ft-v6-s43-bd380c76",
+    "action": "promote",
+    "reason": "Puntero inicial: el modelo con mayor éxito en la suite N3-suite-v1 (93%, 5.862 s promedio)",
+    "environment_version": "parking-v6",
+    "model_sha256": "c04ab92696f2390a559dd64b286f5925997620ed1d157c2791d45b1af3b8e9a0",
+    "test_success_rate": 0.93,
+    "at": "2026-11-19T00:11:33Z"
+  }
+}

@@ -5,6 +5,10 @@
 !envs/
 !configs/levels/
 !manifests/
+!serving/
+!pipelines/__init__.py
+!pipelines/scoring.py
+!configs/suites/*-suite-v*.json
 !artifacts/**/model.zip
 !artifacts/**/model.npz
 !deploy/requirements-serve.txt

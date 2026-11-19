@@ -126,6 +126,42 @@
       </section>
 
       <section>
+        <h3>Modelo servido</h3>
+        <p class="note" id="srv-current">—</p>
+        <div class="btn-row">
+          <button id="btn-use-served">Usar el servido</button>
+          <button id="btn-rollback" class="primary">Volver a la versión anterior</button>
+        </div>
+        <details class="history">
+          <summary>Historial de versiones</summary>
+          <ol id="srv-history"></ol>
+        </details>
+      </section>
+
+      <section>
+        <h3>Evaluar y comparar</h3>
+        <p class="note">Mismos casos de la suite fija del nivel para todos (hasta 4 agentes).</p>
+        <div class="checklist" id="eval-agents"></div>
+        <div class="train-row">
+          <input type="number" id="eval-episodes" min="1" max="30" value="10" aria-label="Casos">
+          <button id="btn-eval" class="primary">Evaluar</button>
+        </div>
+        <div class="table-wrap"><table class="table" id="eval-table" hidden></table></div>
+        <p class="note" id="eval-note"></p>
+      </section>
+
+      <section>
+        <h3>Monitoreo del servidor</h3>
+        <div class="grid">
+          <div class="cell"><label>Partidas</label><b id="mon-sessions">—</b></div>
+          <div class="cell"><label>Latencia p95</label><b id="mon-latency">—</b></div>
+          <div class="cell"><label>Commit</label><b id="mon-commit">—</b></div>
+        </div>
+        <div class="table-wrap"><table class="table" id="mon-table"></table></div>
+        <p class="note" id="mon-note"></p>
+      </section>
+
+      <section id="train-section">
         <h3>Entrenamiento</h3>
         <div class="train-row">
           <input type="number" id="train-episodes" min="1" max="50000" value="1000" aria-label="Episodios">

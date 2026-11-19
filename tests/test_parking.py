@@ -759,3 +759,85 @@ def test_old_manifests_still_match_their_level():
     assert model_matches_level(old, "N1")
     assert not model_matches_level({**old, "environment_kwargs": {**old["environment_kwargs"], "cones": 3}}, "N1")
     assert not model_matches_level({**old, "environment_version": "parking-v7"}, "N1")
+
+
+# ---------------------------------------------------------------- modelo servido, rollback y monitoreo
+@pytest.fixture
+def serving_dir(tmp_path, monkeypatch):
+    import agents.serving as serving
+    monkeypatch.setattr(serving, "SERVING_DIR", tmp_path)
+    return tmp_path
+
+
+def _completed_runs(level_id):
+    from agents.registry import list_manifests
+    from envs.levels import model_matches_level
+    return [m["run_id"] for m in list_manifests(level_id)
+            if m["status"] == "completed" and model_matches_level(m, level_id)]
+
+
+def test_promote_and_rollback_keep_an_append_only_history(serving_dir):
+    from agents.serving import load_serving, previous_run, promote, rollback, served_run
+    a, b = _completed_runs("N5")[:2]
+    with pytest.raises(ValueError):
+        rollback("N5", "sin historial")
+    promote("N5", a, "inicial")
+    promote("N5", b, "candidato")
+    assert served_run("N5") == b and previous_run("N5") == a
+    rollback("N5", "degradación")
+    assert served_run("N5") == a
+    history = load_serving("N5")["history"]
+    assert [h["action"] for h in history] == ["promote", "promote", "rollback"]
+    assert [h["run_id"] for h in history] == [a, b, a]
+    assert all(h["model_sha256"] and h["environment_version"] == "parking-v8" for h in history)
+
+
+def test_promote_rejects_incompatible_or_unknown_runs(serving_dir):
+    from agents.serving import promote
+    with pytest.raises(ValueError):
+        promote("N1", _completed_runs("N5")[0], "otro nivel")
+    with pytest.raises(FileNotFoundError):
+        promote("N5", "N5-no-existe", "x")
+
+
+def test_server_serves_the_pointer_and_rollback_changes_it(serving_dir):
+    from agents.serving import promote, rollback
+    a, b = _completed_runs("N5")[:2]
+    promote("N5", a, "inicial")
+    promote("N5", b, "candidato")
+    client = TestClient(create_app(SimulationSession("N5"), public=True))
+    with client.websocket_connect("/ws?level=N5") as ws:
+        config = _ws(ws, "config")
+        assert config["agent"] == b and config["serving"]["previous"] == a
+    assert client.get("/api/health").json()["served"]["N5"] == b
+    rollback("N5", "prueba")
+    with client.websocket_connect("/ws?level=N5") as ws:
+        assert _ws(ws, "config")["agent"] == a                   # las partidas nuevas ya usan la versión anterior
+    assert client.get("/api/serving?level=N5").json()["current"]["run_id"] == a
+
+
+def test_evaluate_from_the_web_matches_the_pipeline(client):
+    from agents.rule_based import RuleBasedPolicy
+    from pipelines.scoring import evaluate, suite_for_level
+    with client.websocket_connect("/ws?level=N1") as ws:
+        res = _ws(ws, "evaluate", {"agents": ["rule", "random"], "episodes": 5})
+        assert res["type"] == "evaluation" and [r["agent"] for r in res["results"]] == ["rule", "random"]
+        expected = evaluate(RuleBasedPolicy(), {**suite_for_level("N1"), "episodes": 5})
+        assert res["results"][0]["outcomes_by_case"] == [c["outcome"] for c in expected["cases"]]
+        assert _ws(ws, "evaluate", {"agents": ["manual"], "episodes": 5})["type"] == "error"
+        assert _ws(ws, "evaluate", {"agents": ["rule"], "episodes": 31})["type"] == "error"
+
+
+def test_metrics_count_finished_episodes_and_latency(client):
+    before = client.get("/api/metrics").json()
+    with client.websocket_connect("/ws?level=N1") as ws:
+        _ws(ws, "agent", {"agent": "rule"})
+        _ws(ws, "reset", {"seed": 0})
+        frames = []
+        while not frames or frames[-1]["status"] == "running":
+            frames += _ws(ws, "steps", {"n": 64})["frames"]
+    after = client.get("/api/metrics").json()
+    assert after["steps"] >= before["steps"] + len(frames)
+    level = after["levels"]["N1"]
+    assert level["agents"]["rule"]["episodes"] >= 1
+    assert after["step_latency_ms"]["p95"] >= 0 and "N5" in after["served"]
