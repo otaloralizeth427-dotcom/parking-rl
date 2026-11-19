@@ -1,0 +1,23 @@
+# Blueprint de Render: servidor de la simulación (plan gratuito, se actualiza con cada push a main).
+# Render → New → Blueprint → este repositorio. Después de publicar la web, definir
+# PARKING_ALLOWED_ORIGINS con la URL de Vercel (por ejemplo https://parking-rl.vercel.app).
+services:
+  - type: web
+    name: parking-rl-api
+    runtime: docker
+    plan: free
+    region: ohio
+    branch: main
+    autoDeploy: true
+    dockerfilePath: ./deploy/Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      - key: PARKING_PUBLIC
+        value: "1"
+      - key: PARKING_LEVEL
+        value: N5
+      - key: PARKING_ALLOWED_ORIGINS
+        sync: false
+      - key: PARKING_ALLOWED_ORIGIN_REGEX
+        value: ^https://parking-rl[a-z0-9-]*\.vercel\.app$

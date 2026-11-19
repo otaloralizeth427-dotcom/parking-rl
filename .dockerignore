@@ -1,0 +1,12 @@
+# Lista blanca: la imagen del servidor solo lleva lo necesario para servir los modelos
+*
+!api/
+!agents/
+!envs/
+!configs/levels/
+!manifests/
+!artifacts/**/model.zip
+!artifacts/**/model.npz
+!deploy/requirements-serve.txt
+**/__pycache__
+**/*.pyc

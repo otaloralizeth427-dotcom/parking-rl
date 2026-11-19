@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import threading
 from pathlib import Path
@@ -40,12 +41,10 @@ _POLICIES_LOCK = threading.Lock()
 
 
 def git_commit() -> str | None:
-    """Commit del código servido (GIT_COMMIT, el archivo SERVED_COMMIT del Space, o git en local)."""
-    if os.environ.get("GIT_COMMIT"):
-        return os.environ["GIT_COMMIT"]
-    served = ROOT / "SERVED_COMMIT"           # lo escribe deploy/build_space.py al armar el Space
-    if served.exists():
-        return served.read_text().strip() or None
+    """Commit del código servido (GIT_COMMIT o RENDER_GIT_COMMIT en el servidor, o git en local)."""
+    for var in ("GIT_COMMIT", "RENDER_GIT_COMMIT"):
+        if os.environ.get(var):
+            return os.environ[var]
     try:
         return subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True,
                               text=True, timeout=5).stdout.strip() or None
@@ -294,18 +293,21 @@ class SimulationSession:
 
 
 def create_app(session: SimulationSession | None = None, *, public: bool | None = None,
-               allowed_origins: list[str] | None = None) -> FastAPI:
+               allowed_origins: list[str] | None = None, allowed_origin_regex: str | None = None) -> FastAPI:
     """App de la simulación.
 
     - REST (/api/...) usa una partida compartida (scripts y pruebas).
     - Cada conexión WebSocket (/ws?level=N3) tiene su propia partida: varias personas pueden jugar a la vez.
     - public=True (o PARKING_PUBLIC=1) desactiva el entrenamiento desde la interfaz.
-    - allowed_origins (o PARKING_ALLOWED_ORIGINS, separados por coma) habilita CORS para la web publicada.
+    - allowed_origins (o PARKING_ALLOWED_ORIGINS, separados por coma) habilita CORS para la web publicada;
+      allowed_origin_regex (o PARKING_ALLOWED_ORIGIN_REGEX) admite también las vistas previas de Vercel.
     """
     if public is None:
         public = os.environ.get("PARKING_PUBLIC", "") == "1"
     if allowed_origins is None:
         allowed_origins = [o.strip() for o in os.environ.get("PARKING_ALLOWED_ORIGINS", "").split(",") if o.strip()]
+    if allowed_origin_regex is None:
+        allowed_origin_regex = os.environ.get("PARKING_ALLOWED_ORIGIN_REGEX") or None
     app = FastAPI(title="Parking RL")
     app.state.session = session or SimulationSession(os.environ.get("PARKING_LEVEL"), public=public)
     app.state.session.public = app.state.session.public or public
@@ -359,9 +361,18 @@ def create_app(session: SimulationSession | None = None, *, public: bool | None 
     def post_train(payload: dict):
         return call("train", payload)
 
+    def origin_allowed(origin: str | None) -> bool:
+        # El navegador no aplica CORS a los WebSocket: se revisa aquí el mismo origen permitido
+        if origin is None or not (allowed_origins or allowed_origin_regex):
+            return True
+        return origin in allowed_origins or bool(allowed_origin_regex and re.fullmatch(allowed_origin_regex, origin))
+
     @app.websocket("/ws")
     async def websocket(ws: WebSocket):
         level = ws.query_params.get("level") or app.state.default_level
+        if not origin_allowed(ws.headers.get("origin")):
+            await ws.close(code=1008)
+            return
         await ws.accept()
         if level not in LEVEL_IDS:
             await ws.close(code=1008, reason="Nivel desconocido")
@@ -390,8 +401,9 @@ def create_app(session: SimulationSession | None = None, *, public: bool | None 
         finally:
             app.state.live_sessions -= 1
 
-    if allowed_origins:
-        app.add_middleware(CORSMiddleware, allow_origins=allowed_origins, allow_methods=["*"], allow_headers=["*"])
+    if allowed_origins or allowed_origin_regex:
+        app.add_middleware(CORSMiddleware, allow_origins=allowed_origins, allow_origin_regex=allowed_origin_regex,
+                           allow_methods=["*"], allow_headers=["*"])
 
     @app.middleware("http")
     async def no_cache(request, call_next):

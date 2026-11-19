@@ -371,6 +371,19 @@ def test_public_server_blocks_training_and_reports_identity():
     assert "access-control-allow-origin" not in other.headers
 
 
+def test_public_server_checks_origin_of_websockets_and_vercel_previews():
+    from starlette.websockets import WebSocketDisconnect
+    client = TestClient(create_app(public=True, allowed_origins=["https://parking.example"],
+                                   allowed_origin_regex=r"^https://parking-rl[a-z0-9-]*\.vercel\.app$"))
+    preview = client.get("/api/health", headers={"Origin": "https://parking-rl-git-main-equipo.vercel.app"})
+    assert preview.headers["access-control-allow-origin"] == "https://parking-rl-git-main-equipo.vercel.app"
+    with client.websocket_connect("/ws?level=N1", headers={"Origin": "https://parking.example"}) as ws:
+        assert _ws(ws, "state")["level"] == "N1"
+    with pytest.raises(WebSocketDisconnect), \
+            client.websocket_connect("/ws?level=N1", headers={"Origin": "https://malo.example"}) as ws:
+        ws.receive_text()
+
+
 # ---------------------------------------------------------------- niveles
 def test_levels_match_environment_version():
     from envs.levels import LEVEL_IDS, load_level, make_env

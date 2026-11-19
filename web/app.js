@@ -16,6 +16,12 @@ const API_BASE = (import.meta.env?.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 // El nivel va en el link (?level=N3): así cada visitante tiene su partida y la recarga lo conserva
 let currentLevel = new URLSearchParams(location.search).get("level");
 
+// El servidor gratuito se duerme tras un rato sin visitas: si tarda, se avisa en lugar de parecer colgado
+const wakeNotice = setTimeout(() => {
+  const el = document.getElementById("loading");
+  if (el && !el.hidden) el.lastChild.textContent = "Despertando el servidor… la primera visita puede tardar hasta 1 minuto";
+}, 4000);
+
 // La paleta depende del nivel; al cambiar a un nivel con otra paleta la página se recarga
 const THEME = themeFor(await fetch(`${API_BASE}/api/config${currentLevel ? `?level=${currentLevel}` : ""}`)
   .then((r) => r.json()).then((c) => (currentLevel = c.level)).catch(() => currentLevel ?? "N1"));
@@ -1557,6 +1563,7 @@ window.addEventListener("keydown", (e) => {
     await refreshConfig();
     await doReset();
     $("loading").hidden = true;
+    clearTimeout(wakeNotice);
     if (sim.agent !== "manual") setRunning(true);   // arranca solo: el auto empieza a andar al abrir
   } catch (err) {
     showError(err);
