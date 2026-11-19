@@ -6,7 +6,6 @@
 mlartifacts
 mlflow.db
 models
-results
 web
 build
 docs

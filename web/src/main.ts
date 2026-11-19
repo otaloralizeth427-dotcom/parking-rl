@@ -10,7 +10,8 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { themeFor } from "./themes";
 import type {
-  CatalogItem, Commands, Config, Frame, Layout, LevelId, Metrics, ResetFrame, Slot, Status, Training,
+  CatalogItem, Commands, Config, Frame, Layout, LevelId, LevelInfo, LevelMetrics, Metrics, ResetFrame,
+  Slot, Status, Training,
 } from "./types";
 
 // Dirección del servidor de la simulación. En local queda vacía (la web la sirve el mismo servidor);
@@ -1335,7 +1336,7 @@ function updateHud(frame: Frame) {
   $("hud-title").dataset.state = status;
   setText("hud-title-text", sim.garage && ["idle", "running"].includes(status) ? "Encuentra el espacio libre" : TITLE_LABELS[status]);
   setText("hud-moves", `Movimientos: ${frame.steps}`);
-  setText("hud-level", `Nivel: ${sim.level.replace("N", "")}`);
+  setText("hud-level", `Nivel: ${sim.level.replace("N", "")} ▾`);
 
   setText("m-agent", frame.agent_label ?? frame.agent);
   setText("hud-mode", `Modo: ${frame.mode}`);
@@ -1723,16 +1724,16 @@ $<HTMLInputElement>("speed").oninput = (e) => {
   sim.speed = Number((e.target as HTMLInputElement).value);
   setText("speed-label", `${sim.speed}×`);
 };
-$<HTMLSelectElement>("difficulty").onchange = async (e) => {
-  const level: LevelId = (e.target as HTMLSelectElement).value;
+async function changeLevel(level: LevelId) {
   sim.level = currentLevel = level;
   const url = new URL(location.href);
   url.searchParams.set("level", currentLevel);
   history.replaceState(null, "", url);
   await doReset({ level });
-  if (THEMES_DIFFER(level)) return location.reload();
+  if (THEMES_DIFFER(level)) return location.reload();     // cada nivel tiene su paleta
   await refreshConfig();
-};
+}
+$<HTMLSelectElement>("difficulty").onchange = (e) => changeLevel((e.target as HTMLSelectElement).value);
 $<HTMLInputElement>("tg-sensors").onchange = (e) => setOverlays((e.target as HTMLInputElement).checked, sim.showTrail);
 $<HTMLInputElement>("tg-trail").onchange = (e) => setOverlays(sim.showSensors, (e.target as HTMLInputElement).checked);
 $<HTMLInputElement>("tg-noise").onchange = (e) => doReset({ sensor_noise: (e.target as HTMLInputElement).checked ? 0.1 : 0 });
@@ -1759,6 +1760,176 @@ setInterval(async () => {
     updateTraining(state.training);
   } catch { /* la reconexión se maneja en Connection */ }
 }, 600);
+
+// ============================================================ selector de nivel
+let levelsCache: LevelInfo[] | null = null;
+
+async function apiGet<T>(path: string): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`);
+  if (!res.ok) throw new Error(`El servidor respondió ${res.status} a ${path}`);
+  return res.json() as Promise<T>;
+}
+
+async function toggleLevelMenu(open?: boolean) {
+  const menu = $("level-menu");
+  const show = open ?? menu.hidden;
+  menu.hidden = !show;
+  $("hud-level").setAttribute("aria-expanded", String(show));
+  if (!show) return;
+  try {
+    levelsCache ??= await apiGet<LevelInfo[]>("/api/levels");
+  } catch (err) { showError(err); return; }
+  $("level-list").replaceChildren(...levelsCache.map((lv) => {
+    const button = document.createElement("button");
+    button.className = `level-option${lv.id === sim.level ? " active" : ""}`;
+    const num = document.createElement("span");
+    num.className = "num";
+    num.textContent = lv.id.replace("N", "");
+    const text = document.createElement("span");
+    text.textContent = lv.name;
+    const small = document.createElement("small");
+    small.textContent = lv.environment_version;
+    text.append(small);
+    const rate = document.createElement("span");
+    rate.className = "rate";
+    rate.textContent = lv.success_rate == null ? "" : pct(lv.success_rate);
+    rate.title = "Éxito del modelo servido en la suite fija";
+    button.append(num, text, rate);
+    button.onclick = async () => {
+      toggleLevelMenu(false);
+      if (lv.id !== sim.level) await changeLevel(lv.id);
+    };
+    return button;
+  }));
+}
+$("hud-level").onclick = (e) => { e.stopPropagation(); toggleLevelMenu(); };
+document.addEventListener("click", (e) => {
+  if (!$("level-menu").hidden && !(e.target as HTMLElement).closest("#level-menu")) toggleLevelMenu(false);
+});
+
+// ============================================================ métricas del nivel
+// Resultados versionados del pipeline (suite fija y test final reservado), no partidas en vivo.
+const OUTCOME_LONG: Record<string, string> = {
+  success: "Éxitos", obstacle: "Choques con obstáculos", pedestrian: "Atropellos", boundary: "Salidas del área",
+  timeout: "Tiempo agotado",
+};
+
+function el<K extends keyof HTMLElementTagNameMap>(tag: K, className = "", text = ""): HTMLElementTagNameMap[K] {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text) node.textContent = text;
+  return node;
+}
+
+function kpi(label: string, value: string, sub = "") {
+  const box = el("div", "kpi");
+  box.append(el("label", "", label), el("b", "", value));
+  if (sub) box.append(el("span", "", sub));
+  return box;
+}
+
+function barRow(label: string, rate: number, kind: string) {
+  const row = el("div", `bar-row ${kind}`);
+  const track = el("div", "track");
+  const fill = el("div", "fill");
+  fill.style.width = `${Math.max(rate * 100, 1)}%`;
+  track.append(fill);
+  row.append(el("span", "", label), track, el("span", "val", pct(rate)));
+  return row;
+}
+
+function renderMetrics(m: LevelMetrics) {
+  setText("metrics-eyebrow", `Nivel ${m.level.replace("N", "")} · ${m.environment_version}`);
+  setText("metrics-title", m.name);
+  const body = $("metrics-body");
+  const parts: HTMLElement[] = [];
+  if (m.description) parts.push(el("p", "note", m.description));
+  const served = m.served;
+  const suiteModel = served ? m.suite?.policies[served.run_id] : undefined;
+  const finalModel = served ? m.final_test?.policies[served.run_id] : undefined;
+  if (!served || !suiteModel) {
+    parts.push(el("p", "note", "Este nivel todavía no tiene un modelo servido con resultados."));
+    body.replaceChildren(...parts);
+    return;
+  }
+
+  parts.push(el("h3", "", "Modelo en uso"));
+  const kpis = el("div", "kpis");
+  kpis.append(
+    kpi("Éxito · prueba fija", pct(suiteModel.success_rate), `${m.suite!.suite_id} · ${suiteModel.episodes} casos`),
+    kpi("Éxito · examen final", finalModel ? pct(finalModel.success_rate) : "—",
+        m.final_test ? `${m.final_test.suite_id} · semillas secretas` : "sin examen final"),
+    kpi("Tiempo para estacionar", `${suiteModel.mean_time_s.toFixed(1)} s`, "promedio en la prueba fija"),
+    kpi("Recompensa media", suiteModel.mean_return.toFixed(1), "por episodio"),
+  );
+  parts.push(kpis);
+
+  // Comparación contra las referencias, con los mismos casos de la suite
+  parts.push(el("h3", "", "Comparación en la prueba fija (mismos casos)"));
+  const bars = el("div", "bars");
+  const random = m.suite!.policies.random, rule = m.suite!.policies.rule;
+  if (random) bars.append(barRow("Aleatorio", random.success_rate, "random"));
+  if (rule) bars.append(barRow("Regla fija", rule.success_rate, "rule"));
+  bars.append(barRow("Modelo (IA)", suiteModel.success_rate, "model"));
+  parts.push(bars);
+
+  parts.push(el("h3", "", "Cómo terminaron los episodios del modelo"));
+  const chips = el("div", "chips");
+  for (const [outcome, n] of Object.entries(suiteModel.outcomes)) {
+    if (!n && outcome !== "success") continue;
+    const chip = el("span", `chip${outcome === "success" ? " ok" : ""}`);
+    chip.append(el("b", "", String(n)), ` ${OUTCOME_LONG[outcome] ?? outcome}`);
+    chips.append(chip);
+  }
+  parts.push(chips);
+
+  parts.push(el("h3", "", "Identidad del modelo"));
+  const id = el("dl", "identity");
+  const rows: [string, string, boolean?][] = [
+    ["Run", served.run_id], ["Algoritmo", `${served.agent.toUpperCase()} · semilla ${served.seed}`, true],
+    ["Versión del ambiente", served.environment_version], ["Commit", served.git_commit ?? "—"],
+    ["SHA-256 del modelo", served.model_sha256 ?? "—"],
+  ];
+  if (served.parent_run_id) rows.push(["Parte de", served.parent_run_id]);
+  if (served.budget?.timesteps) rows.push(["Entrenamiento", `${served.budget.timesteps.toLocaleString("es")} pasos`, true]);
+  if (served.hypothesis) rows.push(["Hipótesis", served.hypothesis, true]);
+  for (const [k, v, text] of rows) id.append(el("dt", "", k), el("dd", text ? "text" : "", v));
+  parts.push(id);
+  const exp = served.mlflow_experiment ? MLFLOW_EXPERIMENTS[served.mlflow_experiment] : undefined;
+  if (served.mlflow_run_id && exp) {
+    const link = el("a", "note link", "Ver este run en MLflow ↗");
+    link.href = `${MLFLOW_URL}/#/experiments/${exp}/runs/${served.mlflow_run_id}`;
+    link.target = "_blank";
+    link.rel = "noopener";
+    parts.push(link);
+  }
+
+  if (m.has_curves) {
+    parts.push(el("h3", "", "Curvas de entrenamiento de los experimentos del nivel"));
+    const img = el("img", "curves");
+    img.src = `${API_BASE}/api/level-metrics/curves.png?level=${m.level}`;
+    img.alt = `Curvas de entrenamiento y validación de los experimentos de ${m.level}`;
+    img.loading = "lazy";
+    parts.push(img);
+  }
+  body.replaceChildren(...parts);
+}
+
+async function openMetrics() {
+  $("metrics-modal").hidden = false;
+  setText("metrics-title", "Métricas");
+  $("metrics-body").replaceChildren(el("p", "note", "Cargando métricas…"));
+  try {
+    renderMetrics(await apiGet<LevelMetrics>(`/api/level-metrics?level=${sim.level}`));
+  } catch (err) {
+    $("metrics-body").replaceChildren(el("p", "error", err instanceof Error ? err.message : String(err)));
+  }
+}
+const closeMetrics = () => ($("metrics-modal").hidden = true);
+$("btn-metrics").onclick = () => openMetrics();
+$("btn-metrics-close").onclick = closeMetrics;
+$("metrics-modal").onclick = (e) => { if (e.target === $("metrics-modal")) closeMetrics(); };
+window.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeMetrics(); toggleLevelMenu(false); } });
 
 // ============================================================ control manual
 const MANUAL_KEYS = Object.fromEntries(

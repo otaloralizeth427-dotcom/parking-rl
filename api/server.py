@@ -31,6 +31,7 @@ WEB_DIR = ROOT / "web"
 MAX_BATCH = 64            # pasos por petición «steps» (el cliente los anima uno a uno)
 MAX_SESSIONS = 50         # partidas simultáneas en el servidor público
 EXPERIMENTS_DIR = ROOT / "configs" / "experiments"
+RESULTS_DIR = ROOT / "results"
 BASELINES = {
     "random": {"label": "Aleatoria", "mode": "Aleatorio"},
     "rule": {"label": "Regla", "mode": "Referencia (regla)"},
@@ -458,6 +459,60 @@ def create_app(session: SimulationSession | None = None, *, public: bool | None 
         """Monitoreo: éxito y causas de fallo por nivel/agente, latencia por paso y versión servida."""
         return {**METRICS.snapshot(), "git_commit": commit, "live_sessions": app.state.live_sessions,
                 "served": {lid: served_run(lid) for lid in LEVEL_IDS}}
+
+    @app.get("/api/levels")
+    def get_levels():
+        """Los niveles con su nombre, versión del ambiente y el éxito del modelo servido (para el selector)."""
+        out = []
+        for lid in LEVEL_IDS:
+            level = load_level(lid)
+            served = served_run(lid)
+            summary = (load_manifest(served).get("evaluation_summary") or {}) if served else {}
+            out.append({"id": lid, "name": level["name"], "environment_version": level["environment_version"],
+                        "served": served, "success_rate": summary.get("success_rate")})
+        return out
+
+    @app.get("/api/level-metrics")
+    def get_level_metrics(level: str | None = None):
+        """Métricas de un nivel: modelo servido (identidad), suite fija y test final reservado.
+
+        Sale de los resultados versionados del pipeline (results/<nivel>/), no de partidas en vivo.
+        """
+        level = check_level(level)
+        info = load_level(level)
+        served = served_run(level)
+        manifest = load_manifest(served) if served else None
+        strip = lambda p: {k: v for k, v in p.items() if k != "outcomes_by_case"}  # noqa: E731
+
+        def results(name: str) -> dict | None:
+            path = RESULTS_DIR / level / name
+            if not path.exists():
+                return None
+            data = json.loads(path.read_text())
+            return {**{k: v for k, v in data.items() if k != "policies"},
+                    "policies": {key: strip(p) for key, p in data["policies"].items()}}
+
+        return {
+            "level": level, "name": info["name"], "environment_version": info["environment_version"],
+            "description": info.get("description"),
+            "served": None if manifest is None else {
+                k: manifest.get(k) for k in ("run_id", "agent", "experiment_id", "seed", "hypothesis", "git_commit",
+                                             "model_sha256", "environment_version", "evaluation_suite_id",
+                                             "parent_run_id", "created_at", "budget")} | {
+                "mlflow_run_id": (manifest.get("mlflow") or {}).get("run_id"),
+                "mlflow_experiment": (manifest.get("mlflow") or {}).get("experiment")},
+            "suite": results("comparison.json"),
+            "final_test": results("final_test.json"),
+            "has_curves": (RESULTS_DIR / level / "curves.png").exists(),
+        }
+
+    @app.get("/api/level-metrics/curves.png", include_in_schema=False)
+    def get_level_curves(level: str | None = None):
+        from fastapi.responses import FileResponse
+        path = RESULTS_DIR / check_level(level) / "curves.png"
+        if not path.exists():
+            raise HTTPException(status_code=404, detail="El nivel no tiene curvas de entrenamiento")
+        return FileResponse(path, media_type="image/png")
 
     @app.get("/api/config")
     def get_config(level: str | None = None):

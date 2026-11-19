@@ -6,6 +6,9 @@ FROM python:3.12-slim AS models
 WORKDIR /src
 COPY artifacts/ artifacts/
 RUN find artifacts -type f ! -name 'model.zip' ! -name 'model.npz' -delete
+# De results/ solo el resumen de la suite, el test final y las curvas de cada nivel (panel «Métricas»)
+COPY results/ results/
+RUN find results -type f ! -name 'comparison.json' ! -name 'final_test.json' ! -name 'curves.png' -delete
 
 # Etapa 2: el servidor
 FROM python:3.12-slim
@@ -28,6 +31,7 @@ COPY --chown=app configs/suites/ configs/suites/
 COPY --chown=app manifests/ manifests/
 COPY --chown=app serving/ serving/
 COPY --chown=app --from=models /src/artifacts/ artifacts/
+COPY --chown=app --from=models /src/results/ results/
 USER app
 
 # Render fija PORT y RENDER_GIT_COMMIT; PARKING_ALLOWED_ORIGINS se define en el panel (dominio de Vercel)

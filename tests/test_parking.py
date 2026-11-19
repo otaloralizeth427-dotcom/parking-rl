@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -9,6 +10,8 @@ from agents.neural_q_learning import MLP, DQNAgent
 from agents.q_learning import QLearningAgent
 from api.server import SimulationSession, create_app
 from envs.parking_env import BRAKE, FORWARD, LEFT, REVERSE, ParkingEnv, raycast_obbs
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
 
 
 @pytest.fixture
@@ -909,3 +912,28 @@ def test_pipeline_verification_rolls_back_a_broken_promotion(serving_dir, monkey
     # Si la versión servida no es la esperada, el paso 8 revierte solo
     result = flow.verify_served.fn("N5", "N5-otro-run", promoted=True)
     assert result["ok"] is False and served_run("N5") == a
+
+
+# ---------------------------------------------------------------- selector de nivel y métricas (web)
+def test_levels_endpoint_lists_every_level_with_its_served_model():
+    from agents.serving import served_run
+    from envs.levels import LEVEL_IDS
+    levels = TestClient(create_app(SimulationSession("N1"), public=True)).get("/api/levels").json()
+    assert [lv["id"] for lv in levels] == list(LEVEL_IDS)
+    for lv in levels:
+        assert lv["served"] == served_run(lv["id"]) and lv["environment_version"].startswith("parking-v")
+
+
+def test_level_metrics_match_the_versioned_results():
+    client = TestClient(create_app(SimulationSession("N1"), public=True))
+    for level in ("N1", "N5"):
+        m = client.get(f"/api/level-metrics?level={level}").json()
+        run = m["served"]["run_id"]
+        suite = json.loads((ROOT_DIR / "results" / level / "comparison.json").read_text())
+        assert m["suite"]["policies"][run]["success_rate"] == suite["policies"][run]["success_rate"]
+        assert "rule" in m["suite"]["policies"] and "random" in m["suite"]["policies"]
+        assert all("outcomes_by_case" not in p for p in m["final_test"]["policies"].values())
+        assert m["served"]["model_sha256"] and m["has_curves"]
+    assert client.get("/api/level-metrics?level=N9").status_code == 400
+    png = client.get("/api/level-metrics/curves.png?level=N2")
+    assert png.status_code == 200 and png.headers["content-type"] == "image/png"

@@ -129,3 +129,23 @@ export interface Commands {
   train: { payload: { episodes: number }; response: { type: "training"; training: Training } };
   evaluate: { payload: { agents: string[]; episodes: number }; response: Evaluation };
 }
+
+/** Selector de nivel: GET /api/levels */
+export interface LevelInfo {
+  id: LevelId; name: string; environment_version: string; served: string | null; success_rate: number | null;
+}
+
+export interface PolicyResult extends Summary { label: string }
+
+/** Métricas de un nivel: GET /api/level-metrics?level=… (resultados versionados del pipeline) */
+export interface LevelMetrics {
+  level: LevelId; name: string; environment_version: string; description?: string;
+  served: (ModelIdentity & {
+    run_id: string; agent: string; experiment_id: string; hypothesis?: string; environment_version: string;
+    evaluation_suite_id?: string; parent_run_id?: string | null; created_at?: string;
+    budget?: { timesteps?: number; episodes?: number; wall_time_s?: number };
+  }) | null;
+  suite: { level_id: string; suite_id: string; policies: Record<string, PolicyResult> } | null;
+  final_test: { suite_id: string; evaluated_at?: string; policies: Record<string, PolicyResult> } | null;
+  has_curves: boolean;
+}
