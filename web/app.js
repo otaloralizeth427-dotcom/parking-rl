@@ -13,6 +13,9 @@ import { themeFor } from "./themes.js";
 // Dirección del servidor de la simulación. En local queda vacía (la web la sirve el mismo servidor);
 // en la versión publicada (Vercel) la fija VITE_API_BASE_URL al construir.
 const API_BASE = (import.meta.env?.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
+// Registro de experimentos (MLflow) publicado; en local, el `mlflow ui` en el puerto 5000
+const MLFLOW_URL = (import.meta.env?.VITE_MLFLOW_URL ?? "http://127.0.0.1:5000").replace(/\/$/, "");
+const MLFLOW_EXPERIMENTS = { "parking-N1": 1, "parking-N2": 2, "parking-N3": 3, "parking-N4": 4, "parking-N5": 5 };
 // El nivel va en el link (?level=N3): así cada visitante tiene su partida y la recarga lo conserva
 let currentLevel = new URLSearchParams(location.search).get("level");
 
@@ -1301,6 +1304,10 @@ function updateHud(frame) {
   setText("m-trained", m
     ? `Ambiente ${frame.environment_version} · commit ${m.git_commit?.slice(0, 7) ?? "?"} · semilla ${m.seed} · sha256 ${m.model_sha256?.slice(0, 10)}…`
     : `Ambiente ${frame.environment_version} · ${frame.mode}`);
+  const link = $("m-mlflow");
+  const exp = MLFLOW_EXPERIMENTS[m?.mlflow_experiment];
+  link.hidden = !(m?.mlflow_run_id && exp);
+  if (!link.hidden) link.href = `${MLFLOW_URL}/#/experiments/${exp}/runs/${m.mlflow_run_id}`;
   $("agent-select").value = frame.agent;
   $("btn-train").disabled = frame.training.running || !sim.canTrain;
 }

@@ -21,3 +21,15 @@ services:
         sync: false
       - key: PARKING_ALLOWED_ORIGIN_REGEX
         value: ^https://parking-rl[a-z0-9-]*\.vercel\.app$
+
+  # Registro de experimentos (MLflow) de solo consulta: copia versionada en registry/ + artifacts/
+  - type: web
+    name: parking-rl-mlflow
+    runtime: docker
+    plan: free
+    region: ohio
+    branch: main
+    autoDeploy: true
+    dockerfilePath: ./deploy/mlflow.Dockerfile
+    dockerContext: .
+    healthCheckPath: /health

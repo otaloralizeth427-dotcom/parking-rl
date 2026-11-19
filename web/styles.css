@@ -467,3 +467,5 @@ button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
 .error.info { background: rgb(34 197 94 / 0.18); color: #bbf7d0; border-color: rgb(34 197 94 / 0.4); }
 .table td:first-child { white-space: normal; min-width: 110px; }
 .table td:last-child { white-space: normal; }
+.note.link { display: inline-block; color: #c4b5fd; text-decoration: none; font-weight: 700; }
+.note.link:hover { text-decoration: underline; }

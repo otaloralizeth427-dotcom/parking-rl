@@ -158,6 +158,8 @@ class SimulationSession:
                 "model_sha256": m.get("model_sha256"), "created_at": m["created_at"],
                 "test_success_rate": summary.get("success_rate"), "test_mean_time_s": summary.get("mean_time_s"),
                 "diagnostic": m.get("diagnostic"),
+                "mlflow_run_id": (m.get("mlflow") or {}).get("run_id"),
+                "mlflow_experiment": (m.get("mlflow") or {}).get("experiment"),
             })
         self._catalog = (self.level_id, items)
         return items
@@ -377,7 +379,8 @@ class SimulationSession:
             "agent": self.agent_name,
             "agent_label": info.get("label"),
             "mode": "Manual" if self.manual else info.get("mode"),
-            "model": {k: info.get(k) for k in ("git_commit", "model_sha256", "seed", "test_success_rate")}
+            "model": {k: info.get(k) for k in ("git_commit", "model_sha256", "seed", "test_success_rate",
+                                                "mlflow_run_id", "mlflow_experiment")}
             if self.agent_name not in BASELINES else None,
             "collisions_total": self.collisions,
             "successes_total": self.successes,
