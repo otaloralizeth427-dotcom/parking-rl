@@ -1,0 +1,71 @@
+{
+  "run_id": "N2-exp10-ppo-ft-v13-s44-0ba0601d",
+  "experiment_id": "N2-exp10-ppo-ft-v13",
+  "level_id": "N2",
+  "agent": "ppo",
+  "hypothesis": "En 300 partidas nuevas el modelo servido de v12 estaciona 89 % y en 4 % queda congelado hasta agotar el tiempo: congelarse 200 pasos costaba ~-40 y chocar un cono -50, así que quedarse quieto era la opción «segura». En parking-v13 el castigo por estar detenido crece tras 2 s (hasta 1.0 por paso); continuar el servido 1 000 000 de pasos en v13 elimina casi todos los congelamientos (< 1 %) sin aumentar los choques con conos.",
+  "change_vs_baseline": "Continúa N2-exp09-ppo-ft-v12-s42-25fea815 en N2 con parking-v13 (stuck_penalty); 1 000 000 de pasos, ent_coef 0.01.",
+  "environment_version": "parking-v13",
+  "environment_kwargs": {
+    "difficulty": "hard",
+    "sensor_noise": 0.0,
+    "pedestrians": 0,
+    "cones": 3,
+    "blocking_cones": 1,
+    "bumper_sensors": 5,
+    "crossing_pedestrians": 0,
+    "fair_cones": 2,
+    "aisle_width": 11.0,
+    "stuck_penalty": true
+  },
+  "observation_shape": [
+    19
+  ],
+  "git_commit": "9b0d6d10ef97810b6b3c306bb7d4e30ad64aca98",
+  "git_branch": "feature/conos-justos",
+  "git_dirty": false,
+  "config_uri": "artifacts/N2/N2-exp10-ppo-ft-v13-s44-0ba0601d/config.json",
+  "config_sha256": "82516cc9966a763da555dbab9f0c6cc63ce029d0c0464f2bd8d58eef541f2c72",
+  "seed": 44,
+  "parent_run_id": "N2-exp09-ppo-ft-v12-s42-25fea815",
+  "origin": "continuación de checkpoint",
+  "parent_model_sha256": "390531d8007e7d78e6a1b2ad2aae458578ef44042cb27c4e7c27ceac91670a72",
+  "evaluation_suite_id": "N2-suite-v1",
+  "mlflow": {
+    "tracking_uri": "sqlite:///mlflow.db",
+    "experiment": "parking-N2",
+    "run_id": "0ba0601d00e644f28839445c9c78307a"
+  },
+  "created_at": "2026-11-19T07:31:05+00:00",
+  "status": "completed",
+  "model_uri": "artifacts/N2/N2-exp10-ppo-ft-v13-s44-0ba0601d/model.zip",
+  "model_sha256": "7740b265d6d65f2b31aa68feabdafbd58acb0589a69c4beeba4a48d009811310",
+  "normalization_uri": "envs/parking_env.py#ParkingEnv._observation (escalado fijo dentro del ambiente; sin normalización aprendida)",
+  "observation_contract": "Box(19,) float32 · ver docs/ficha_ambiente.md",
+  "action_contract": "Discrete(5): avanzar, retroceder, izquierda, derecha, frenar",
+  "runtime_ref": "python 3.12.7 · requirements.lock.txt sha256:76cff4f909c98d69",
+  "budget": {
+    "timesteps": 1000000,
+    "episodes": 26405,
+    "env_steps": 1000000,
+    "wall_time_s": 1630.2
+  },
+  "optimizer_state": "no guardado: los runs no se continúan desde este checkpoint",
+  "evaluation_uri": "artifacts/N2/N2-exp10-ppo-ft-v13-s44-0ba0601d/evaluation.json",
+  "evaluation_summary": {
+    "episodes": 100,
+    "success_rate": 0.9,
+    "outcomes": {
+      "success": 90,
+      "obstacle": 7,
+      "pedestrian": 0,
+      "boundary": 0,
+      "timeout": 3
+    },
+    "mean_return": 89.906,
+    "mean_time_s": 7.79,
+    "mean_final_distance_m": 1.52,
+    "mean_final_heading_error_deg": 10.407,
+    "mean_latency_ms": 0.214
+  }
+}

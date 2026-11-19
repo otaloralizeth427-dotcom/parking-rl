@@ -13,11 +13,11 @@
         "boundary": 8,
         "timeout": 66
       },
-      "mean_return": -35.385,
+      "mean_return": -35.43,
       "mean_time_s": 32.128,
       "mean_final_distance_m": 13.324,
       "mean_final_heading_error_deg": 65.73,
-      "mean_latency_ms": 0.002
+      "mean_latency_ms": 0.007
     },
     "rule": {
       "label": "Regla (referencia)",
@@ -34,58 +34,58 @@
       "mean_time_s": 6.772,
       "mean_final_distance_m": 9.986,
       "mean_final_heading_error_deg": 50.95,
-      "mean_latency_ms": 0.021
+      "mean_latency_ms": 0.034
     },
-    "N2-exp09-ppo-ft-v12-s43-beee955f": {
-      "label": "PPO \u00b7 N2-exp09-ppo-ft-v12-s43-beee955f",
-      "episodes": 100,
-      "success_rate": 0.84,
-      "outcomes": {
-        "success": 84,
-        "obstacle": 8,
-        "pedestrian": 0,
-        "boundary": 0,
-        "timeout": 8
-      },
-      "mean_return": 85.934,
-      "mean_time_s": 9.542,
-      "mean_final_distance_m": 2.303,
-      "mean_final_heading_error_deg": 14.396,
-      "mean_latency_ms": 0.114
-    },
-    "N2-exp09-ppo-ft-v12-s42-25fea815": {
-      "label": "PPO \u00b7 N2-exp09-ppo-ft-v12-s42-25fea815",
+    "N2-exp10-ppo-ft-v13-s42-c7bdedfb": {
+      "label": "PPO \u00b7 N2-exp10-ppo-ft-v13-s42-c7bdedfb",
       "episodes": 100,
       "success_rate": 0.96,
       "outcomes": {
         "success": 96,
-        "obstacle": 2,
+        "obstacle": 4,
         "pedestrian": 0,
         "boundary": 0,
-        "timeout": 2
+        "timeout": 0
       },
-      "mean_return": 104.184,
-      "mean_time_s": 7.944,
-      "mean_final_distance_m": 0.981,
-      "mean_final_heading_error_deg": 5.637,
-      "mean_latency_ms": 0.205
+      "mean_return": 104.132,
+      "mean_time_s": 6.798,
+      "mean_final_distance_m": 0.985,
+      "mean_final_heading_error_deg": 6.456,
+      "mean_latency_ms": 0.229
     },
-    "N2-exp09-ppo-ft-v12-s44-c31c0b55": {
-      "label": "PPO \u00b7 N2-exp09-ppo-ft-v12-s44-c31c0b55",
+    "N2-exp10-ppo-ft-v13-s43-f187ac39": {
+      "label": "PPO \u00b7 N2-exp10-ppo-ft-v13-s43-f187ac39",
       "episodes": 100,
       "success_rate": 0.95,
       "outcomes": {
         "success": 95,
-        "obstacle": 0,
+        "obstacle": 5,
         "pedestrian": 0,
         "boundary": 0,
-        "timeout": 5
+        "timeout": 0
       },
-      "mean_return": 102.524,
-      "mean_time_s": 9.414,
-      "mean_final_distance_m": 1.211,
-      "mean_final_heading_error_deg": 6.755,
-      "mean_latency_ms": 0.121
+      "mean_return": 102.521,
+      "mean_time_s": 6.794,
+      "mean_final_distance_m": 1.039,
+      "mean_final_heading_error_deg": 6.686,
+      "mean_latency_ms": 0.225
+    },
+    "N2-exp10-ppo-ft-v13-s44-0ba0601d": {
+      "label": "PPO \u00b7 N2-exp10-ppo-ft-v13-s44-0ba0601d",
+      "episodes": 100,
+      "success_rate": 0.9,
+      "outcomes": {
+        "success": 90,
+        "obstacle": 7,
+        "pedestrian": 0,
+        "boundary": 0,
+        "timeout": 3
+      },
+      "mean_return": 89.906,
+      "mean_time_s": 7.79,
+      "mean_final_distance_m": 1.52,
+      "mean_final_heading_error_deg": 10.407,
+      "mean_latency_ms": 0.226
     }
   }
 }

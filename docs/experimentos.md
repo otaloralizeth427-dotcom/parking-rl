@@ -510,3 +510,27 @@ El modelo servido de v9 pasó de 82 % a 90 % en v12 sin reentrenar.
 
 **Decisión del pipeline.** Se promovió `N2-exp09-ppo-ft-v12-s42-25fea815`: 96 % en la suite contra 89 % del
 servido anterior evaluado en v12. N2 pasa de 80 % (v3) a **96 % en la suite y 91 % en el test final**.
+
+
+### N2 · sin congelarse (`parking-v12` → `parking-v13`)
+
+**Diagnóstico.** En 300 partidas nuevas el modelo de v12 estacionaba **89 %** de las veces, y en 4 % quedaba
+quieto hasta agotar el tiempo. Congelarse 200 pasos costaba ~-40 y chocar un cono -50, así que quedarse quieto era
+la opción «segura».
+
+**Intervención (v13, `stuck_penalty`).** Tras 2 s detenido, cada paso quieto cuesta cada vez más.
+
+| Experimento (commit `9b0d6d1`) | Hipótesis | Resultado en la suite (s42 / s43 / s44) | Decisión |
+|---|---|---|---|
+| `N2-exp10-ppo-ft-v13` | Continuar el servido de v12 1 M de pasos en v13 elimina casi todos los congelamientos sin aumentar los choques | **96** / 95 / 90 % · 0 / 0 / 3 tiempos agotados | **aceptada** |
+
+| 300 partidas nuevas (semillas 5000-5299) | Éxito | Congelado / tiempo agotado | Choques con conos |
+|---|---|---|---|
+| v12 · `N2-exp09-…-s42` | 89.3 % | 14 | 18 |
+| **v13 · `N2-exp10-…-s42`** | **93.0 %** | **2** | 19 |
+
+**Resultados.**
+- Test final `N2-final-v4`: regla 9 %, **exp10 s42 92 %**, exp10 s43 92 %.
+- El pipeline lo promovió: mismo éxito en la suite (96 %) y más rápido (6.8 s contra 7.9 s).
+
+**Pendiente.** Los roces con conos (~6 %) siguen siendo el fallo principal.

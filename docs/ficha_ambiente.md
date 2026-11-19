@@ -132,6 +132,8 @@ episodios (frente a ~0.2 % desde el pasillo).
 | `parking-v10` | Agrega `safety_brake=1`: freno de emergencia para peatones (`envs/safety.py`). Si un peatón va a quedar en el recorrido del auto hasta detenerse (proyección de 1.2 s), la acción pasa a FRENAR, y con el auto quieto no lo deja arrancar hacia él. Esperar al peatón no se castiga como «quedarse quieto». La usaron solo los runs `exp05` de N3 y N4: quedaban 2 atropellos y se reemplazó por v11. |
 | `parking-v11` | `safety_brake=2`: además, con un peatón a menos de 4 m adelante el auto no pasa de 1.2 m/s (zona de precaución), y los peatones nunca dan un paso contra el auto (se devuelven o se hacen al otro lado). N3 y N4 la usan. |
 | `parking-v12` | `fair_cones=2` y `aisle_width`. En N2 el pasillo mide 11 m en vez de 9 m (las filas de cupos no cambian), el cono bloqueante queda a 4.5 m o más del arranque (lo que necesita el auto para rodearlo sin retroceder) y el arranque es a 9–12.5 m del cupo. v9 sigue reproducible con `fair_cones=1`. Solo N2 la usa. |
+| `parking-v13` | Agrega `stuck_penalty`. Tras 2 s detenido fuera del cupo, cada paso quieto cuesta 0.05 más, con un tope de 1.0 por paso (esperar a un peatón no cuenta). Solo cambia la recompensa. N2 y N4 la usan; N4 además adopta `fair_cones=2` y el pasillo de 11 m. |
+| `parking-v14` | Agrega `reverse_parking` (N6). Solo cuenta como estacionado con la cola dentro del cupo y la nariz hacia el pasillo. El error de orientación ya no se pliega y va en la observación dividido por π. Arranques de currículo para la reversa: `tutorial` con la cola ya en el cupo y `easy` con el cupo recién pasado. |
 
 ## Simplificaciones
 
