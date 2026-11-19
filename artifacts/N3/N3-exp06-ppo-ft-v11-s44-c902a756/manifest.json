@@ -1,0 +1,71 @@
+{
+  "run_id": "N3-exp06-ppo-ft-v11-s44-c902a756",
+  "experiment_id": "N3-exp06-ppo-ft-v11",
+  "level_id": "N3",
+  "agent": "ppo",
+  "hypothesis": "En v10 quedaban atropellos porque el peatón daba un paso contra el auto detenido o giraba de golpe frente a un auto rápido. En parking-v11 (zona de precaución a 4 km/h y peatones que no caminan contra el auto) los modelos de v10 ya tienen 0 atropellos en 300 casos; continuar el mejor (94 % en la suite de v10 con 2 atropellos) 500 000 pasos en v11 baja los tiempos agotados y mantiene 0 atropellos en las 3 semillas.",
+  "change_vs_baseline": "Continúa N3-exp05-ppo-ft-v10-s42-2534cccb en N3 con parking-v11 (safety_brake=2); 500 000 pasos, ent_coef 0.01.",
+  "environment_version": "parking-v11",
+  "environment_kwargs": {
+    "difficulty": "normal",
+    "sensor_noise": 0.0,
+    "pedestrians": 2,
+    "cones": 0,
+    "blocking_cones": 0,
+    "bumper_sensors": 5,
+    "crossing_pedestrians": 1,
+    "pedestrians_yield": true,
+    "pedestrians_evade": true,
+    "safety_brake": 2
+  },
+  "observation_shape": [
+    19
+  ],
+  "git_commit": "dd252c37c2785d6f3947134f73c7b1532a6446e8",
+  "git_branch": "feature/conos-justos",
+  "git_dirty": false,
+  "config_uri": "artifacts/N3/N3-exp06-ppo-ft-v11-s44-c902a756/config.json",
+  "config_sha256": "078a08a2d5adf872476ad9a35c28a09a8e5deee79f865b44b9e56d389f0a8089",
+  "seed": 44,
+  "parent_run_id": "N3-exp05-ppo-ft-v10-s42-2534cccb",
+  "origin": "continuación de checkpoint",
+  "parent_model_sha256": "441e94d1f108fa0e3006d02b380a6c62c92a2287157aab547421d2664879f45b",
+  "evaluation_suite_id": "N3-suite-v1",
+  "mlflow": {
+    "tracking_uri": "sqlite:///mlflow.db",
+    "experiment": "parking-N3",
+    "run_id": "c902a756529a4916a5fa0eafbdd1cf22"
+  },
+  "created_at": "2026-11-19T06:17:31+00:00",
+  "status": "completed",
+  "model_uri": "artifacts/N3/N3-exp06-ppo-ft-v11-s44-c902a756/model.zip",
+  "model_sha256": "68123bda81dda997f8bd3460f0ee50ee900500bbffd9ac4ef8b36e5d0a242be4",
+  "normalization_uri": "envs/parking_env.py#ParkingEnv._observation (escalado fijo dentro del ambiente; sin normalización aprendida)",
+  "observation_contract": "Box(19,) float32 · ver docs/ficha_ambiente.md",
+  "action_contract": "Discrete(5): avanzar, retroceder, izquierda, derecha, frenar",
+  "runtime_ref": "python 3.12.7 · requirements.lock.txt sha256:76cff4f909c98d69",
+  "budget": {
+    "timesteps": 500000,
+    "episodes": 8800,
+    "env_steps": 500000,
+    "wall_time_s": 1268.4
+  },
+  "optimizer_state": "no guardado: los runs no se continúan desde este checkpoint",
+  "evaluation_uri": "artifacts/N3/N3-exp06-ppo-ft-v11-s44-c902a756/evaluation.json",
+  "evaluation_summary": {
+    "episodes": 100,
+    "success_rate": 0.91,
+    "outcomes": {
+      "success": 91,
+      "obstacle": 0,
+      "pedestrian": 0,
+      "boundary": 0,
+      "timeout": 9
+    },
+    "mean_return": 93.752,
+    "mean_time_s": 12.186,
+    "mean_final_distance_m": 0.951,
+    "mean_final_heading_error_deg": 6.83,
+    "mean_latency_ms": 0.436
+  }
+}

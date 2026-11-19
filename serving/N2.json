@@ -9,15 +9,24 @@
       "model_sha256": "dee5936a73a879dac19bf79324d2fd88dc459d89512632b8a89dd410327b60b3",
       "test_success_rate": 0.8,
       "at": "2026-11-19T00:11:33Z"
+    },
+    {
+      "run_id": "N2-exp07-ppo-ft-v9-s43-ea914db6",
+      "action": "promote",
+      "reason": "Pipeline: Más éxito en la suite: 82% contra 49%",
+      "environment_version": "parking-v9",
+      "model_sha256": "1e9243a013e6780407b9627ac24fe9cfc233397990fa001f04ec1c220e09eb8d",
+      "test_success_rate": 0.82,
+      "at": "2026-11-19T06:40:03Z"
     }
   ],
   "current": {
-    "run_id": "N2-exp06-ppo-curriculo-3m-s44-7f36a120",
+    "run_id": "N2-exp07-ppo-ft-v9-s43-ea914db6",
     "action": "promote",
-    "reason": "Puntero inicial: el modelo con mayor éxito en la suite N2-suite-v1 (80%, 12.028 s promedio)",
-    "environment_version": "parking-v3",
-    "model_sha256": "dee5936a73a879dac19bf79324d2fd88dc459d89512632b8a89dd410327b60b3",
-    "test_success_rate": 0.8,
-    "at": "2026-11-19T00:11:33Z"
+    "reason": "Pipeline: Más éxito en la suite: 82% contra 49%",
+    "environment_version": "parking-v9",
+    "model_sha256": "1e9243a013e6780407b9627ac24fe9cfc233397990fa001f04ec1c220e09eb8d",
+    "test_success_rate": 0.82,
+    "at": "2026-11-19T06:40:03Z"
   }
 }

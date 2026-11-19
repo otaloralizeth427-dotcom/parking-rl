@@ -3,19 +3,19 @@
  "level_id": "N3",
  "summary": {
   "episodes": 100,
-  "success_rate": 0.37,
+  "success_rate": 0.43,
   "outcomes": {
-   "success": 37,
-   "obstacle": 23,
-   "pedestrian": 23,
+   "success": 43,
+   "obstacle": 29,
+   "pedestrian": 0,
    "boundary": 17,
-   "timeout": 0
+   "timeout": 11
   },
-  "mean_return": 5.233,
-  "mean_time_s": 8.358,
-  "mean_final_distance_m": 7.097,
-  "mean_final_heading_error_deg": 23.498,
-  "mean_latency_ms": 0.011
+  "mean_return": 18.356,
+  "mean_time_s": 15.986,
+  "mean_final_distance_m": 6.541,
+  "mean_final_heading_error_deg": 16.533,
+  "mean_latency_ms": 0.015
  },
  "cases": [
   {
@@ -29,7 +29,7 @@
    "return": -53.75,
    "final_distance_m": 10.058,
    "final_heading_error_deg": 17.41,
-   "latency_ms": 0.0116
+   "latency_ms": 0.0194
   },
   {
    "seed": 100001,
@@ -42,7 +42,7 @@
    "return": -55.273,
    "final_distance_m": 10.175,
    "final_heading_error_deg": 5.43,
-   "latency_ms": 0.0107
+   "latency_ms": 0.0175
   },
   {
    "seed": 100002,
@@ -55,20 +55,20 @@
    "return": -61.759,
    "final_distance_m": 15.166,
    "final_heading_error_deg": 0.85,
-   "latency_ms": 0.0105
+   "latency_ms": 0.0183
   },
   {
    "seed": 100003,
-   "outcome": "pedestrian",
-   "success": false,
+   "outcome": "success",
+   "success": true,
    "terminated": true,
    "truncated": false,
-   "steps": 10,
-   "time_s": 2.0,
-   "return": -49.409,
-   "final_distance_m": 9.026,
-   "final_heading_error_deg": 74.16,
-   "latency_ms": 0.0108
+   "steps": 73,
+   "time_s": 14.6,
+   "return": 105.339,
+   "final_distance_m": 0.28,
+   "final_heading_error_deg": 0.71,
+   "latency_ms": 0.0182
   },
   {
    "seed": 100004,
@@ -76,12 +76,12 @@
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 21,
-   "time_s": 4.2,
-   "return": -52.16,
-   "final_distance_m": 10.223,
-   "final_heading_error_deg": 36.79,
-   "latency_ms": 0.0106
+   "steps": 29,
+   "time_s": 5.8,
+   "return": -52.507,
+   "final_distance_m": 10.171,
+   "final_heading_error_deg": 37.55,
+   "latency_ms": 0.017
   },
   {
    "seed": 100005,
@@ -94,7 +94,7 @@
    "return": 105.758,
    "final_distance_m": 0.289,
    "final_heading_error_deg": 2.24,
-   "latency_ms": 0.0106
+   "latency_ms": 0.0181
   },
   {
    "seed": 100006,
@@ -107,7 +107,7 @@
    "return": 105.208,
    "final_distance_m": 0.296,
    "final_heading_error_deg": 3.04,
-   "latency_ms": 0.0105
+   "latency_ms": 0.0191
   },
   {
    "seed": 100007,
@@ -115,12 +115,12 @@
    "success": true,
    "terminated": true,
    "truncated": false,
-   "steps": 56,
-   "time_s": 11.2,
-   "return": 106.336,
-   "final_distance_m": 0.272,
-   "final_heading_error_deg": 1.96,
-   "latency_ms": 0.0105
+   "steps": 79,
+   "time_s": 15.8,
+   "return": 105.231,
+   "final_distance_m": 0.263,
+   "final_heading_error_deg": 3.24,
+   "latency_ms": 0.018
   },
   {
    "seed": 100008,
@@ -133,7 +133,7 @@
    "return": 104.983,
    "final_distance_m": 0.25,
    "final_heading_error_deg": 1.9,
-   "latency_ms": 0.0105
+   "latency_ms": 0.0169
   },
   {
    "seed": 100009,
@@ -146,46 +146,46 @@
    "return": -53.219,
    "final_distance_m": 10.052,
    "final_heading_error_deg": 20.42,
-   "latency_ms": 0.0105
+   "latency_ms": 0.0155
   },
   {
    "seed": 100010,
+   "outcome": "timeout",
+   "success": false,
+   "terminated": false,
+   "truncated": true,
+   "steps": 200,
+   "time_s": 40.0,
+   "return": -2.414,
+   "final_distance_m": 3.203,
+   "final_heading_error_deg": 11.76,
+   "latency_ms": 0.0166
+  },
+  {
+   "seed": 100011,
    "outcome": "success",
    "success": true,
    "terminated": true,
    "truncated": false,
-   "steps": 67,
-   "time_s": 13.4,
-   "return": 106.228,
-   "final_distance_m": 0.285,
-   "final_heading_error_deg": 1.79,
-   "latency_ms": 0.0105
-  },
-  {
-   "seed": 100011,
-   "outcome": "pedestrian",
-   "success": false,
-   "terminated": true,
-   "truncated": false,
-   "steps": 10,
-   "time_s": 2.0,
-   "return": -49.34,
-   "final_distance_m": 8.906,
-   "final_heading_error_deg": 70.85,
-   "latency_ms": 0.011
+   "steps": 78,
+   "time_s": 15.6,
+   "return": 105.382,
+   "final_distance_m": 0.676,
+   "final_heading_error_deg": 4.6,
+   "latency_ms": 0.0173
   },
   {
    "seed": 100012,
-   "outcome": "pedestrian",
+   "outcome": "timeout",
    "success": false,
-   "terminated": true,
-   "truncated": false,
-   "steps": 18,
-   "time_s": 3.6,
-   "return": -50.761,
-   "final_distance_m": 8.069,
-   "final_heading_error_deg": 47.17,
-   "latency_ms": 0.0107
+   "terminated": false,
+   "truncated": true,
+   "steps": 200,
+   "time_s": 40.0,
+   "return": -10.679,
+   "final_distance_m": 8.887,
+   "final_heading_error_deg": 34.63,
+   "latency_ms": 0.0164
   },
   {
    "seed": 100013,
@@ -198,7 +198,7 @@
    "return": 105.833,
    "final_distance_m": 0.282,
    "final_heading_error_deg": 1.95,
-   "latency_ms": 0.0104
+   "latency_ms": 0.0171
   },
   {
    "seed": 100014,
@@ -206,12 +206,12 @@
    "success": true,
    "terminated": true,
    "truncated": false,
-   "steps": 59,
-   "time_s": 11.8,
-   "return": 106.625,
-   "final_distance_m": 0.302,
-   "final_heading_error_deg": 3.03,
-   "latency_ms": 0.0105
+   "steps": 107,
+   "time_s": 21.4,
+   "return": 104.431,
+   "final_distance_m": 0.533,
+   "final_heading_error_deg": 2.74,
+   "latency_ms": 0.0153
   },
   {
    "seed": 100015,
@@ -224,20 +224,20 @@
    "return": 104.91,
    "final_distance_m": 0.442,
    "final_heading_error_deg": 6.93,
-   "latency_ms": 0.0106
+   "latency_ms": 0.0153
   },
   {
    "seed": 100016,
-   "outcome": "pedestrian",
+   "outcome": "obstacle",
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 10,
-   "time_s": 2.0,
-   "return": -49.781,
-   "final_distance_m": 9.833,
-   "final_heading_error_deg": 67.86,
-   "latency_ms": 0.0107
+   "steps": 36,
+   "time_s": 7.2,
+   "return": -51.887,
+   "final_distance_m": 10.64,
+   "final_heading_error_deg": 46.93,
+   "latency_ms": 0.0153
   },
   {
    "seed": 100017,
@@ -245,12 +245,12 @@
    "success": true,
    "terminated": true,
    "truncated": false,
-   "steps": 56,
-   "time_s": 11.2,
-   "return": 106.157,
-   "final_distance_m": 0.242,
-   "final_heading_error_deg": 4.61,
-   "latency_ms": 0.0105
+   "steps": 71,
+   "time_s": 14.2,
+   "return": 105.196,
+   "final_distance_m": 0.318,
+   "final_heading_error_deg": 5.69,
+   "latency_ms": 0.0158
   },
   {
    "seed": 100018,
@@ -263,20 +263,20 @@
    "return": 105.091,
    "final_distance_m": 0.7,
    "final_heading_error_deg": 6.22,
-   "latency_ms": 0.0105
+   "latency_ms": 0.0162
   },
   {
    "seed": 100019,
-   "outcome": "pedestrian",
+   "outcome": "obstacle",
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 10,
-   "time_s": 2.0,
-   "return": -49.749,
-   "final_distance_m": 8.421,
-   "final_heading_error_deg": 74.19,
-   "latency_ms": 0.0106
+   "steps": 42,
+   "time_s": 8.4,
+   "return": -53.006,
+   "final_distance_m": 10.078,
+   "final_heading_error_deg": 31.21,
+   "latency_ms": 0.0152
   },
   {
    "seed": 100020,
@@ -289,46 +289,46 @@
    "return": -53.834,
    "final_distance_m": 10.088,
    "final_heading_error_deg": 15.29,
-   "latency_ms": 0.0105
+   "latency_ms": 0.0163
   },
   {
    "seed": 100021,
-   "outcome": "pedestrian",
-   "success": false,
-   "terminated": true,
-   "truncated": false,
-   "steps": 16,
-   "time_s": 3.2,
-   "return": -49.273,
-   "final_distance_m": 9.28,
-   "final_heading_error_deg": 65.24,
-   "latency_ms": 0.0106
-  },
-  {
-   "seed": 100022,
-   "outcome": "boundary",
-   "success": false,
-   "terminated": true,
-   "truncated": false,
-   "steps": 76,
-   "time_s": 15.2,
-   "return": -60.199,
-   "final_distance_m": 15.11,
-   "final_heading_error_deg": 2.96,
-   "latency_ms": 0.0105
-  },
-  {
-   "seed": 100023,
    "outcome": "success",
    "success": true,
    "terminated": true,
    "truncated": false,
-   "steps": 54,
-   "time_s": 10.8,
-   "return": 105.212,
-   "final_distance_m": 0.231,
-   "final_heading_error_deg": 4.56,
-   "latency_ms": 0.0105
+   "steps": 75,
+   "time_s": 15.0,
+   "return": 106.379,
+   "final_distance_m": 0.271,
+   "final_heading_error_deg": 2.46,
+   "latency_ms": 0.017
+  },
+  {
+   "seed": 100022,
+   "outcome": "timeout",
+   "success": false,
+   "terminated": false,
+   "truncated": true,
+   "steps": 200,
+   "time_s": 40.0,
+   "return": -9.793,
+   "final_distance_m": 9.103,
+   "final_heading_error_deg": 44.23,
+   "latency_ms": 0.0165
+  },
+  {
+   "seed": 100023,
+   "outcome": "timeout",
+   "success": false,
+   "terminated": false,
+   "truncated": true,
+   "steps": 200,
+   "time_s": 40.0,
+   "return": -7.508,
+   "final_distance_m": 6.66,
+   "final_heading_error_deg": 53.79,
+   "latency_ms": 0.0151
   },
   {
    "seed": 100024,
@@ -336,38 +336,38 @@
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 37,
-   "time_s": 7.4,
-   "return": -52.559,
+   "steps": 53,
+   "time_s": 10.6,
+   "return": -53.359,
    "final_distance_m": 10.224,
-   "final_heading_error_deg": 30.22,
-   "latency_ms": 0.0106
+   "final_heading_error_deg": 29.62,
+   "latency_ms": 0.0174
   },
   {
    "seed": 100025,
+   "outcome": "timeout",
+   "success": false,
+   "terminated": false,
+   "truncated": true,
+   "steps": 200,
+   "time_s": 40.0,
+   "return": -7.522,
+   "final_distance_m": 6.357,
+   "final_heading_error_deg": 56.17,
+   "latency_ms": 0.0163
+  },
+  {
+   "seed": 100026,
    "outcome": "success",
    "success": true,
    "terminated": true,
    "truncated": false,
-   "steps": 54,
-   "time_s": 10.8,
-   "return": 104.968,
-   "final_distance_m": 0.239,
-   "final_heading_error_deg": 4.45,
-   "latency_ms": 0.0105
-  },
-  {
-   "seed": 100026,
-   "outcome": "pedestrian",
-   "success": false,
-   "terminated": true,
-   "truncated": false,
-   "steps": 17,
-   "time_s": 3.4,
-   "return": -48.952,
-   "final_distance_m": 6.132,
-   "final_heading_error_deg": 59.3,
-   "latency_ms": 0.0106
+   "steps": 58,
+   "time_s": 11.6,
+   "return": 104.148,
+   "final_distance_m": 0.356,
+   "final_heading_error_deg": 5.11,
+   "latency_ms": 0.017
   },
   {
    "seed": 100027,
@@ -375,12 +375,12 @@
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 38,
-   "time_s": 7.6,
-   "return": -52.268,
-   "final_distance_m": 10.148,
-   "final_heading_error_deg": 31.25,
-   "latency_ms": 0.0104
+   "steps": 51,
+   "time_s": 10.2,
+   "return": -52.921,
+   "final_distance_m": 10.151,
+   "final_heading_error_deg": 31.64,
+   "latency_ms": 0.0163
   },
   {
    "seed": 100028,
@@ -388,25 +388,25 @@
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 23,
-   "time_s": 4.6,
-   "return": -51.686,
-   "final_distance_m": 10.54,
-   "final_heading_error_deg": 44.78,
-   "latency_ms": 0.0105
+   "steps": 132,
+   "time_s": 26.4,
+   "return": -57.153,
+   "final_distance_m": 10.557,
+   "final_heading_error_deg": 45.75,
+   "latency_ms": 0.0164
   },
   {
    "seed": 100029,
-   "outcome": "pedestrian",
-   "success": false,
+   "outcome": "success",
+   "success": true,
    "terminated": true,
    "truncated": false,
-   "steps": 12,
-   "time_s": 2.4,
-   "return": -48.563,
-   "final_distance_m": 8.148,
-   "final_heading_error_deg": 67.82,
-   "latency_ms": 0.0107
+   "steps": 65,
+   "time_s": 13.0,
+   "return": 105.757,
+   "final_distance_m": 0.263,
+   "final_heading_error_deg": 2.31,
+   "latency_ms": 0.0174
   },
   {
    "seed": 100030,
@@ -419,20 +419,20 @@
    "return": 105.108,
    "final_distance_m": 0.659,
    "final_heading_error_deg": 6.86,
-   "latency_ms": 0.0105
+   "latency_ms": 0.0168
   },
   {
    "seed": 100031,
-   "outcome": "pedestrian",
-   "success": false,
+   "outcome": "success",
+   "success": true,
    "terminated": true,
    "truncated": false,
-   "steps": 14,
-   "time_s": 2.8,
-   "return": -49.155,
-   "final_distance_m": 8.627,
-   "final_heading_error_deg": 69.0,
-   "latency_ms": 0.0104
+   "steps": 69,
+   "time_s": 13.8,
+   "return": 105.619,
+   "final_distance_m": 0.285,
+   "final_heading_error_deg": 2.02,
+   "latency_ms": 0.0174
   },
   {
    "seed": 100032,
@@ -445,7 +445,7 @@
    "return": -59.007,
    "final_distance_m": 15.097,
    "final_heading_error_deg": 4.8,
-   "latency_ms": 0.0105
+   "latency_ms": 0.0174
   },
   {
    "seed": 100033,
@@ -455,10 +455,10 @@
    "truncated": false,
    "steps": 47,
    "time_s": 9.4,
-   "return": 104.551,
-   "final_distance_m": 0.243,
-   "final_heading_error_deg": 0.53,
-   "latency_ms": 0.0104
+   "return": 104.658,
+   "final_distance_m": 0.738,
+   "final_heading_error_deg": 2.16,
+   "latency_ms": 0.017
   },
   {
    "seed": 100034,
@@ -466,25 +466,25 @@
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 26,
-   "time_s": 5.2,
-   "return": -51.037,
-   "final_distance_m": 10.523,
-   "final_heading_error_deg": 47.35,
-   "latency_ms": 0.0105
+   "steps": 32,
+   "time_s": 6.4,
+   "return": -51.301,
+   "final_distance_m": 10.487,
+   "final_heading_error_deg": 48.04,
+   "latency_ms": 0.0172
   },
   {
    "seed": 100035,
-   "outcome": "pedestrian",
+   "outcome": "obstacle",
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 11,
-   "time_s": 2.2,
-   "return": -50.116,
-   "final_distance_m": 9.306,
-   "final_heading_error_deg": 64.69,
-   "latency_ms": 0.0108
+   "steps": 33,
+   "time_s": 6.6,
+   "return": -52.386,
+   "final_distance_m": 10.475,
+   "final_heading_error_deg": 43.97,
+   "latency_ms": 0.0167
   },
   {
    "seed": 100036,
@@ -492,25 +492,25 @@
    "success": true,
    "terminated": true,
    "truncated": false,
-   "steps": 58,
-   "time_s": 11.6,
-   "return": 106.423,
-   "final_distance_m": 0.287,
-   "final_heading_error_deg": 2.07,
-   "latency_ms": 0.0105
+   "steps": 99,
+   "time_s": 19.8,
+   "return": 104.495,
+   "final_distance_m": 0.711,
+   "final_heading_error_deg": 3.26,
+   "latency_ms": 0.0167
   },
   {
    "seed": 100037,
-   "outcome": "success",
-   "success": true,
-   "terminated": true,
-   "truncated": false,
-   "steps": 54,
-   "time_s": 10.8,
-   "return": 106.254,
-   "final_distance_m": 0.333,
-   "final_heading_error_deg": 3.29,
-   "latency_ms": 0.0105
+   "outcome": "timeout",
+   "success": false,
+   "terminated": false,
+   "truncated": true,
+   "steps": 200,
+   "time_s": 40.0,
+   "return": -7.294,
+   "final_distance_m": 7.308,
+   "final_heading_error_deg": 68.34,
+   "latency_ms": 0.0164
   },
   {
    "seed": 100038,
@@ -523,20 +523,20 @@
    "return": 105.479,
    "final_distance_m": 0.721,
    "final_heading_error_deg": 5.46,
-   "latency_ms": 0.0106
+   "latency_ms": 0.0167
   },
   {
    "seed": 100039,
-   "outcome": "success",
-   "success": true,
-   "terminated": true,
-   "truncated": false,
-   "steps": 54,
-   "time_s": 10.8,
-   "return": 105.732,
-   "final_distance_m": 0.371,
-   "final_heading_error_deg": 0.95,
-   "latency_ms": 0.0104
+   "outcome": "timeout",
+   "success": false,
+   "terminated": false,
+   "truncated": true,
+   "steps": 200,
+   "time_s": 40.0,
+   "return": -7.513,
+   "final_distance_m": 7.064,
+   "final_heading_error_deg": 62.99,
+   "latency_ms": 0.0163
   },
   {
    "seed": 100040,
@@ -549,33 +549,33 @@
    "return": -60.174,
    "final_distance_m": 15.132,
    "final_heading_error_deg": 1.42,
-   "latency_ms": 0.0105
+   "latency_ms": 0.0169
   },
   {
    "seed": 100041,
-   "outcome": "pedestrian",
-   "success": false,
+   "outcome": "success",
+   "success": true,
    "terminated": true,
    "truncated": false,
-   "steps": 10,
-   "time_s": 2.0,
-   "return": -49.334,
-   "final_distance_m": 8.331,
-   "final_heading_error_deg": 72.05,
-   "latency_ms": 0.0106
+   "steps": 69,
+   "time_s": 13.8,
+   "return": 104.874,
+   "final_distance_m": 0.21,
+   "final_heading_error_deg": 4.58,
+   "latency_ms": 0.0172
   },
   {
    "seed": 100042,
-   "outcome": "pedestrian",
+   "outcome": "obstacle",
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 14,
-   "time_s": 2.8,
-   "return": -50.253,
-   "final_distance_m": 9.596,
-   "final_heading_error_deg": 67.02,
-   "latency_ms": 0.0105
+   "steps": 34,
+   "time_s": 6.8,
+   "return": -52.032,
+   "final_distance_m": 10.525,
+   "final_heading_error_deg": 46.07,
+   "latency_ms": 0.0165
   },
   {
    "seed": 100043,
@@ -588,20 +588,20 @@
    "return": 105.797,
    "final_distance_m": 0.255,
    "final_heading_error_deg": 2.11,
-   "latency_ms": 0.0104
+   "latency_ms": 0.0171
   },
   {
    "seed": 100044,
-   "outcome": "pedestrian",
+   "outcome": "boundary",
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 10,
-   "time_s": 2.0,
-   "return": -49.312,
-   "final_distance_m": 9.08,
-   "final_heading_error_deg": 72.91,
-   "latency_ms": 0.0104
+   "steps": 84,
+   "time_s": 16.8,
+   "return": -59.48,
+   "final_distance_m": 15.099,
+   "final_heading_error_deg": 5.77,
+   "latency_ms": 0.017
   },
   {
    "seed": 100045,
@@ -609,25 +609,25 @@
    "success": true,
    "terminated": true,
    "truncated": false,
-   "steps": 58,
-   "time_s": 11.6,
-   "return": 106.459,
-   "final_distance_m": 0.274,
-   "final_heading_error_deg": 1.31,
-   "latency_ms": 0.0104
+   "steps": 73,
+   "time_s": 14.6,
+   "return": 105.387,
+   "final_distance_m": 0.184,
+   "final_heading_error_deg": 0.59,
+   "latency_ms": 0.017
   },
   {
    "seed": 100046,
-   "outcome": "pedestrian",
+   "outcome": "obstacle",
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 9,
-   "time_s": 1.8,
-   "return": -49.446,
-   "final_distance_m": 9.707,
-   "final_heading_error_deg": 76.12,
-   "latency_ms": 0.0105
+   "steps": 181,
+   "time_s": 36.2,
+   "return": -58.68,
+   "final_distance_m": 10.341,
+   "final_heading_error_deg": 45.02,
+   "latency_ms": 0.0166
   },
   {
    "seed": 100047,
@@ -640,20 +640,20 @@
    "return": 105.306,
    "final_distance_m": 0.245,
    "final_heading_error_deg": 2.7,
-   "latency_ms": 0.0105
+   "latency_ms": 0.017
   },
   {
    "seed": 100048,
-   "outcome": "obstacle",
+   "outcome": "timeout",
    "success": false,
-   "terminated": true,
-   "truncated": false,
-   "steps": 43,
-   "time_s": 8.6,
-   "return": -55.506,
-   "final_distance_m": 10.211,
-   "final_heading_error_deg": 7.3,
-   "latency_ms": 0.0105
+   "terminated": false,
+   "truncated": true,
+   "steps": 200,
+   "time_s": 40.0,
+   "return": -10.78,
+   "final_distance_m": 8.235,
+   "final_heading_error_deg": 39.1,
+   "latency_ms": 0.0179
   },
   {
    "seed": 100049,
@@ -661,12 +661,12 @@
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 33,
-   "time_s": 6.6,
-   "return": -53.424,
-   "final_distance_m": 10.039,
-   "final_heading_error_deg": 26.05,
-   "latency_ms": 0.0105
+   "steps": 48,
+   "time_s": 9.6,
+   "return": -54.042,
+   "final_distance_m": 10.057,
+   "final_heading_error_deg": 27.12,
+   "latency_ms": 0.0165
   },
   {
    "seed": 100050,
@@ -679,7 +679,7 @@
    "return": -55.697,
    "final_distance_m": 10.355,
    "final_heading_error_deg": 2.68,
-   "latency_ms": 0.0106
+   "latency_ms": 0.0157
   },
   {
    "seed": 100051,
@@ -692,7 +692,7 @@
    "return": -61.646,
    "final_distance_m": 15.155,
    "final_heading_error_deg": 0.91,
-   "latency_ms": 0.0106
+   "latency_ms": 0.0152
   },
   {
    "seed": 100052,
@@ -705,7 +705,7 @@
    "return": -51.786,
    "final_distance_m": 10.38,
    "final_heading_error_deg": 44.33,
-   "latency_ms": 0.0105
+   "latency_ms": 0.0149
   },
   {
    "seed": 100053,
@@ -713,12 +713,12 @@
    "success": true,
    "terminated": true,
    "truncated": false,
-   "steps": 51,
-   "time_s": 10.2,
-   "return": 104.753,
-   "final_distance_m": 0.37,
-   "final_heading_error_deg": 3.91,
-   "latency_ms": 0.0105
+   "steps": 53,
+   "time_s": 10.6,
+   "return": 104.64,
+   "final_distance_m": 0.289,
+   "final_heading_error_deg": 2.79,
+   "latency_ms": 0.0149
   },
   {
    "seed": 100054,
@@ -726,12 +726,12 @@
    "success": true,
    "terminated": true,
    "truncated": false,
-   "steps": 50,
-   "time_s": 10.0,
-   "return": 105.498,
-   "final_distance_m": 0.738,
-   "final_heading_error_deg": 0.89,
-   "latency_ms": 0.0105
+   "steps": 61,
+   "time_s": 12.2,
+   "return": 104.619,
+   "final_distance_m": 0.314,
+   "final_heading_error_deg": 3.51,
+   "latency_ms": 0.0149
   },
   {
    "seed": 100055,
@@ -744,7 +744,7 @@
    "return": 104.942,
    "final_distance_m": 0.447,
    "final_heading_error_deg": 4.95,
-   "latency_ms": 0.0107
+   "latency_ms": 0.015
   },
   {
    "seed": 100056,
@@ -757,33 +757,33 @@
    "return": 104.213,
    "final_distance_m": 0.291,
    "final_heading_error_deg": 3.49,
-   "latency_ms": 0.0105
+   "latency_ms": 0.015
   },
   {
    "seed": 100057,
-   "outcome": "pedestrian",
+   "outcome": "obstacle",
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 10,
-   "time_s": 2.0,
-   "return": -49.89,
-   "final_distance_m": 9.311,
-   "final_heading_error_deg": 70.8,
-   "latency_ms": 0.0105
+   "steps": 36,
+   "time_s": 7.2,
+   "return": -52.422,
+   "final_distance_m": 10.542,
+   "final_heading_error_deg": 42.52,
+   "latency_ms": 0.0148
   },
   {
    "seed": 100058,
-   "outcome": "pedestrian",
+   "outcome": "boundary",
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 10,
-   "time_s": 2.0,
-   "return": -49.71,
-   "final_distance_m": 7.834,
-   "final_heading_error_deg": 66.58,
-   "latency_ms": 0.0106
+   "steps": 104,
+   "time_s": 20.8,
+   "return": -62.349,
+   "final_distance_m": 15.173,
+   "final_heading_error_deg": 0.35,
+   "latency_ms": 0.0147
   },
   {
    "seed": 100059,
@@ -796,7 +796,7 @@
    "return": -54.444,
    "final_distance_m": 10.327,
    "final_heading_error_deg": 12.68,
-   "latency_ms": 0.0104
+   "latency_ms": 0.0139
   },
   {
    "seed": 100060,
@@ -804,12 +804,12 @@
    "success": true,
    "terminated": true,
    "truncated": false,
-   "steps": 60,
-   "time_s": 12.0,
-   "return": 106.981,
-   "final_distance_m": 0.456,
-   "final_heading_error_deg": 4.31,
-   "latency_ms": 0.0106
+   "steps": 181,
+   "time_s": 36.2,
+   "return": 100.456,
+   "final_distance_m": 0.273,
+   "final_heading_error_deg": 4.58,
+   "latency_ms": 0.0139
   },
   {
    "seed": 100061,
@@ -817,25 +817,25 @@
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 73,
-   "time_s": 14.6,
-   "return": -60.237,
-   "final_distance_m": 15.174,
-   "final_heading_error_deg": 0.54,
-   "latency_ms": 0.0105
+   "steps": 122,
+   "time_s": 24.4,
+   "return": -62.8,
+   "final_distance_m": 15.138,
+   "final_heading_error_deg": 1.93,
+   "latency_ms": 0.0142
   },
   {
    "seed": 100062,
-   "outcome": "pedestrian",
-   "success": false,
+   "outcome": "success",
+   "success": true,
    "terminated": true,
    "truncated": false,
-   "steps": 10,
-   "time_s": 2.0,
-   "return": -48.93,
-   "final_distance_m": 8.543,
-   "final_heading_error_deg": 70.23,
-   "latency_ms": 0.0106
+   "steps": 69,
+   "time_s": 13.8,
+   "return": 105.48,
+   "final_distance_m": 0.258,
+   "final_heading_error_deg": 2.69,
+   "latency_ms": 0.0142
   },
   {
    "seed": 100063,
@@ -848,20 +848,20 @@
    "return": -51.846,
    "final_distance_m": 10.448,
    "final_heading_error_deg": 40.5,
-   "latency_ms": 0.0107
+   "latency_ms": 0.0141
   },
   {
    "seed": 100064,
-   "outcome": "pedestrian",
-   "success": false,
+   "outcome": "success",
+   "success": true,
    "terminated": true,
    "truncated": false,
-   "steps": 13,
-   "time_s": 2.6,
-   "return": -49.156,
-   "final_distance_m": 8.523,
-   "final_heading_error_deg": 73.45,
-   "latency_ms": 0.0105
+   "steps": 67,
+   "time_s": 13.4,
+   "return": 105.714,
+   "final_distance_m": 0.296,
+   "final_heading_error_deg": 0.4,
+   "latency_ms": 0.0134
   },
   {
    "seed": 100065,
@@ -874,7 +874,7 @@
    "return": 105.521,
    "final_distance_m": 0.209,
    "final_heading_error_deg": 0.4,
-   "latency_ms": 0.0104
+   "latency_ms": 0.0133
   },
   {
    "seed": 100066,
@@ -887,7 +887,7 @@
    "return": 105.638,
    "final_distance_m": 0.276,
    "final_heading_error_deg": 1.23,
-   "latency_ms": 0.0105
+   "latency_ms": 0.0133
   },
   {
    "seed": 100067,
@@ -895,12 +895,12 @@
    "success": true,
    "terminated": true,
    "truncated": false,
-   "steps": 56,
-   "time_s": 11.2,
-   "return": 106.669,
-   "final_distance_m": 0.382,
-   "final_heading_error_deg": 0.64,
-   "latency_ms": 0.0105
+   "steps": 75,
+   "time_s": 15.0,
+   "return": 105.608,
+   "final_distance_m": 0.235,
+   "final_heading_error_deg": 0.13,
+   "latency_ms": 0.0132
   },
   {
    "seed": 100068,
@@ -913,7 +913,7 @@
    "return": 105.345,
    "final_distance_m": 0.293,
    "final_heading_error_deg": 0.05,
-   "latency_ms": 0.0106
+   "latency_ms": 0.0134
   },
   {
    "seed": 100069,
@@ -921,12 +921,12 @@
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 74,
-   "time_s": 14.8,
-   "return": -60.418,
-   "final_distance_m": 15.12,
-   "final_heading_error_deg": 2.9,
-   "latency_ms": 0.0105
+   "steps": 112,
+   "time_s": 22.4,
+   "return": -62.317,
+   "final_distance_m": 15.119,
+   "final_heading_error_deg": 3.53,
+   "latency_ms": 0.0132
   },
   {
    "seed": 100070,
@@ -934,25 +934,25 @@
    "success": true,
    "terminated": true,
    "truncated": false,
-   "steps": 60,
-   "time_s": 12.0,
-   "return": 106.93,
-   "final_distance_m": 0.516,
-   "final_heading_error_deg": 3.85,
-   "latency_ms": 0.0105
+   "steps": 70,
+   "time_s": 14.0,
+   "return": 106.402,
+   "final_distance_m": 0.227,
+   "final_heading_error_deg": 2.68,
+   "latency_ms": 0.0131
   },
   {
    "seed": 100071,
-   "outcome": "pedestrian",
+   "outcome": "boundary",
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 10,
-   "time_s": 2.0,
-   "return": -49.875,
-   "final_distance_m": 9.392,
-   "final_heading_error_deg": 74.16,
-   "latency_ms": 0.0106
+   "steps": 72,
+   "time_s": 14.4,
+   "return": -59.281,
+   "final_distance_m": 15.097,
+   "final_heading_error_deg": 6.52,
+   "latency_ms": 0.0128
   },
   {
    "seed": 100072,
@@ -960,12 +960,12 @@
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 75,
-   "time_s": 15.0,
-   "return": -60.697,
-   "final_distance_m": 15.144,
-   "final_heading_error_deg": 2.93,
-   "latency_ms": 0.0105
+   "steps": 124,
+   "time_s": 24.8,
+   "return": -63.018,
+   "final_distance_m": 15.165,
+   "final_heading_error_deg": 0.97,
+   "latency_ms": 0.0126
   },
   {
    "seed": 100073,
@@ -973,12 +973,12 @@
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 76,
-   "time_s": 15.2,
-   "return": -62.021,
-   "final_distance_m": 15.152,
-   "final_heading_error_deg": 0.32,
-   "latency_ms": 0.0105
+   "steps": 119,
+   "time_s": 23.8,
+   "return": -64.159,
+   "final_distance_m": 15.14,
+   "final_heading_error_deg": 1.03,
+   "latency_ms": 0.0126
   },
   {
    "seed": 100074,
@@ -991,20 +991,20 @@
    "return": 105.409,
    "final_distance_m": 0.205,
    "final_heading_error_deg": 0.1,
-   "latency_ms": 0.0104
+   "latency_ms": 0.0124
   },
   {
    "seed": 100075,
-   "outcome": "pedestrian",
-   "success": false,
+   "outcome": "success",
+   "success": true,
    "terminated": true,
    "truncated": false,
-   "steps": 11,
-   "time_s": 2.2,
-   "return": -49.594,
-   "final_distance_m": 8.012,
-   "final_heading_error_deg": 67.7,
-   "latency_ms": 0.0108
+   "steps": 68,
+   "time_s": 13.6,
+   "return": 104.793,
+   "final_distance_m": 0.751,
+   "final_heading_error_deg": 1.02,
+   "latency_ms": 0.0125
   },
   {
    "seed": 100076,
@@ -1012,25 +1012,25 @@
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 38,
-   "time_s": 7.6,
-   "return": -54.543,
-   "final_distance_m": 10.189,
-   "final_heading_error_deg": 10.48,
-   "latency_ms": 0.0106
+   "steps": 135,
+   "time_s": 27.0,
+   "return": -59.389,
+   "final_distance_m": 10.184,
+   "final_heading_error_deg": 11.62,
+   "latency_ms": 0.0123
   },
   {
    "seed": 100077,
-   "outcome": "success",
-   "success": true,
-   "terminated": true,
-   "truncated": false,
-   "steps": 51,
-   "time_s": 10.2,
-   "return": 104.306,
-   "final_distance_m": 0.277,
-   "final_heading_error_deg": 4.5,
-   "latency_ms": 0.0105
+   "outcome": "timeout",
+   "success": false,
+   "terminated": false,
+   "truncated": true,
+   "steps": 200,
+   "time_s": 40.0,
+   "return": -8.486,
+   "final_distance_m": 6.409,
+   "final_heading_error_deg": 68.75,
+   "latency_ms": 0.0118
   },
   {
    "seed": 100078,
@@ -1043,7 +1043,7 @@
    "return": -52.719,
    "final_distance_m": 10.022,
    "final_heading_error_deg": 26.09,
-   "latency_ms": 0.0104
+   "latency_ms": 0.0119
   },
   {
    "seed": 100079,
@@ -1051,12 +1051,12 @@
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 35,
-   "time_s": 7.0,
-   "return": -52.995,
-   "final_distance_m": 10.163,
-   "final_heading_error_deg": 24.81,
-   "latency_ms": 0.0105
+   "steps": 51,
+   "time_s": 10.2,
+   "return": -53.774,
+   "final_distance_m": 10.142,
+   "final_heading_error_deg": 26.0,
+   "latency_ms": 0.0118
   },
   {
    "seed": 100080,
@@ -1069,7 +1069,7 @@
    "return": -61.593,
    "final_distance_m": 15.143,
    "final_heading_error_deg": 1.05,
-   "latency_ms": 0.0105
+   "latency_ms": 0.012
   },
   {
    "seed": 100081,
@@ -1082,7 +1082,7 @@
    "return": 105.91,
    "final_distance_m": 0.236,
    "final_heading_error_deg": 0.21,
-   "latency_ms": 0.0103
+   "latency_ms": 0.0119
   },
   {
    "seed": 100082,
@@ -1090,12 +1090,12 @@
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 60,
-   "time_s": 12.0,
-   "return": -58.509,
-   "final_distance_m": 15.121,
-   "final_heading_error_deg": 4.13,
-   "latency_ms": 0.0105
+   "steps": 158,
+   "time_s": 31.6,
+   "return": -63.059,
+   "final_distance_m": 15.072,
+   "final_heading_error_deg": 6.03,
+   "latency_ms": 0.0128
   },
   {
    "seed": 100083,
@@ -1108,7 +1108,7 @@
    "return": -52.429,
    "final_distance_m": 10.29,
    "final_heading_error_deg": 31.34,
-   "latency_ms": 0.0104
+   "latency_ms": 0.0138
   },
   {
    "seed": 100084,
@@ -1121,33 +1121,33 @@
    "return": 103.951,
    "final_distance_m": 0.329,
    "final_heading_error_deg": 6.44,
-   "latency_ms": 0.0105
+   "latency_ms": 0.0129
   },
   {
    "seed": 100085,
-   "outcome": "pedestrian",
+   "outcome": "obstacle",
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 18,
-   "time_s": 3.6,
-   "return": -50.408,
-   "final_distance_m": 9.846,
-   "final_heading_error_deg": 59.06,
-   "latency_ms": 0.0104
+   "steps": 31,
+   "time_s": 6.2,
+   "return": -51.727,
+   "final_distance_m": 10.665,
+   "final_heading_error_deg": 46.7,
+   "latency_ms": 0.0127
   },
   {
    "seed": 100086,
-   "outcome": "pedestrian",
-   "success": false,
+   "outcome": "success",
+   "success": true,
    "terminated": true,
    "truncated": false,
-   "steps": 9,
-   "time_s": 1.8,
-   "return": -49.241,
-   "final_distance_m": 10.106,
-   "final_heading_error_deg": 75.5,
-   "latency_ms": 0.0106
+   "steps": 87,
+   "time_s": 17.4,
+   "return": 105.987,
+   "final_distance_m": 0.251,
+   "final_heading_error_deg": 6.41,
+   "latency_ms": 0.0127
   },
   {
    "seed": 100087,
@@ -1155,12 +1155,12 @@
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 61,
-   "time_s": 12.2,
-   "return": -58.988,
-   "final_distance_m": 15.082,
-   "final_heading_error_deg": 5.07,
-   "latency_ms": 0.0113
+   "steps": 69,
+   "time_s": 13.8,
+   "return": -59.429,
+   "final_distance_m": 15.123,
+   "final_heading_error_deg": 4.3,
+   "latency_ms": 0.0128
   },
   {
    "seed": 100088,
@@ -1173,7 +1173,7 @@
    "return": -59.551,
    "final_distance_m": 15.142,
    "final_heading_error_deg": 3.09,
-   "latency_ms": 0.0111
+   "latency_ms": 0.0122
   },
   {
    "seed": 100089,
@@ -1181,12 +1181,12 @@
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 29,
-   "time_s": 5.8,
-   "return": -51.799,
-   "final_distance_m": 10.341,
-   "final_heading_error_deg": 42.25,
-   "latency_ms": 0.0108
+   "steps": 74,
+   "time_s": 14.8,
+   "return": -54.029,
+   "final_distance_m": 10.321,
+   "final_heading_error_deg": 41.69,
+   "latency_ms": 0.012
   },
   {
    "seed": 100090,
@@ -1194,12 +1194,12 @@
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 76,
-   "time_s": 15.2,
-   "return": -60.702,
-   "final_distance_m": 15.115,
-   "final_heading_error_deg": 3.26,
-   "latency_ms": 0.0109
+   "steps": 94,
+   "time_s": 18.8,
+   "return": -61.46,
+   "final_distance_m": 15.123,
+   "final_heading_error_deg": 1.88,
+   "latency_ms": 0.0122
   },
   {
    "seed": 100091,
@@ -1212,7 +1212,7 @@
    "return": 104.785,
    "final_distance_m": 0.291,
    "final_heading_error_deg": 2.89,
-   "latency_ms": 0.0108
+   "latency_ms": 0.0122
   },
   {
    "seed": 100092,
@@ -1225,7 +1225,7 @@
    "return": -53.422,
    "final_distance_m": 10.085,
    "final_heading_error_deg": 22.15,
-   "latency_ms": 0.0108
+   "latency_ms": 0.0124
   },
   {
    "seed": 100093,
@@ -1233,12 +1233,12 @@
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 21,
-   "time_s": 4.2,
-   "return": -51.495,
-   "final_distance_m": 10.703,
-   "final_heading_error_deg": 45.87,
-   "latency_ms": 0.011
+   "steps": 25,
+   "time_s": 5.0,
+   "return": -51.654,
+   "final_distance_m": 10.662,
+   "final_heading_error_deg": 47.13,
+   "latency_ms": 0.0123
   },
   {
    "seed": 100094,
@@ -1251,33 +1251,33 @@
    "return": 105.177,
    "final_distance_m": 0.748,
    "final_heading_error_deg": 1.83,
-   "latency_ms": 0.0108
+   "latency_ms": 0.0124
   },
   {
    "seed": 100095,
-   "outcome": "boundary",
+   "outcome": "timeout",
    "success": false,
-   "terminated": true,
-   "truncated": false,
-   "steps": 60,
-   "time_s": 12.0,
-   "return": -58.607,
-   "final_distance_m": 15.086,
-   "final_heading_error_deg": 4.68,
-   "latency_ms": 0.0108
+   "terminated": false,
+   "truncated": true,
+   "steps": 200,
+   "time_s": 40.0,
+   "return": -9.351,
+   "final_distance_m": 9.43,
+   "final_heading_error_deg": 63.49,
+   "latency_ms": 0.0142
   },
   {
    "seed": 100096,
-   "outcome": "pedestrian",
-   "success": false,
+   "outcome": "success",
+   "success": true,
    "terminated": true,
    "truncated": false,
-   "steps": 9,
-   "time_s": 1.8,
-   "return": -49.279,
-   "final_distance_m": 9.327,
-   "final_heading_error_deg": 77.79,
-   "latency_ms": 0.0109
+   "steps": 81,
+   "time_s": 16.2,
+   "return": 105.434,
+   "final_distance_m": 0.283,
+   "final_heading_error_deg": 2.99,
+   "latency_ms": 0.0145
   },
   {
    "seed": 100097,
@@ -1285,25 +1285,25 @@
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 63,
-   "time_s": 12.6,
-   "return": -58.8,
+   "steps": 74,
+   "time_s": 14.8,
+   "return": -59.8,
    "final_distance_m": 15.154,
-   "final_heading_error_deg": 1.55,
-   "latency_ms": 0.0107
+   "final_heading_error_deg": 1.11,
+   "latency_ms": 0.0132
   },
   {
    "seed": 100098,
-   "outcome": "boundary",
+   "outcome": "timeout",
    "success": false,
-   "terminated": true,
-   "truncated": false,
-   "steps": 62,
-   "time_s": 12.4,
-   "return": -58.064,
-   "final_distance_m": 15.104,
-   "final_heading_error_deg": 4.09,
-   "latency_ms": 0.0108
+   "terminated": false,
+   "truncated": true,
+   "steps": 200,
+   "time_s": 40.0,
+   "return": -9.11,
+   "final_distance_m": 9.7,
+   "final_heading_error_deg": 61.47,
+   "latency_ms": 0.0123
   },
   {
    "seed": 100099,
@@ -1316,7 +1316,7 @@
    "return": -52.779,
    "final_distance_m": 10.233,
    "final_heading_error_deg": 28.51,
-   "latency_ms": 0.0107
+   "latency_ms": 0.0121
   }
  ]
 }

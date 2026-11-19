@@ -8,84 +8,84 @@
       "success_rate": 0.0,
       "outcomes": {
         "success": 0,
-        "obstacle": 6,
-        "pedestrian": 4,
-        "boundary": 13,
-        "timeout": 77
+        "obstacle": 4,
+        "pedestrian": 0,
+        "boundary": 16,
+        "timeout": 80
       },
-      "mean_return": -30.874,
-      "mean_time_s": 34.12,
-      "mean_final_distance_m": 9.299,
-      "mean_final_heading_error_deg": 66.302,
-      "mean_latency_ms": 0.001
+      "mean_return": -30.431,
+      "mean_time_s": 35.106,
+      "mean_final_distance_m": 9.577,
+      "mean_final_heading_error_deg": 69.696,
+      "mean_latency_ms": 0.002
     },
     "rule": {
       "label": "Regla (referencia)",
       "episodes": 100,
-      "success_rate": 0.37,
+      "success_rate": 0.43,
       "outcomes": {
-        "success": 37,
-        "obstacle": 23,
-        "pedestrian": 23,
+        "success": 43,
+        "obstacle": 29,
+        "pedestrian": 0,
         "boundary": 17,
-        "timeout": 0
+        "timeout": 11
       },
-      "mean_return": 5.233,
-      "mean_time_s": 8.358,
-      "mean_final_distance_m": 7.097,
-      "mean_final_heading_error_deg": 23.498,
-      "mean_latency_ms": 0.011
+      "mean_return": 18.356,
+      "mean_time_s": 15.986,
+      "mean_final_distance_m": 6.541,
+      "mean_final_heading_error_deg": 16.533,
+      "mean_latency_ms": 0.015
     },
-    "N3-exp04-ppo-ft-v6-s44-fda197d2": {
-      "label": "PPO \u00b7 N3-exp04-ppo-ft-v6-s44-fda197d2",
-      "episodes": 100,
-      "success_rate": 0.92,
-      "outcomes": {
-        "success": 92,
-        "obstacle": 0,
-        "pedestrian": 5,
-        "boundary": 0,
-        "timeout": 3
-      },
-      "mean_return": 94.937,
-      "mean_time_s": 6.836,
-      "mean_final_distance_m": 0.939,
-      "mean_final_heading_error_deg": 6.567,
-      "mean_latency_ms": 0.065
-    },
-    "N3-exp04-ppo-ft-v6-s42-dc73894a": {
-      "label": "PPO \u00b7 N3-exp04-ppo-ft-v6-s42-dc73894a",
-      "episodes": 100,
-      "success_rate": 0.92,
-      "outcomes": {
-        "success": 92,
-        "obstacle": 0,
-        "pedestrian": 8,
-        "boundary": 0,
-        "timeout": 0
-      },
-      "mean_return": 94.289,
-      "mean_time_s": 5.6,
-      "mean_final_distance_m": 1.05,
-      "mean_final_heading_error_deg": 6.288,
-      "mean_latency_ms": 0.065
-    },
-    "N3-exp04-ppo-ft-v6-s43-bd380c76": {
-      "label": "PPO \u00b7 N3-exp04-ppo-ft-v6-s43-bd380c76",
+    "N3-exp06-ppo-ft-v11-s43-79b11cbd": {
+      "label": "PPO \u00b7 N3-exp06-ppo-ft-v11-s43-79b11cbd",
       "episodes": 100,
       "success_rate": 0.93,
       "outcomes": {
         "success": 93,
-        "obstacle": 0,
-        "pedestrian": 6,
+        "obstacle": 2,
+        "pedestrian": 0,
         "boundary": 0,
-        "timeout": 1
+        "timeout": 5
       },
-      "mean_return": 96.05,
-      "mean_time_s": 5.862,
-      "mean_final_distance_m": 0.862,
-      "mean_final_heading_error_deg": 6.186,
-      "mean_latency_ms": 0.065
+      "mean_return": 96.322,
+      "mean_time_s": 10.648,
+      "mean_final_distance_m": 0.715,
+      "mean_final_heading_error_deg": 4.378,
+      "mean_latency_ms": 0.07
+    },
+    "N3-exp06-ppo-ft-v11-s42-2a9f8d11": {
+      "label": "PPO \u00b7 N3-exp06-ppo-ft-v11-s42-2a9f8d11",
+      "episodes": 100,
+      "success_rate": 0.96,
+      "outcomes": {
+        "success": 96,
+        "obstacle": 0,
+        "pedestrian": 0,
+        "boundary": 0,
+        "timeout": 4
+      },
+      "mean_return": 101.02,
+      "mean_time_s": 9.964,
+      "mean_final_distance_m": 0.738,
+      "mean_final_heading_error_deg": 4.423,
+      "mean_latency_ms": 0.068
+    },
+    "N3-exp06-ppo-ft-v11-s44-c902a756": {
+      "label": "PPO \u00b7 N3-exp06-ppo-ft-v11-s44-c902a756",
+      "episodes": 100,
+      "success_rate": 0.91,
+      "outcomes": {
+        "success": 91,
+        "obstacle": 0,
+        "pedestrian": 0,
+        "boundary": 0,
+        "timeout": 9
+      },
+      "mean_return": 93.752,
+      "mean_time_s": 12.186,
+      "mean_final_distance_m": 0.951,
+      "mean_final_heading_error_deg": 6.83,
+      "mean_latency_ms": 0.067
     }
   }
 }

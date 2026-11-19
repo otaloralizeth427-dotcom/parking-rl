@@ -9,15 +9,15 @@
       "outcomes": {
         "success": 0,
         "obstacle": 56,
-        "pedestrian": 1,
+        "pedestrian": 0,
         "boundary": 13,
-        "timeout": 30
+        "timeout": 31
       },
-      "mean_return": -46.492,
-      "mean_time_s": 20.228,
-      "mean_final_distance_m": 9.28,
-      "mean_final_heading_error_deg": 74.855,
-      "mean_latency_ms": 0.001
+      "mean_return": -46.223,
+      "mean_time_s": 20.45,
+      "mean_final_distance_m": 9.306,
+      "mean_final_heading_error_deg": 75.415,
+      "mean_latency_ms": 0.002
     },
     "rule": {
       "label": "Regla (referencia)",
@@ -26,66 +26,66 @@
       "outcomes": {
         "success": 16,
         "obstacle": 77,
-        "pedestrian": 2,
+        "pedestrian": 0,
         "boundary": 5,
-        "timeout": 0
+        "timeout": 2
       },
-      "mean_return": -26.018,
-      "mean_time_s": 4.314,
-      "mean_final_distance_m": 8.031,
-      "mean_final_heading_error_deg": 54.633,
+      "mean_return": -25.415,
+      "mean_time_s": 5.95,
+      "mean_final_distance_m": 8.027,
+      "mean_final_heading_error_deg": 54.29,
       "mean_latency_ms": 0.011
     },
-    "N4-exp04-ppo-ft-v6-s44-e2882e0e": {
-      "label": "PPO \u00b7 N4-exp04-ppo-ft-v6-s44-e2882e0e",
+    "N4-exp06-ppo-ft-v11-s43-8bf44d24": {
+      "label": "PPO \u00b7 N4-exp06-ppo-ft-v11-s43-8bf44d24",
       "episodes": 100,
-      "success_rate": 0.8,
+      "success_rate": 0.87,
       "outcomes": {
-        "success": 80,
-        "obstacle": 7,
-        "pedestrian": 6,
-        "boundary": 0,
-        "timeout": 7
-      },
-      "mean_return": 75.936,
-      "mean_time_s": 10.778,
-      "mean_final_distance_m": 1.982,
-      "mean_final_heading_error_deg": 16.155,
-      "mean_latency_ms": 0.066
-    },
-    "N4-exp04-ppo-ft-v6-s42-f22ce74b": {
-      "label": "PPO \u00b7 N4-exp04-ppo-ft-v6-s42-f22ce74b",
-      "episodes": 100,
-      "success_rate": 0.83,
-      "outcomes": {
-        "success": 83,
+        "success": 87,
         "obstacle": 5,
-        "pedestrian": 4,
+        "pedestrian": 0,
         "boundary": 1,
         "timeout": 7
       },
-      "mean_return": 80.771,
-      "mean_time_s": 10.052,
-      "mean_final_distance_m": 1.721,
-      "mean_final_heading_error_deg": 13.081,
-      "mean_latency_ms": 0.065
+      "mean_return": 86.922,
+      "mean_time_s": 10.752,
+      "mean_final_distance_m": 1.471,
+      "mean_final_heading_error_deg": 11.107,
+      "mean_latency_ms": 0.068
     },
-    "N4-exp04-ppo-ft-v6-s43-e098d962": {
-      "label": "PPO \u00b7 N4-exp04-ppo-ft-v6-s43-e098d962",
+    "N4-exp06-ppo-ft-v11-s44-095cfd46": {
+      "label": "PPO \u00b7 N4-exp06-ppo-ft-v11-s44-095cfd46",
       "episodes": 100,
-      "success_rate": 0.85,
+      "success_rate": 0.88,
       "outcomes": {
-        "success": 85,
-        "obstacle": 1,
-        "pedestrian": 3,
-        "boundary": 1,
+        "success": 88,
+        "obstacle": 2,
+        "pedestrian": 0,
+        "boundary": 0,
         "timeout": 10
       },
-      "mean_return": 83.595,
-      "mean_time_s": 11.978,
-      "mean_final_distance_m": 1.716,
-      "mean_final_heading_error_deg": 12.249,
-      "mean_latency_ms": 0.065
+      "mean_return": 89.346,
+      "mean_time_s": 11.982,
+      "mean_final_distance_m": 1.42,
+      "mean_final_heading_error_deg": 10.033,
+      "mean_latency_ms": 0.068
+    },
+    "N4-exp06-ppo-ft-v11-s42-4a905c49": {
+      "label": "PPO \u00b7 N4-exp06-ppo-ft-v11-s42-4a905c49",
+      "episodes": 100,
+      "success_rate": 0.91,
+      "outcomes": {
+        "success": 91,
+        "obstacle": 3,
+        "pedestrian": 0,
+        "boundary": 1,
+        "timeout": 5
+      },
+      "mean_return": 92.624,
+      "mean_time_s": 10.588,
+      "mean_final_distance_m": 1.294,
+      "mean_final_heading_error_deg": 9.118,
+      "mean_latency_ms": 0.068
     }
   }
 }

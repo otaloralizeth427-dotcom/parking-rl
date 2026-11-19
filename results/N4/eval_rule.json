@@ -7,14 +7,14 @@
   "outcomes": {
    "success": 16,
    "obstacle": 77,
-   "pedestrian": 2,
+   "pedestrian": 0,
    "boundary": 5,
-   "timeout": 0
+   "timeout": 2
   },
-  "mean_return": -26.018,
-  "mean_time_s": 4.314,
-  "mean_final_distance_m": 8.031,
-  "mean_final_heading_error_deg": 54.633,
+  "mean_return": -25.415,
+  "mean_time_s": 5.95,
+  "mean_final_distance_m": 8.027,
+  "mean_final_heading_error_deg": 54.29,
   "mean_latency_ms": 0.011
  },
  "cases": [
@@ -29,7 +29,7 @@
    "return": -49.963,
    "final_distance_m": 7.821,
    "final_heading_error_deg": 77.95,
-   "latency_ms": 0.0148
+   "latency_ms": 0.0162
   },
   {
    "seed": 100001,
@@ -42,7 +42,7 @@
    "return": -49.968,
    "final_distance_m": 7.269,
    "final_heading_error_deg": 75.73,
-   "latency_ms": 0.0113
+   "latency_ms": 0.0121
   },
   {
    "seed": 100002,
@@ -55,7 +55,7 @@
    "return": -61.22,
    "final_distance_m": 15.126,
    "final_heading_error_deg": 1.62,
-   "latency_ms": 0.0111
+   "latency_ms": 0.0113
   },
   {
    "seed": 100003,
@@ -68,7 +68,7 @@
    "return": -49.877,
    "final_distance_m": 9.645,
    "final_heading_error_deg": 82.34,
-   "latency_ms": 0.0109
+   "latency_ms": 0.0115
   },
   {
    "seed": 100004,
@@ -81,7 +81,7 @@
    "return": -52.16,
    "final_distance_m": 10.223,
    "final_heading_error_deg": 36.79,
-   "latency_ms": 0.0106
+   "latency_ms": 0.011
   },
   {
    "seed": 100005,
@@ -94,7 +94,7 @@
    "return": 105.496,
    "final_distance_m": 0.174,
    "final_heading_error_deg": 1.0,
-   "latency_ms": 0.0106
+   "latency_ms": 0.011
   },
   {
    "seed": 100006,
@@ -107,7 +107,7 @@
    "return": -49.82,
    "final_distance_m": 8.357,
    "final_heading_error_deg": 78.1,
-   "latency_ms": 0.0113
+   "latency_ms": 0.011
   },
   {
    "seed": 100007,
@@ -120,7 +120,7 @@
    "return": -50.623,
    "final_distance_m": 9.325,
    "final_heading_error_deg": 81.41,
-   "latency_ms": 0.0107
+   "latency_ms": 0.0109
   },
   {
    "seed": 100008,
@@ -133,7 +133,7 @@
    "return": -49.827,
    "final_distance_m": 8.345,
    "final_heading_error_deg": 79.22,
-   "latency_ms": 0.0111
+   "latency_ms": 0.0109
   },
   {
    "seed": 100009,
@@ -146,7 +146,7 @@
    "return": -53.046,
    "final_distance_m": 10.029,
    "final_heading_error_deg": 20.98,
-   "latency_ms": 0.0107
+   "latency_ms": 0.011
   },
   {
    "seed": 100010,
@@ -159,7 +159,7 @@
    "return": -49.631,
    "final_distance_m": 10.213,
    "final_heading_error_deg": 78.3,
-   "latency_ms": 0.0108
+   "latency_ms": 0.0111
   },
   {
    "seed": 100011,
@@ -172,7 +172,7 @@
    "return": -49.846,
    "final_distance_m": 9.561,
    "final_heading_error_deg": 79.03,
-   "latency_ms": 0.0108
+   "latency_ms": 0.0114
   },
   {
    "seed": 100012,
@@ -180,12 +180,12 @@
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 35,
-   "time_s": 7.0,
-   "return": -53.854,
-   "final_distance_m": 10.162,
-   "final_heading_error_deg": 11.62,
-   "latency_ms": 0.0106
+   "steps": 158,
+   "time_s": 31.6,
+   "return": -59.836,
+   "final_distance_m": 10.144,
+   "final_heading_error_deg": 14.9,
+   "latency_ms": 0.011
   },
   {
    "seed": 100013,
@@ -198,7 +198,7 @@
    "return": -49.908,
    "final_distance_m": 8.882,
    "final_heading_error_deg": 82.32,
-   "latency_ms": 0.0107
+   "latency_ms": 0.0115
   },
   {
    "seed": 100014,
@@ -211,7 +211,7 @@
    "return": -49.551,
    "final_distance_m": 9.698,
    "final_heading_error_deg": 73.59,
-   "latency_ms": 0.0108
+   "latency_ms": 0.0111
   },
   {
    "seed": 100015,
@@ -219,12 +219,12 @@
    "success": true,
    "terminated": true,
    "truncated": false,
-   "steps": 51,
-   "time_s": 10.2,
-   "return": 104.803,
-   "final_distance_m": 0.37,
-   "final_heading_error_deg": 7.24,
-   "latency_ms": 0.0107
+   "steps": 58,
+   "time_s": 11.6,
+   "return": 104.468,
+   "final_distance_m": 0.318,
+   "final_heading_error_deg": 7.47,
+   "latency_ms": 0.0109
   },
   {
    "seed": 100016,
@@ -237,7 +237,7 @@
    "return": -49.875,
    "final_distance_m": 10.078,
    "final_heading_error_deg": 73.9,
-   "latency_ms": 0.011
+   "latency_ms": 0.0117
   },
   {
    "seed": 100017,
@@ -250,7 +250,7 @@
    "return": -50.465,
    "final_distance_m": 9.346,
    "final_heading_error_deg": 78.89,
-   "latency_ms": 0.0107
+   "latency_ms": 0.0109
   },
   {
    "seed": 100018,
@@ -263,7 +263,7 @@
    "return": -49.804,
    "final_distance_m": 7.989,
    "final_heading_error_deg": 78.96,
-   "latency_ms": 0.0108
+   "latency_ms": 0.0112
   },
   {
    "seed": 100019,
@@ -276,7 +276,7 @@
    "return": -51.291,
    "final_distance_m": 8.713,
    "final_heading_error_deg": 81.72,
-   "latency_ms": 0.0105
+   "latency_ms": 0.0106
   },
   {
    "seed": 100020,
@@ -284,12 +284,12 @@
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 33,
-   "time_s": 6.6,
-   "return": -53.956,
-   "final_distance_m": 10.06,
-   "final_heading_error_deg": 15.72,
-   "latency_ms": 0.0109
+   "steps": 48,
+   "time_s": 9.6,
+   "return": -55.043,
+   "final_distance_m": 10.097,
+   "final_heading_error_deg": 13.73,
+   "latency_ms": 0.0111
   },
   {
    "seed": 100021,
@@ -302,7 +302,7 @@
    "return": -49.58,
    "final_distance_m": 10.337,
    "final_heading_error_deg": 74.79,
-   "latency_ms": 0.0135
+   "latency_ms": 0.0109
   },
   {
    "seed": 100022,
@@ -315,7 +315,7 @@
    "return": -49.705,
    "final_distance_m": 8.165,
    "final_heading_error_deg": 67.66,
-   "latency_ms": 0.0115
+   "latency_ms": 0.0106
   },
   {
    "seed": 100023,
@@ -328,7 +328,7 @@
    "return": -49.759,
    "final_distance_m": 8.561,
    "final_heading_error_deg": 73.31,
-   "latency_ms": 0.0119
+   "latency_ms": 0.0108
   },
   {
    "seed": 100024,
@@ -341,7 +341,7 @@
    "return": -49.606,
    "final_distance_m": 8.721,
    "final_heading_error_deg": 74.58,
-   "latency_ms": 0.0112
+   "latency_ms": 0.0107
   },
   {
    "seed": 100025,
@@ -354,7 +354,7 @@
    "return": -51.19,
    "final_distance_m": 8.276,
    "final_heading_error_deg": 81.24,
-   "latency_ms": 0.0109
+   "latency_ms": 0.0107
   },
   {
    "seed": 100026,
@@ -367,7 +367,7 @@
    "return": -49.737,
    "final_distance_m": 7.568,
    "final_heading_error_deg": 75.19,
-   "latency_ms": 0.0115
+   "latency_ms": 0.0109
   },
   {
    "seed": 100027,
@@ -380,7 +380,7 @@
    "return": -49.398,
    "final_distance_m": 8.778,
    "final_heading_error_deg": 79.59,
-   "latency_ms": 0.0112
+   "latency_ms": 0.011
   },
   {
    "seed": 100028,
@@ -393,7 +393,7 @@
    "return": -50.02,
    "final_distance_m": 9.674,
    "final_heading_error_deg": 77.52,
-   "latency_ms": 0.0111
+   "latency_ms": 0.0107
   },
   {
    "seed": 100029,
@@ -406,7 +406,7 @@
    "return": -49.24,
    "final_distance_m": 9.025,
    "final_heading_error_deg": 76.76,
-   "latency_ms": 0.0112
+   "latency_ms": 0.0107
   },
   {
    "seed": 100030,
@@ -419,7 +419,7 @@
    "return": 105.1,
    "final_distance_m": 0.66,
    "final_heading_error_deg": 7.19,
-   "latency_ms": 0.0112
+   "latency_ms": 0.011
   },
   {
    "seed": 100031,
@@ -427,12 +427,12 @@
    "success": true,
    "terminated": true,
    "truncated": false,
-   "steps": 61,
-   "time_s": 12.2,
-   "return": 106.191,
-   "final_distance_m": 0.383,
-   "final_heading_error_deg": 1.72,
-   "latency_ms": 0.0107
+   "steps": 67,
+   "time_s": 13.4,
+   "return": 105.587,
+   "final_distance_m": 0.33,
+   "final_heading_error_deg": 4.64,
+   "latency_ms": 0.0108
   },
   {
    "seed": 100032,
@@ -445,7 +445,7 @@
    "return": -58.641,
    "final_distance_m": 15.081,
    "final_heading_error_deg": 7.7,
-   "latency_ms": 0.0109
+   "latency_ms": 0.0108
   },
   {
    "seed": 100033,
@@ -458,7 +458,7 @@
    "return": -49.702,
    "final_distance_m": 7.148,
    "final_heading_error_deg": 72.0,
-   "latency_ms": 0.0111
+   "latency_ms": 0.0109
   },
   {
    "seed": 100034,
@@ -471,7 +471,7 @@
    "return": -49.734,
    "final_distance_m": 10.12,
    "final_heading_error_deg": 74.21,
-   "latency_ms": 0.0115
+   "latency_ms": 0.0108
   },
   {
    "seed": 100035,
@@ -484,7 +484,7 @@
    "return": -50.052,
    "final_distance_m": 9.442,
    "final_heading_error_deg": 75.61,
-   "latency_ms": 0.0111
+   "latency_ms": 0.0108
   },
   {
    "seed": 100036,
@@ -497,7 +497,7 @@
    "return": -49.663,
    "final_distance_m": 9.594,
    "final_heading_error_deg": 78.53,
-   "latency_ms": 0.0113
+   "latency_ms": 0.0111
   },
   {
    "seed": 100037,
@@ -510,7 +510,7 @@
    "return": -49.182,
    "final_distance_m": 8.747,
    "final_heading_error_deg": 78.31,
-   "latency_ms": 0.011
+   "latency_ms": 0.0109
   },
   {
    "seed": 100038,
@@ -536,7 +536,7 @@
    "return": -49.541,
    "final_distance_m": 8.741,
    "final_heading_error_deg": 78.21,
-   "latency_ms": 0.0111
+   "latency_ms": 0.011
   },
   {
    "seed": 100040,
@@ -544,12 +544,12 @@
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 64,
-   "time_s": 12.8,
-   "return": -59.895,
-   "final_distance_m": 15.104,
-   "final_heading_error_deg": 3.54,
-   "latency_ms": 0.0113
+   "steps": 75,
+   "time_s": 15.0,
+   "return": -60.644,
+   "final_distance_m": 15.152,
+   "final_heading_error_deg": 0.06,
+   "latency_ms": 0.0109
   },
   {
    "seed": 100041,
@@ -562,7 +562,7 @@
    "return": -49.841,
    "final_distance_m": 8.988,
    "final_heading_error_deg": 80.23,
-   "latency_ms": 0.0115
+   "latency_ms": 0.0112
   },
   {
    "seed": 100042,
@@ -575,7 +575,7 @@
    "return": -49.978,
    "final_distance_m": 9.871,
    "final_heading_error_deg": 77.8,
-   "latency_ms": 0.0121
+   "latency_ms": 0.011
   },
   {
    "seed": 100043,
@@ -588,7 +588,7 @@
    "return": 105.768,
    "final_distance_m": 0.224,
    "final_heading_error_deg": 1.02,
-   "latency_ms": 0.0107
+   "latency_ms": 0.0109
   },
   {
    "seed": 100044,
@@ -601,7 +601,7 @@
    "return": -49.532,
    "final_distance_m": 9.251,
    "final_heading_error_deg": 76.17,
-   "latency_ms": 0.0124
+   "latency_ms": 0.0118
   },
   {
    "seed": 100045,
@@ -614,7 +614,7 @@
    "return": -49.829,
    "final_distance_m": 9.793,
    "final_heading_error_deg": 77.82,
-   "latency_ms": 0.0116
+   "latency_ms": 0.0112
   },
   {
    "seed": 100046,
@@ -627,7 +627,7 @@
    "return": -49.601,
    "final_distance_m": 9.812,
    "final_heading_error_deg": 78.39,
-   "latency_ms": 0.0112
+   "latency_ms": 0.0107
   },
   {
    "seed": 100047,
@@ -640,7 +640,7 @@
    "return": 105.39,
    "final_distance_m": 0.319,
    "final_heading_error_deg": 1.15,
-   "latency_ms": 0.0112
+   "latency_ms": 0.011
   },
   {
    "seed": 100048,
@@ -653,7 +653,7 @@
    "return": -55.424,
    "final_distance_m": 10.229,
    "final_heading_error_deg": 6.98,
-   "latency_ms": 0.011
+   "latency_ms": 0.0109
   },
   {
    "seed": 100049,
@@ -666,7 +666,7 @@
    "return": -50.129,
    "final_distance_m": 8.094,
    "final_heading_error_deg": 72.94,
-   "latency_ms": 0.0117
+   "latency_ms": 0.011
   },
   {
    "seed": 100050,
@@ -679,7 +679,7 @@
    "return": -55.697,
    "final_distance_m": 10.355,
    "final_heading_error_deg": 2.68,
-   "latency_ms": 0.0112
+   "latency_ms": 0.011
   },
   {
    "seed": 100051,
@@ -692,7 +692,7 @@
    "return": -49.996,
    "final_distance_m": 7.654,
    "final_heading_error_deg": 75.75,
-   "latency_ms": 0.0109
+   "latency_ms": 0.0111
   },
   {
    "seed": 100052,
@@ -718,7 +718,7 @@
    "return": -50.444,
    "final_distance_m": 7.664,
    "final_heading_error_deg": 78.99,
-   "latency_ms": 0.0111
+   "latency_ms": 0.0114
   },
   {
    "seed": 100054,
@@ -735,16 +735,16 @@
   },
   {
    "seed": 100055,
-   "outcome": "pedestrian",
-   "success": false,
+   "outcome": "success",
+   "success": true,
    "terminated": true,
    "truncated": false,
-   "steps": 20,
-   "time_s": 4.0,
-   "return": -48.583,
-   "final_distance_m": 5.665,
-   "final_heading_error_deg": 47.49,
-   "latency_ms": 0.0111
+   "steps": 58,
+   "time_s": 11.6,
+   "return": 104.629,
+   "final_distance_m": 0.693,
+   "final_heading_error_deg": 3.41,
+   "latency_ms": 0.0109
   },
   {
    "seed": 100056,
@@ -757,7 +757,7 @@
    "return": 104.114,
    "final_distance_m": 0.249,
    "final_heading_error_deg": 6.58,
-   "latency_ms": 0.011
+   "latency_ms": 0.0109
   },
   {
    "seed": 100057,
@@ -770,7 +770,7 @@
    "return": -49.978,
    "final_distance_m": 9.549,
    "final_heading_error_deg": 78.98,
-   "latency_ms": 0.0117
+   "latency_ms": 0.011
   },
   {
    "seed": 100058,
@@ -783,7 +783,7 @@
    "return": -49.902,
    "final_distance_m": 8.227,
    "final_heading_error_deg": 77.08,
-   "latency_ms": 0.0118
+   "latency_ms": 0.0109
   },
   {
    "seed": 100059,
@@ -796,7 +796,7 @@
    "return": -54.444,
    "final_distance_m": 10.327,
    "final_heading_error_deg": 12.68,
-   "latency_ms": 0.011
+   "latency_ms": 0.0108
   },
   {
    "seed": 100060,
@@ -822,7 +822,7 @@
    "return": -51.209,
    "final_distance_m": 8.696,
    "final_heading_error_deg": 81.32,
-   "latency_ms": 0.0107
+   "latency_ms": 0.0106
   },
   {
    "seed": 100062,
@@ -835,7 +835,7 @@
    "return": -49.439,
    "final_distance_m": 9.202,
    "final_heading_error_deg": 76.71,
-   "latency_ms": 0.011
+   "latency_ms": 0.0109
   },
   {
    "seed": 100063,
@@ -865,16 +865,16 @@
   },
   {
    "seed": 100065,
-   "outcome": "pedestrian",
+   "outcome": "timeout",
    "success": false,
-   "terminated": true,
-   "truncated": false,
-   "steps": 20,
-   "time_s": 4.0,
-   "return": -48.0,
-   "final_distance_m": 6.548,
-   "final_heading_error_deg": 38.61,
-   "latency_ms": 0.0109
+   "terminated": false,
+   "truncated": true,
+   "steps": 200,
+   "time_s": 40.0,
+   "return": -6.226,
+   "final_distance_m": 5.744,
+   "final_heading_error_deg": 26.18,
+   "latency_ms": 0.0107
   },
   {
    "seed": 100066,
@@ -887,7 +887,7 @@
    "return": 105.633,
    "final_distance_m": 0.32,
    "final_heading_error_deg": 0.64,
-   "latency_ms": 0.0108
+   "latency_ms": 0.0111
   },
   {
    "seed": 100067,
@@ -900,7 +900,7 @@
    "return": -49.851,
    "final_distance_m": 9.864,
    "final_heading_error_deg": 80.66,
-   "latency_ms": 0.0109
+   "latency_ms": 0.0127
   },
   {
    "seed": 100068,
@@ -908,12 +908,12 @@
    "success": true,
    "terminated": true,
    "truncated": false,
-   "steps": 48,
-   "time_s": 9.6,
-   "return": 105.941,
-   "final_distance_m": 0.771,
-   "final_heading_error_deg": 0.88,
-   "latency_ms": 0.0111
+   "steps": 46,
+   "time_s": 9.2,
+   "return": 106.133,
+   "final_distance_m": 0.68,
+   "final_heading_error_deg": 0.82,
+   "latency_ms": 0.0115
   },
   {
    "seed": 100069,
@@ -926,7 +926,7 @@
    "return": -49.759,
    "final_distance_m": 8.411,
    "final_heading_error_deg": 74.22,
-   "latency_ms": 0.011
+   "latency_ms": 0.0113
   },
   {
    "seed": 100070,
@@ -952,7 +952,7 @@
    "return": -49.963,
    "final_distance_m": 9.629,
    "final_heading_error_deg": 82.54,
-   "latency_ms": 0.011
+   "latency_ms": 0.0109
   },
   {
    "seed": 100072,
@@ -965,7 +965,7 @@
    "return": -49.984,
    "final_distance_m": 8.481,
    "final_heading_error_deg": 79.79,
-   "latency_ms": 0.0109
+   "latency_ms": 0.0111
   },
   {
    "seed": 100073,
@@ -973,11 +973,11 @@
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 78,
-   "time_s": 15.6,
-   "return": -62.134,
-   "final_distance_m": 15.166,
-   "final_heading_error_deg": 0.65,
+   "steps": 147,
+   "time_s": 29.4,
+   "return": -65.719,
+   "final_distance_m": 15.15,
+   "final_heading_error_deg": 0.22,
    "latency_ms": 0.0111
   },
   {
@@ -991,7 +991,7 @@
    "return": 105.436,
    "final_distance_m": 0.213,
    "final_heading_error_deg": 0.15,
-   "latency_ms": 0.011
+   "latency_ms": 0.0108
   },
   {
    "seed": 100075,
@@ -999,12 +999,12 @@
    "success": true,
    "terminated": true,
    "truncated": false,
-   "steps": 56,
-   "time_s": 11.2,
-   "return": 105.144,
-   "final_distance_m": 0.26,
-   "final_heading_error_deg": 0.79,
-   "latency_ms": 0.0115
+   "steps": 55,
+   "time_s": 11.0,
+   "return": 105.303,
+   "final_distance_m": 0.73,
+   "final_heading_error_deg": 1.51,
+   "latency_ms": 0.0112
   },
   {
    "seed": 100076,
@@ -1012,12 +1012,12 @@
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 43,
-   "time_s": 8.6,
-   "return": -55.242,
-   "final_distance_m": 10.187,
-   "final_heading_error_deg": 9.54,
-   "latency_ms": 0.011
+   "steps": 136,
+   "time_s": 27.2,
+   "return": -59.27,
+   "final_distance_m": 10.166,
+   "final_heading_error_deg": 11.67,
+   "latency_ms": 0.0109
   },
   {
    "seed": 100077,
@@ -1030,7 +1030,7 @@
    "return": -51.15,
    "final_distance_m": 7.323,
    "final_heading_error_deg": 81.74,
-   "latency_ms": 0.0107
+   "latency_ms": 0.0109
   },
   {
    "seed": 100078,
@@ -1043,7 +1043,7 @@
    "return": -52.822,
    "final_distance_m": 10.025,
    "final_heading_error_deg": 25.11,
-   "latency_ms": 0.0109
+   "latency_ms": 0.011
   },
   {
    "seed": 100079,
@@ -1056,7 +1056,7 @@
    "return": -49.87,
    "final_distance_m": 8.438,
    "final_heading_error_deg": 79.91,
-   "latency_ms": 0.011
+   "latency_ms": 0.0114
   },
   {
    "seed": 100080,
@@ -1069,20 +1069,20 @@
    "return": -61.421,
    "final_distance_m": 15.172,
    "final_heading_error_deg": 0.27,
-   "latency_ms": 0.0108
+   "latency_ms": 0.011
   },
   {
    "seed": 100081,
-   "outcome": "success",
-   "success": true,
-   "terminated": true,
-   "truncated": false,
-   "steps": 61,
-   "time_s": 12.2,
-   "return": 105.373,
-   "final_distance_m": 0.284,
-   "final_heading_error_deg": 3.21,
-   "latency_ms": 0.0107
+   "outcome": "timeout",
+   "success": false,
+   "terminated": false,
+   "truncated": true,
+   "steps": 200,
+   "time_s": 40.0,
+   "return": -6.109,
+   "final_distance_m": 5.686,
+   "final_heading_error_deg": 22.39,
+   "latency_ms": 0.0106
   },
   {
    "seed": 100082,
@@ -1095,7 +1095,7 @@
    "return": -49.987,
    "final_distance_m": 9.899,
    "final_heading_error_deg": 75.24,
-   "latency_ms": 0.0111
+   "latency_ms": 0.0108
   },
   {
    "seed": 100083,
@@ -1108,7 +1108,7 @@
    "return": -49.999,
    "final_distance_m": 8.86,
    "final_heading_error_deg": 79.94,
-   "latency_ms": 0.0109
+   "latency_ms": 0.0107
   },
   {
    "seed": 100084,
@@ -1121,7 +1121,7 @@
    "return": 104.085,
    "final_distance_m": 0.264,
    "final_heading_error_deg": 7.88,
-   "latency_ms": 0.0108
+   "latency_ms": 0.0112
   },
   {
    "seed": 100085,
@@ -1134,7 +1134,7 @@
    "return": -49.905,
    "final_distance_m": 10.043,
    "final_heading_error_deg": 72.74,
-   "latency_ms": 0.0109
+   "latency_ms": 0.0115
   },
   {
    "seed": 100086,
@@ -1147,7 +1147,7 @@
    "return": -49.49,
    "final_distance_m": 10.405,
    "final_heading_error_deg": 79.28,
-   "latency_ms": 0.011
+   "latency_ms": 0.0139
   },
   {
    "seed": 100087,
@@ -1160,7 +1160,7 @@
    "return": -50.047,
    "final_distance_m": 9.441,
    "final_heading_error_deg": 77.6,
-   "latency_ms": 0.011
+   "latency_ms": 0.0113
   },
   {
    "seed": 100088,
@@ -1173,7 +1173,7 @@
    "return": -50.228,
    "final_distance_m": 9.018,
    "final_heading_error_deg": 79.98,
-   "latency_ms": 0.011
+   "latency_ms": 0.0108
   },
   {
    "seed": 100089,
@@ -1181,12 +1181,12 @@
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 7,
-   "time_s": 1.4,
-   "return": -49.744,
-   "final_distance_m": 9.386,
-   "final_heading_error_deg": 74.89,
-   "latency_ms": 0.0111
+   "steps": 8,
+   "time_s": 1.6,
+   "return": -49.808,
+   "final_distance_m": 9.4,
+   "final_heading_error_deg": 74.1,
+   "latency_ms": 0.0109
   },
   {
    "seed": 100090,
@@ -1212,7 +1212,7 @@
    "return": 104.938,
    "final_distance_m": 0.273,
    "final_heading_error_deg": 3.67,
-   "latency_ms": 0.0108
+   "latency_ms": 0.0114
   },
   {
    "seed": 100092,
@@ -1220,11 +1220,11 @@
    "success": false,
    "terminated": true,
    "truncated": false,
-   "steps": 29,
-   "time_s": 5.8,
-   "return": -53.171,
-   "final_distance_m": 10.084,
-   "final_heading_error_deg": 20.31,
+   "steps": 37,
+   "time_s": 7.4,
+   "return": -53.58,
+   "final_distance_m": 10.094,
+   "final_heading_error_deg": 21.87,
    "latency_ms": 0.011
   },
   {
@@ -1238,7 +1238,7 @@
    "return": -50.03,
    "final_distance_m": 9.988,
    "final_heading_error_deg": 76.28,
-   "latency_ms": 0.0111
+   "latency_ms": 0.0108
   },
   {
    "seed": 100094,
@@ -1246,12 +1246,12 @@
    "success": true,
    "terminated": true,
    "truncated": false,
-   "steps": 53,
-   "time_s": 10.6,
-   "return": 105.163,
-   "final_distance_m": 0.681,
-   "final_heading_error_deg": 3.13,
-   "latency_ms": 0.0109
+   "steps": 184,
+   "time_s": 36.8,
+   "return": 98.463,
+   "final_distance_m": 0.324,
+   "final_heading_error_deg": 2.12,
+   "latency_ms": 0.0107
   },
   {
    "seed": 100095,
@@ -1264,7 +1264,7 @@
    "return": -49.918,
    "final_distance_m": 9.698,
    "final_heading_error_deg": 75.84,
-   "latency_ms": 0.011
+   "latency_ms": 0.0112
   },
   {
    "seed": 100096,
@@ -1277,7 +1277,7 @@
    "return": -49.438,
    "final_distance_m": 9.536,
    "final_heading_error_deg": 80.15,
-   "latency_ms": 0.0109
+   "latency_ms": 0.0111
   },
   {
    "seed": 100097,
@@ -1290,7 +1290,7 @@
    "return": -49.919,
    "final_distance_m": 9.523,
    "final_heading_error_deg": 80.94,
-   "latency_ms": 0.0109
+   "latency_ms": 0.0111
   },
   {
    "seed": 100098,
@@ -1303,7 +1303,7 @@
    "return": -49.79,
    "final_distance_m": 9.98,
    "final_heading_error_deg": 72.95,
-   "latency_ms": 0.0109
+   "latency_ms": 0.011
   },
   {
    "seed": 100099,
@@ -1316,7 +1316,7 @@
    "return": -52.499,
    "final_distance_m": 10.203,
    "final_heading_error_deg": 30.68,
-   "latency_ms": 0.0108
+   "latency_ms": 0.0115
   }
  ]
 }

@@ -1,0 +1,69 @@
+{
+  "run_id": "N2-exp07-ppo-ft-v9-s42-0ca41fe6",
+  "experiment_id": "N2-exp07-ppo-ft-v9",
+  "level_id": "N2",
+  "agent": "ppo",
+  "hypothesis": "En parking-v9 los conos ya no tapan la zona de giro hacia el cupo (en v3, con un cono a menos de 4.5 m de la entrada el modelo servido solo estacionaba 58 % de las veces; a más de 6 m, 97 %). El modelo servido de v3 baja a 50 % en v9 porque arranca más lejos y el cono bloqueante cambió de lugar; continuarlo 1 500 000 pasos en v9 lleva las 3 semillas por encima del 85 %.",
+  "change_vs_baseline": "Continúa N2-exp06-ppo-curriculo-3m-s44-7f36a120 en N2 con parking-v9 (fair_cones); 1 500 000 pasos, ent_coef 0.01.",
+  "environment_version": "parking-v9",
+  "environment_kwargs": {
+    "difficulty": "hard",
+    "sensor_noise": 0.0,
+    "pedestrians": 0,
+    "cones": 3,
+    "blocking_cones": 1,
+    "bumper_sensors": 5,
+    "crossing_pedestrians": 0,
+    "fair_cones": true
+  },
+  "observation_shape": [
+    19
+  ],
+  "git_commit": "9efbc619e307c4f81d013baa4c868d0b83d1b13e",
+  "git_branch": "feature/conos-justos",
+  "git_dirty": false,
+  "config_uri": "artifacts/N2/N2-exp07-ppo-ft-v9-s42-0ca41fe6/config.json",
+  "config_sha256": "5f632c5c111bee470bba6154b5cb7a74505ee435de53c54af65632fe8774f675",
+  "seed": 42,
+  "parent_run_id": "N2-exp06-ppo-curriculo-3m-s44-7f36a120",
+  "origin": "continuación de checkpoint",
+  "parent_model_sha256": "dee5936a73a879dac19bf79324d2fd88dc459d89512632b8a89dd410327b60b3",
+  "evaluation_suite_id": "N2-suite-v1",
+  "mlflow": {
+    "tracking_uri": "sqlite:///mlflow.db",
+    "experiment": "parking-N2",
+    "run_id": "0ca41fe627654689b2d6aa36414cf9a4"
+  },
+  "created_at": "2026-11-19T05:24:39+00:00",
+  "status": "completed",
+  "model_uri": "artifacts/N2/N2-exp07-ppo-ft-v9-s42-0ca41fe6/model.zip",
+  "model_sha256": "be062bfc1154a8ddf4b74a037f0d612a7b712c40d49477cb84e6b70075fe77cb",
+  "normalization_uri": "envs/parking_env.py#ParkingEnv._observation (escalado fijo dentro del ambiente; sin normalización aprendida)",
+  "observation_contract": "Box(19,) float32 · ver docs/ficha_ambiente.md",
+  "action_contract": "Discrete(5): avanzar, retroceder, izquierda, derecha, frenar",
+  "runtime_ref": "python 3.12.7 · requirements.lock.txt sha256:76cff4f909c98d69",
+  "budget": {
+    "timesteps": 1500000,
+    "episodes": 34368,
+    "env_steps": 1500000,
+    "wall_time_s": 2471.4
+  },
+  "optimizer_state": "no guardado: los runs no se continúan desde este checkpoint",
+  "evaluation_uri": "artifacts/N2/N2-exp07-ppo-ft-v9-s42-0ca41fe6/evaluation.json",
+  "evaluation_summary": {
+    "episodes": 100,
+    "success_rate": 0.68,
+    "outcomes": {
+      "success": 68,
+      "obstacle": 16,
+      "pedestrian": 0,
+      "boundary": 0,
+      "timeout": 16
+    },
+    "mean_return": 60.02,
+    "mean_time_s": 11.718,
+    "mean_final_distance_m": 3.345,
+    "mean_final_heading_error_deg": 25.931,
+    "mean_latency_ms": 0.276
+  }
+}

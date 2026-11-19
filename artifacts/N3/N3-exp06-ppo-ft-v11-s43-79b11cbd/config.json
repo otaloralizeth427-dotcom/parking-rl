@@ -1,0 +1,45 @@
+{
+  "experiment_id": "N3-exp06-ppo-ft-v11",
+  "level_id": "N3",
+  "agent": "ppo",
+  "hypothesis": "En v10 quedaban atropellos porque el peatón daba un paso contra el auto detenido o giraba de golpe frente a un auto rápido. En parking-v11 (zona de precaución a 4 km/h y peatones que no caminan contra el auto) los modelos de v10 ya tienen 0 atropellos en 300 casos; continuar el mejor (94 % en la suite de v10 con 2 atropellos) 500 000 pasos en v11 baja los tiempos agotados y mantiene 0 atropellos en las 3 semillas.",
+  "change_vs_baseline": "Continúa N3-exp05-ppo-ft-v10-s42-2534cccb en N3 con parking-v11 (safety_brake=2); 500 000 pasos, ent_coef 0.01.",
+  "parent_run_id": "N3-exp05-ppo-ft-v10-s42-2534cccb",
+  "seed": 43,
+  "budget": {
+    "timesteps": 500000
+  },
+  "hyperparameters": {
+    "ent_coef": 0.01
+  },
+  "validation": {
+    "seed_start": 200000,
+    "episodes": 20,
+    "every": 25000
+  },
+  "environment_version": "parking-v11",
+  "level": {
+    "level_id": "N3",
+    "name": "Peatones cruzando",
+    "environment_version": "parking-v11",
+    "difficulty": "normal",
+    "cones": 0,
+    "blocking_cones": 0,
+    "pedestrians": 2,
+    "crossing_pedestrians": 1,
+    "bumper_sensors": 5,
+    "sensor_noise": 0.0,
+    "pedestrians_yield": true,
+    "pedestrians_evade": true,
+    "description": "Como N1 (arranque en el pasillo a 4-8 m del cupo) con 2 peatones que cruzan el pasillo de ida y vuelta. Uno de ellos cruza justo entre el auto y el cupo, en el momento en que el auto pasa por ahí. Los peatones nunca se quedan quietos: si el auto en movimiento se acerca a su camino se dan la vuelta y se alejan (o se apartan si el auto les queda encima); si el auto está quieto cediendo el paso, siguen cruzando. Mismos sensores de parachoques que N2. Desde parking-v11 el auto tiene freno de emergencia para peatones: si un peatón va a quedar en su recorrido, frena y espera a que termine de cruzar; con un peatón cerca adelante no pasa de 4 km/h, y los peatones nunca caminan contra el auto.",
+    "new_decision": "Perturbación con recuperación: frenar y ceder el paso cuando un peatón se atraviesa, y retomar el estacionamiento cuando pasa.",
+    "safety_brake": 2
+  },
+  "evaluation_suite": {
+    "suite_id": "N3-suite-v1",
+    "level_id": "N3",
+    "seed_start": 100000,
+    "episodes": 100,
+    "deterministic": true
+  }
+}

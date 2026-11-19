@@ -1,0 +1,1 @@
+{"at": "20261119T063936Z", "candidate": "N2-exp07-ppo-ft-v9-s43-ea914db6", "served_before": "N2-exp06-ppo-curriculo-3m-s44-7f36a120", "served_after": "N2-exp07-ppo-ft-v9-s43-ea914db6", "outcome": "promovido", "decision": {"promote": true, "reason": "Más éxito en la suite: 82% contra 49%"}, "dry_run": false}

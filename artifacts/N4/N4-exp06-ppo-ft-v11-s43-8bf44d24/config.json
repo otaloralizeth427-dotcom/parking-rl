@@ -1,0 +1,45 @@
+{
+  "experiment_id": "N4-exp06-ppo-ft-v11",
+  "level_id": "N4",
+  "agent": "ppo",
+  "hypothesis": "En v10 quedaban atropellos porque el peatón daba un paso contra el auto detenido o giraba de golpe frente a un auto rápido. En parking-v11 (zona de precaución a 4 km/h y peatones que no caminan contra el auto) los modelos de v10 ya tienen 0 atropellos en 300 casos; continuar el mejor (92 % en la suite de v10) 500 000 pasos en v11 baja los tiempos agotados y mantiene 0 atropellos en las 3 semillas.",
+  "change_vs_baseline": "Continúa N4-exp05-ppo-ft-v10-s42-78afcbdf en N4 con parking-v11 (safety_brake=2); 500 000 pasos, ent_coef 0.01.",
+  "parent_run_id": "N4-exp05-ppo-ft-v10-s42-78afcbdf",
+  "seed": 43,
+  "budget": {
+    "timesteps": 500000
+  },
+  "hyperparameters": {
+    "ent_coef": 0.01
+  },
+  "validation": {
+    "seed_start": 200000,
+    "episodes": 20,
+    "every": 25000
+  },
+  "environment_version": "parking-v11",
+  "level": {
+    "level_id": "N4",
+    "name": "Todo junto",
+    "environment_version": "parking-v11",
+    "difficulty": "hard",
+    "cones": 3,
+    "blocking_cones": 1,
+    "pedestrians": 2,
+    "crossing_pedestrians": 1,
+    "pedestrians_yield": true,
+    "pedestrians_evade": true,
+    "bumper_sensors": 5,
+    "sensor_noise": 0.1,
+    "description": "La unión de N2 y N3 con sensores imprecisos: 3 conos sueltos y 1 en la línea recta hacia el cupo (N2), 2 peatones que cruzan el pasillo, uno de ellos entre el auto y el cupo justo después del cono (N3), y ruido gaussiano en los sensores (σ = 0.1 m en las distancias y 0.05 m en la posición relativa del cupo). Mismos 19 valores de observación que N2 y N3. Los peatones nunca se quedan quietos: si el auto se acerca, se alejan o se apartan. Desde parking-v11 el auto tiene freno de emergencia para peatones: si un peatón va a quedar en su recorrido, frena y espera a que termine de cruzar; con un peatón cerca adelante no pasa de 4 km/h, y los peatones nunca caminan contra el auto.",
+    "new_decision": "Combinar todo: rodear el cono, ceder el paso al peatón y estacionar con mediciones que tiemblan.",
+    "safety_brake": 2
+  },
+  "evaluation_suite": {
+    "suite_id": "N4-suite-v1",
+    "level_id": "N4",
+    "seed_start": 100000,
+    "episodes": 100,
+    "deterministic": true
+  }
+}
