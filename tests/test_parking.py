@@ -841,3 +841,38 @@ def test_metrics_count_finished_episodes_and_latency(client):
     level = after["levels"]["N1"]
     assert level["agents"]["rule"]["episodes"] >= 1
     assert after["step_latency_ms"]["p95"] >= 0 and "N5" in after["served"]
+
+
+# ---------------------------------------------------------------- pipeline (Prefect)
+def test_pipeline_selection_criterion():
+    from pipelines.flow import select
+    served = {"run_id": "A", "success_rate": 0.9, "mean_time_s": 10.0}
+    assert select.fn({"candidate": {"run_id": "B", "success_rate": 0.95, "mean_time_s": 20.0}, "served": served})["promote"]
+    assert select.fn({"candidate": {"run_id": "B", "success_rate": 0.9, "mean_time_s": 9.5}, "served": served})["promote"]
+    assert not select.fn({"candidate": {"run_id": "B", "success_rate": 0.9, "mean_time_s": 9.9}, "served": served})["promote"]
+    assert not select.fn({"candidate": {"run_id": "B", "success_rate": 0.8, "mean_time_s": 5.0}, "served": served})["promote"]
+    assert not select.fn({"candidate": {"run_id": "A", "success_rate": 0.9, "mean_time_s": 10.0}, "served": served})["promote"]
+    assert select.fn({"candidate": {"run_id": "B", "success_rate": 0.1, "mean_time_s": 50.0}})["promote"]
+
+
+def test_pipeline_validation_rejects_bad_requests():
+    from pipelines.flow import validate
+    with pytest.raises(ValueError):
+        validate.fn("N9", None, "x", None)
+    with pytest.raises(ValueError):
+        validate.fn("N5", None, None, None)                              # ni experimento ni checkpoint
+    with pytest.raises(ValueError):
+        validate.fn("N1", None, _completed_runs("N5")[0], None)          # checkpoint de otro nivel
+    plan = validate.fn("N5", None, _completed_runs("N5")[0], None)
+    assert plan["mode"] == "load" and plan["suite_id"] == "N5-suite-v1"
+
+
+def test_pipeline_verification_rolls_back_a_broken_promotion(serving_dir, monkeypatch):
+    from agents.serving import promote, served_run
+    from pipelines import flow
+    a, b = _completed_runs("N5")[:2]
+    promote("N5", a, "inicial")
+    promote("N5", b, "candidato")
+    # Si la versión servida no es la esperada, el paso 8 revierte solo
+    result = flow.verify_served.fn("N5", "N5-otro-run", promoted=True)
+    assert result["ok"] is False and served_run("N5") == a
